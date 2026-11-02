@@ -91,11 +91,27 @@ export interface Memory {
     updated_at: string;
 }
 
-/** Agent currently working, fed by `agent.*` events (Phase 11). */
-export interface ActiveAgent {
-    name: string;
-    status: AssistantState | TaskStatus;
-    running: boolean;
+/** Agent run currently working, fed by `agent.*` events (Phase 12). */
+export interface AgentActivity {
+    execution_id: number;
+    /** Agent slug (e.g. `personal-assistant`). */
+    agent: string;
+    depth: number;
+    parent_id: number | null;
+    status: 'running' | 'completed' | 'failed' | 'timed_out';
+    progress_note: string | null;
+    /** Client epoch ms of `agent.started`; duration is computed on finish. */
+    started_at: number;
+}
+
+/** Finished agent run shown in the side panel history (Phase 12). */
+export interface AgentHistoryEntry {
+    execution_id: number;
+    agent: string;
+    depth: number;
+    parent_id: number | null;
+    status: 'completed' | 'failed' | 'timed_out';
+    duration_ms: number;
 }
 
 /** Background task card shown in the side panel, fed by task events (Phase 12). */

@@ -14,11 +14,14 @@ use App\Models\Message;
 use App\Models\MessageRole;
 use App\Models\ResultType;
 use App\Models\User;
+use App\Services\AgentRunner;
 use App\Services\BrainClient;
 use App\Services\BrainRequest;
 use App\Services\ContextBuilder;
 use App\Services\MemoryContextSource;
 use App\Services\MessageRouter;
+use App\Services\RoutedMessage;
+use App\Services\RunOptions;
 use App\Tools\RememberMemoryTool;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -88,6 +91,12 @@ class ProcessUserMessage implements ShouldQueue
     {
         $routed = app(MessageRouter::class)->route($this->userMessage);
 
+        if ($routed->agent !== null) {
+            $this->runAgentReply($conversation, $user, $assistantMessage, $routed);
+
+            return;
+        }
+
         $history = app(ContextBuilder::class)->build(
             $conversation,
             $routed->model,
@@ -139,6 +148,54 @@ class ProcessUserMessage implements ShouldQueue
 
         // After the completed event, the low-priority job proposes memory
         // hypotheses for this exchange (US-6.2).
+        ExtractMemoryHypotheses::dispatch($assistantMessage)->onConnection('redis')->onQueue('low');
+
+        $conversation->touchActivity();
+
+        $this->dispatchTitleJob($conversation);
+    }
+
+    /**
+     * A routed agent run (Phase 12): the agent streams into the assistant
+     * message, which is persisted from the execution output afterwards.
+     */
+    private function runAgentReply(Conversation $conversation, User $user, Message $assistantMessage, RoutedMessage $routed): void
+    {
+        $prompt = $routed->prompt ?? $this->userMessage->content;
+
+        $execution = app(AgentRunner::class)->run(
+            $routed->agent,
+            $user,
+            $prompt,
+            new RunOptions(
+                conversation: $conversation,
+                message: $assistantMessage,
+                contextSources: [
+                    app(MemoryContextSource::class, ['user' => $user, 'query' => $prompt]),
+                ],
+            ),
+        );
+
+        if ($execution->execution_status_id !== ExecutionStatus::idFor(ExecutionStatus::COMPLETED)) {
+            $this->failReply($assistantMessage, $user, $conversation, 'agent_failed', new \RuntimeException((string) ($execution->error ?? '')));
+
+            return;
+        }
+
+        $content = (string) ($execution->meta['output'] ?? '');
+
+        $assistantMessage->update([
+            'content' => $content,
+            'payload' => ['type' => ResultType::TEXT, 'text' => $content],
+            'result_type_id' => ResultType::idFor(ResultType::TEXT),
+            'ai_model_id' => $routed->agent->effectiveModel()->id,
+            'agent_id' => $routed->agent->id,
+            'execution_status_id' => ExecutionStatus::idFor(ExecutionStatus::COMPLETED),
+        ]);
+
+        AssistantResponseCompleted::dispatch($user, $assistantMessage->fresh());
+        AssistantStateChanged::dispatch($user, AssistantStateChanged::IDLE, $conversation->id);
+
         ExtractMemoryHypotheses::dispatch($assistantMessage)->onConnection('redis')->onQueue('low');
 
         $conversation->touchActivity();

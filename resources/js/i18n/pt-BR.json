@@ -86,7 +86,8 @@
     "unknown": "Desconhecido",
     "approved": "Aprovada",
     "denied": "Negada",
-    "expired": "Expirada"
+    "expired": "Expirada",
+    "timed_out": "Tempo esgotado"
   },
   "clock": {
     "label": "Relógio"
@@ -130,7 +131,8 @@
     "memoryInsights": "Memory insights",
     "memoriesConfirmed": "Confirmadas",
     "memoriesHypotheses": "Hipóteses",
-    "openMemories": "Gerenciar memórias"
+    "openMemories": "Gerenciar memórias",
+    "depth": "nível {depth}"
   },
   "empty": {
     "agents": "Nenhum agente ativo",

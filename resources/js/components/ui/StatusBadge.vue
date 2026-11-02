@@ -20,7 +20,7 @@ const tones = {
 
 type Tone = keyof typeof tones;
 
-const statusTones: Record<AssistantState | TaskStatus | MemoryStatus | ApprovalStatus, Tone> = {
+const statusTones: Record<AssistantState | TaskStatus | MemoryStatus | ApprovalStatus | 'timed_out', Tone> = {
     IDLE: 'cyan',
     LISTENING: 'blue',
     THINKING: 'purple',
@@ -35,6 +35,7 @@ const statusTones: Record<AssistantState | TaskStatus | MemoryStatus | ApprovalS
     waiting_approval: 'amber',
     completed: 'cyan',
     failed: 'danger',
+    timed_out: 'danger',
     cancelled: 'muted',
     confirmed: 'cyan',
     hypothesis: 'amber',

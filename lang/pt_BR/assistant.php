@@ -15,5 +15,6 @@ return [
     'errors' => [
         'all_providers_failed' => 'Não consegui responder agora: todos os provedores de IA estão indisponíveis. Tente novamente em instantes.',
         'usage_limit_exceeded' => 'O limite mensal de uso de IA foi atingido. Fale com o administrador para continuar usando o JARVIS.',
+        'agent_failed' => 'Não consegui concluir esta solicitação: o agente responsável falhou. Detalhes ficaram registrados no histórico de execuções.',
     ],
 ];

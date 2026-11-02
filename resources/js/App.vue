@@ -2,6 +2,7 @@
 import { onMounted } from 'vue';
 import { RouterView, useRoute, useRouter } from 'vue-router';
 import HudToast from '@/components/ui/HudToast.vue';
+import { bindAgentEvents } from '@/composables/useAgentEvents';
 import { bindApprovalEvents } from '@/composables/useApprovalEvents';
 import { useRealtimeConnection } from '@/composables/useRealtimeConnection';
 import { useSpeechOutput } from '@/composables/useSpeechOutput';
@@ -29,7 +30,7 @@ const speaking = speech.speaking;
 const wakeWord = useWakeWord({ onWake: () => void voice.start() });
 const wakeWordActive = wakeWord.listening;
 
-useRealtimeConnection([(channel) => speech.bind(channel), bindToolEvents, bindApprovalEvents]);
+useRealtimeConnection([(channel) => speech.bind(channel), bindToolEvents, bindAgentEvents, bindApprovalEvents]);
 
 onMounted(() => {
     void preferences.ensureLoaded().catch(() => undefined);

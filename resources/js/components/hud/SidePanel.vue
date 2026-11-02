@@ -43,6 +43,7 @@ const showTasks = computed(() => props.expandedSection === null || props.expande
 onMounted(() => {
     models.load().catch(() => undefined);
     memories.loadSummary();
+    agents.loadHistory().catch(() => undefined);
 });
 
 const toolTone = {
@@ -59,6 +60,23 @@ function formatTimestamp(timestamp: string): string {
     }
 
     return new Intl.DateTimeFormat(locale.value, { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(date);
+}
+
+function formatDuration(durationMs: number): string {
+    if (durationMs < 1000) {
+        return `${Math.max(0, Math.round(durationMs))} ms`;
+    }
+
+    const totalSeconds = Math.round(durationMs / 1000);
+
+    if (totalSeconds < 60) {
+        return `${totalSeconds} s`;
+    }
+
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    return seconds > 0 ? `${minutes} min ${seconds} s` : `${minutes} min`;
 }
 </script>
 
@@ -83,13 +101,25 @@ function formatTimestamp(timestamp: string): string {
             <ul v-else class="flex min-w-0 flex-col gap-2">
                 <li
                     v-for="agent in agents.agents"
-                    :key="agent.name"
-                    class="flex items-center gap-2 border-b border-line/50 pb-2 last:border-none"
+                    :key="agent.execution_id"
+                    class="flex flex-col gap-1 border-b border-line/50 pb-2 last:border-none"
                     data-testid="panel-agent"
                 >
-                    <span class="hud-label min-w-0 flex-1 truncate text-[0.65rem] text-text">{{ agent.name }}</span>
-                    <StatusBadge :status="agent.status" />
-                    <Waveform v-if="agent.running" :level="0.4" :bars="7" />
+                    <div class="flex items-center gap-2">
+                        <span class="hud-label min-w-0 flex-1 truncate text-[0.65rem] text-text">{{ agent.agent }}</span>
+                        <span v-if="agent.depth > 0" class="hud-label shrink-0 text-[0.55rem] text-muted" data-testid="panel-agent-depth">
+                            {{ t('panel.depth', { depth: agent.depth }) }}
+                        </span>
+                        <StatusBadge :status="agent.status" />
+                        <Waveform :level="0.4" :bars="7" />
+                    </div>
+                    <span
+                        v-if="agent.progress_note"
+                        class="hud-label min-w-0 truncate text-[0.55rem] text-cyan/90"
+                        data-testid="panel-agent-note"
+                    >
+                        {{ agent.progress_note }}
+                    </span>
                 </li>
             </ul>
         </HudPanel>
@@ -150,22 +180,46 @@ function formatTimestamp(timestamp: string): string {
         </HudPanel>
 
         <HudPanel :title="t('panel.history')">
-            <EmptyState v-if="activity.entries.length === 0" :message="t('empty.history')" />
-            <ol
-                v-else
-                class="flex max-h-44 min-w-0 flex-col gap-1 overflow-y-auto font-mono text-[0.6rem] leading-relaxed"
-                data-testid="panel-activity-list"
-            >
-                <li
-                    v-for="entry in activity.entries"
-                    :key="entry.id"
-                    class="flex min-w-0 gap-2"
-                    data-testid="panel-activity-entry"
+            <EmptyState
+                v-if="agents.history.length === 0 && activity.entries.length === 0"
+                :message="t('empty.history')"
+            />
+            <template v-else>
+                <ul
+                    v-if="agents.history.length > 0"
+                    class="flex max-h-40 min-w-0 flex-col gap-1.5 overflow-y-auto"
+                    data-testid="panel-agent-history"
                 >
-                    <span class="shrink-0 text-muted">{{ formatTimestamp(entry.timestamp) }}</span>
-                    <span class="min-w-0 truncate text-cyan/90">{{ entry.text }}</span>
-                </li>
-            </ol>
+                    <li
+                        v-for="entry in agents.history"
+                        :key="entry.execution_id"
+                        class="flex items-center gap-2 border-b border-line/50 pb-1.5 last:border-none"
+                        data-testid="panel-agent-history-entry"
+                    >
+                        <span class="hud-label min-w-0 flex-1 truncate text-[0.65rem] text-text">{{ entry.agent }}</span>
+                        <span v-if="entry.depth > 0" class="hud-label shrink-0 text-[0.55rem] text-muted">
+                            {{ t('panel.depth', { depth: entry.depth }) }}
+                        </span>
+                        <span class="hud-label shrink-0 text-[0.55rem] text-muted">{{ formatDuration(entry.duration_ms) }}</span>
+                        <StatusBadge :status="entry.status" />
+                    </li>
+                </ul>
+                <ol
+                    v-if="activity.entries.length > 0"
+                    class="mt-2 flex max-h-44 min-w-0 flex-col gap-1 overflow-y-auto font-mono text-[0.6rem] leading-relaxed"
+                    data-testid="panel-activity-list"
+                >
+                    <li
+                        v-for="entry in activity.entries"
+                        :key="entry.id"
+                        class="flex min-w-0 gap-2"
+                        data-testid="panel-activity-entry"
+                    >
+                        <span class="shrink-0 text-muted">{{ formatTimestamp(entry.timestamp) }}</span>
+                        <span class="min-w-0 truncate text-cyan/90">{{ entry.text }}</span>
+                    </li>
+                </ol>
+            </template>
         </HudPanel>
 
         <HudPanel :title="t('panel.tools')">

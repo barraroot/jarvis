@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             SettingsSeeder::class,
             AdminUserSeeder::class,
             RememberMemoryToolSeeder::class,
+            AgentSeeder::class,
         ]);
     }
 }

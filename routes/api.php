@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Agents\AgentController;
+use App\Http\Controllers\Api\V1\Agents\AgentExecutionController;
 use App\Http\Controllers\Api\V1\Ai\ModelController;
 use App\Http\Controllers\Api\V1\Approvals\ApprovalController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
@@ -35,6 +37,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         });
 
         Route::get('ai/models', ModelController::class)->name('ai.models');
+
+        Route::get('agents', [AgentController::class, 'index'])->name('agents.index');
+        Route::get('agent-executions', [AgentExecutionController::class, 'index'])->name('agent-executions.index');
 
         Route::get('preferences', [PreferencesController::class, 'show'])->name('preferences.show');
         Route::put('preferences', [PreferencesController::class, 'update'])->name('preferences.update');

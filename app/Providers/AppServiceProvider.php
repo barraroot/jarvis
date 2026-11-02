@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
-use App\Services\DirectAnswerRouter;
+use App\Services\IntentRouter;
 use App\Services\MessageRouter;
 use App\Support\Settings;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -19,8 +19,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Phase 7 routes every message to a direct answer; the intent router (Phase 12) replaces this binding.
-        $this->app->bind(MessageRouter::class, DirectAnswerRouter::class);
+        // Phase 12 classifies each message and routes it to a direct answer,
+        // a tool/agent run or (Phase 13) a long task (US-3.3).
+        $this->app->bind(MessageRouter::class, IntentRouter::class);
     }
 
     /**
