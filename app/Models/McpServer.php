@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 #[Fillable([
     'user_id',
@@ -49,6 +51,42 @@ class McpServer extends Model
     public function isGlobal(): bool
     {
         return $this->user_id === null;
+    }
+
+    /**
+     * Slug used in catalogue identifiers (`mcp.<server_slug>.<tool>`, US-9.3).
+     */
+    public function slug(): string
+    {
+        return Str::slug($this->name, '_') ?: 'server_'.$this->getKey();
+    }
+
+    /**
+     * Users who can see this connector: the owner (personal) or every active user (global).
+     *
+     * @return Collection<int, User>
+     */
+    public function audience(): Collection
+    {
+        if (! $this->isGlobal()) {
+            return User::query()->whereKey($this->user_id)->where('is_active', true)->get();
+        }
+
+        return User::query()->where('is_active', true)->get();
+    }
+
+    /**
+     * Masked representation of the credential: `****` followed by the last four characters.
+     */
+    public function maskedCredential(): ?string
+    {
+        $credential = $this->credential;
+
+        if ($credential === null || $credential === '') {
+            return null;
+        }
+
+        return '****'.substr($credential, -4);
     }
 
     #[Scope]

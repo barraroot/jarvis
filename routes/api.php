@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\V1\Approvals\ApprovalController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\MeController;
+use App\Http\Controllers\Api\V1\Connectors\ConnectorController;
+use App\Http\Controllers\Api\V1\Connectors\ConnectorToolController;
 use App\Http\Controllers\Api\V1\Conversations\ConversationController;
 use App\Http\Controllers\Api\V1\Conversations\ConversationMessageController;
 use App\Http\Controllers\Api\V1\Memories\MemoryController;
@@ -71,6 +73,14 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::get('tasks/{task}', [TaskController::class, 'show'])->name('tasks.show');
         Route::post('tasks/{task}/cancel', [TaskController::class, 'cancel'])->name('tasks.cancel');
         Route::post('tasks/{task}/retry', [TaskController::class, 'retry'])->name('tasks.retry');
+
+        Route::get('connectors', [ConnectorController::class, 'index'])->name('connectors.index');
+        Route::post('connectors', [ConnectorController::class, 'store'])->name('connectors.store');
+        Route::patch('connectors/{connector}', [ConnectorController::class, 'update'])->name('connectors.update');
+        Route::delete('connectors/{connector}', [ConnectorController::class, 'destroy'])->name('connectors.destroy');
+        Route::post('connectors/{connector}/resync', [ConnectorController::class, 'resync'])->name('connectors.resync');
+        Route::get('connectors/{connector}/tools', [ConnectorToolController::class, 'index'])->name('connectors.tools.index');
+        Route::patch('connectors/{connector}/tools/{tool}', [ConnectorToolController::class, 'update'])->name('connectors.tools.update');
 
         Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');

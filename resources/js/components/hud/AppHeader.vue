@@ -52,6 +52,10 @@ const spokenLabel = computed(() =>
 );
 
 const hasConnectors = computed(() => connectors.connectedCount > 0 || connectors.errorCount > 0);
+/** "n conectados / m com erro" (US-9.4). */
+const connectorsSummary = computed(() =>
+    t('header.connectorsSummary', { connected: connectors.connectedCount, errors: connectors.errorCount }),
+);
 
 /** Mobile collapses everything into a "more" dropdown; desktop keeps its own user menu. */
 const moreOpen = ref(false);
@@ -208,17 +212,19 @@ onBeforeUnmount(() => {
                 </svg>
             </RouterLink>
 
-            <span
+            <RouterLink
                 v-if="hasConnectors"
-                class="hud-label inline-flex items-center gap-1 rounded-sm border border-line px-2 py-1.5 font-mono text-[0.6rem]"
-                :aria-label="t('header.connectors')"
+                :to="{ name: 'settings', hash: '#connectors' }"
+                class="hud-label inline-flex items-center gap-1 rounded-sm border border-line px-2 py-1.5 font-mono text-[0.6rem] hover:border-cyan"
+                :aria-label="connectorsSummary"
+                :title="connectorsSummary"
                 data-testid="header-connectors"
             >
-                <span class="size-1.5 rounded-full bg-cyan"></span>
+                <span class="size-1.5 rounded-full" :class="connectors.errorCount > 0 ? 'bg-danger' : 'bg-cyan'"></span>
                 <span class="text-cyan-bright">{{ connectors.connectedCount }}</span>
                 <span class="text-muted">/</span>
                 <span class="text-danger">{{ connectors.errorCount }}</span>
-            </span>
+            </RouterLink>
 
             <RouterLink
                 :to="{ name: 'memories' }"

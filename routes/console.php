@@ -13,3 +13,7 @@ Schedule::command('jarvis:approvals:expire')->everyMinute();
 
 // Expired execution data is pruned daily (Notes & Conventions, US-12.2).
 Schedule::command('jarvis:retention:prune')->daily();
+
+// MCP connectors are pinged every `connector.health_check_minutes` (default 5);
+// the command itself skips connectors checked within the interval (US-9.4).
+Schedule::command('jarvis:connectors:health-check')->everyMinute()->withoutOverlapping();

@@ -212,3 +212,51 @@ export interface ApprovalSummary {
     decided_at: string | null;
     decision_reason: string | null;
 }
+
+/** MCP connector status (US-9.4). */
+export type ConnectorStatus = 'pending' | 'connected' | 'error' | 'disconnected';
+
+/** `GET /api/v1/connectors` item (US-9.1/9.2): the credential is never sent, only `has_credential`. */
+export interface ConnectorSummary {
+    id: number;
+    name: string;
+    url: string;
+    scope: 'global' | 'personal';
+    is_active: boolean;
+    status: ConnectorStatus;
+    has_credential: boolean;
+    tools_count: number;
+    active_tools_count: number;
+    last_synced_at: string | null;
+    last_checked_at: string | null;
+    last_error: string | null;
+    can_manage: boolean;
+    can_classify: boolean;
+    created_at: string | null;
+}
+
+/** Tool discovered on a connector with its classification (US-9.3). `id` is the catalogue tool id. */
+export interface ConnectorTool {
+    id: number | null;
+    definition_id: number;
+    name: string;
+    identifier: string | null;
+    description: string | null;
+    is_available: boolean;
+    is_write: boolean;
+    is_sensitive: boolean;
+    is_active: boolean;
+    last_seen_at: string | null;
+}
+
+/** `connector.status.changed` payload (US-9.4). */
+export interface ConnectorStatusChange {
+    id: number;
+    name: string;
+    scope: 'global' | 'personal';
+    status: ConnectorStatus;
+    previous_status: ConnectorStatus | null;
+    last_error: string | null;
+    last_checked_at: string | null;
+    last_synced_at: string | null;
+}

@@ -43,7 +43,8 @@ class InternalToolSyncTest extends TestCase
         $this->assertSame('Hora atual', $tool->name);
         $this->assertSame(30, $tool->timeout_seconds);
 
-        // A second run converges to the same rows.
+        // A second run converges to the same rows without touching them.
+        $this->travel(5)->seconds();
         $this->artisan('jarvis:tools:sync-internal')->assertSuccessful();
 
         $this->assertDatabaseCount('tools', count($expected));

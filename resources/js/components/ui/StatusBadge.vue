@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import type { ApprovalStatus, AssistantState, MemoryStatus, TaskStatus } from '@/types/models';
+import type { ApprovalStatus, AssistantState, ConnectorStatus, MemoryStatus, TaskStatus } from '@/types/models';
 
 const props = defineProps<{
     status: AssistantState | TaskStatus | string;
@@ -20,7 +20,7 @@ const tones = {
 
 type Tone = keyof typeof tones;
 
-const statusTones: Record<AssistantState | TaskStatus | MemoryStatus | ApprovalStatus | 'timed_out', Tone> = {
+const statusTones: Record<AssistantState | TaskStatus | MemoryStatus | ApprovalStatus | ConnectorStatus | 'timed_out', Tone> = {
     IDLE: 'cyan',
     LISTENING: 'blue',
     THINKING: 'purple',
@@ -42,6 +42,9 @@ const statusTones: Record<AssistantState | TaskStatus | MemoryStatus | ApprovalS
     approved: 'cyan',
     denied: 'danger',
     expired: 'muted',
+    connected: 'cyan',
+    error: 'danger',
+    disconnected: 'muted',
 };
 
 /** Accepts `IDLE`, `waiting_approval`, `Waiting approval`, ... */

@@ -44,6 +44,16 @@ class McpServerPolicy
         return $this->manages($user, $server);
     }
 
+    /**
+     * Read/write/sensitive classification and activation of discovered tools
+     * (US-9.3) through the operator API: only the owner of a personal
+     * connector; global ones are classified by admins in the panel.
+     */
+    public function classifyTools(User $user, McpServer $server): bool
+    {
+        return ! $server->isGlobal() && $this->owns($user, $server);
+    }
+
     private function manages(User $user, McpServer $server): bool
     {
         if ($server->isGlobal()) {

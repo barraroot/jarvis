@@ -40,7 +40,9 @@ class SyncInternalTools extends Command
                 $existing->restore();
             }
 
-            $existing->update($this->attributesFor($tool));
+            $existing->fill($this->attributesFor($tool));
+            $this->discardReorderedSchemas($existing);
+            $existing->save();
             $updated++;
             $this->line("Updated <info>{$identifier}</info>");
         }
@@ -48,6 +50,20 @@ class SyncInternalTools extends Command
         $this->info("Internal tools synced: {$created} created, {$updated} updated.");
 
         return self::SUCCESS;
+    }
+
+    /**
+     * `jsonb` stores object keys in its own order, so a strict cast comparison
+     * flags unchanged schemas as dirty and bumps `updated_at`. Loose equality
+     * ignores key order, keeping repeated runs a true no-op.
+     */
+    private function discardReorderedSchemas(Tool $tool): void
+    {
+        foreach (['input_schema', 'output_schema'] as $attribute) {
+            if ($tool->isDirty($attribute) && $tool->getOriginal($attribute) == $tool->getAttribute($attribute)) {
+                $tool->syncOriginalAttribute($attribute);
+            }
+        }
     }
 
     /**

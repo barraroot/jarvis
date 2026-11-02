@@ -87,7 +87,10 @@
     "approved": "Aprovada",
     "denied": "Negada",
     "expired": "Expirada",
-    "timed_out": "Tempo esgotado"
+    "timed_out": "Tempo esgotado",
+    "connected": "Conectado",
+    "error": "Erro",
+    "disconnected": "Desconectado"
   },
   "clock": {
     "label": "Relógio"
@@ -117,7 +120,8 @@
     "spokenResponsesOn": "Desativar resposta falada",
     "spokenResponsesOff": "Ativar resposta falada",
     "wakeWordActive": "Escuta contínua ativa",
-    "approvals": "Aprovações pendentes"
+    "approvals": "Aprovações pendentes",
+    "connectorsSummary": "{connected} conectados / {errors} com erro"
   },
   "panel": {
     "core": "Núcleo",
@@ -338,5 +342,43 @@
     "title": "Notificações",
     "empty": "Nenhuma notificação",
     "markAll": "Marcar todas como lidas"
+  },
+  "connectors": {
+    "title": "Conectores MCP",
+    "add": "Adicionar conector",
+    "createTitle": "Novo conector pessoal",
+    "editTitle": "Editar {name}",
+    "name": "Nome",
+    "url": "URL (HTTP/SSE)",
+    "urlPlaceholder": "https://exemplo.com/mcp",
+    "urlHint": "Somente http(s)://. Conexões stdio e hosts privados não são aceitos.",
+    "credential": "Credencial (Bearer)",
+    "credentialKeep": "Deixe em branco para manter a credencial atual",
+    "credentialOptional": "Opcional",
+    "save": "Salvar conector",
+    "created": "Conector cadastrado. Sincronizando ferramentas…",
+    "updated": "Conector atualizado.",
+    "removed": "Conector removido.",
+    "saveFailed": "Não foi possível salvar o conector.",
+    "actionFailed": "Não foi possível concluir a ação.",
+    "resyncQueued": "Ressincronização agendada.",
+    "empty": "Nenhum conector disponível.",
+    "never": "nunca",
+    "scopeGlobal": "Global",
+    "scopePersonal": "Pessoal",
+    "toolsCount": "{count} ferramentas · {active} ativas",
+    "lastSynced": "Última sincronização: {date}",
+    "showTools": "Ferramentas",
+    "hideTools": "Ocultar ferramentas",
+    "noTools": "Nenhuma ferramenta descoberta.",
+    "toolUnavailable": "Removida no servidor",
+    "toolWrite": "Escrita",
+    "toolSensitive": "Sensível",
+    "toolActive": "Ativa",
+    "resync": "Ressincronizar",
+    "edit": "Editar",
+    "remove": "Remover",
+    "removeTitle": "Remover conector",
+    "removeBody": "Remover {name}? As ferramentas dele deixam de ficar disponíveis."
   }
 }

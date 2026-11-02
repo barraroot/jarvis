@@ -191,6 +191,7 @@ class ToolExecutor
         return match ($tool->type->slug) {
             ToolType::INTERNAL => $this->runInternal($tool, $input, $context),
             ToolType::REST, ToolType::WEBHOOK => app(HttpToolHandler::class)->handle($tool, $input, $context),
+            ToolType::MCP => app(McpToolHandler::class)->handle($tool, $input, $context),
             default => throw new RuntimeException("Tool type [{$tool->type->slug}] is not executable locally."),
         };
     }

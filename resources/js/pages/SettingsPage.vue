@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import ConnectorsPanel from '@/components/hud/ConnectorsPanel.vue';
 import HudButton from '@/components/ui/HudButton.vue';
 import HudModal from '@/components/ui/HudModal.vue';
 import HudPanel from '@/components/ui/HudPanel.vue';
@@ -285,6 +286,8 @@ onBeforeUnmount(() => {
                 </div>
             </div>
         </HudPanel>
+
+        <ConnectorsPanel />
 
         <HudModal v-model:open="consentOpen" :title="t('settings.wakeWordConsentTitle')" data-testid="settings-consent-modal">
             <p class="text-sm text-text">{{ t('settings.wakeWordConsentBody') }}</p>

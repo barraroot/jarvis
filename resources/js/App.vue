@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, watch } from 'vue';
 import { RouterView, useRoute, useRouter } from 'vue-router';
 import HudToast from '@/components/ui/HudToast.vue';
 import TaskDetail from '@/components/hud/TaskDetail.vue';
 import { bindAgentEvents } from '@/composables/useAgentEvents';
 import { bindApprovalEvents } from '@/composables/useApprovalEvents';
+import { bindConnectorEvents } from '@/composables/useConnectorEvents';
 import { bindNotificationEvents } from '@/composables/useNotificationEvents';
 import { bindTaskEvents } from '@/composables/useTaskEvents';
 import { useRealtimeConnection } from '@/composables/useRealtimeConnection';
@@ -13,6 +14,8 @@ import { bindToolEvents } from '@/composables/useToolEvents';
 import { useVoiceInput } from '@/composables/useVoiceInput';
 import { useWakeWord } from '@/composables/useWakeWord';
 import HudLayout from '@/layouts/HudLayout.vue';
+import { useAuthStore } from '@/stores/auth';
+import { useConnectorsStore } from '@/stores/connectors';
 import { useConversationsStore } from '@/stores/conversations';
 import { useMessagesStore } from '@/stores/messages';
 import { usePreferencesStore } from '@/stores/preferences';
@@ -22,6 +25,8 @@ const router = useRouter();
 const conversations = useConversationsStore();
 const messages = useMessagesStore();
 const preferences = usePreferencesStore();
+const connectors = useConnectorsStore();
+const auth = useAuthStore();
 
 const voice = useVoiceInput();
 const speech = useSpeechOutput();
@@ -40,11 +45,23 @@ useRealtimeConnection([
     bindApprovalEvents,
     bindNotificationEvents,
     bindTaskEvents,
+    bindConnectorEvents,
 ]);
 
 onMounted(() => {
     void preferences.ensureLoaded().catch(() => undefined);
 });
+
+/** Header connector indicator (US-9.4): loaded once the operator is signed in. */
+watch(
+    () => auth.isAuthenticated,
+    (authenticated) => {
+        if (authenticated) {
+            void connectors.load().catch(() => undefined);
+        }
+    },
+    { immediate: true },
+);
 
 /** Footer send: from the HUD a fresh conversation is created first, then navigated to. */
 async function onSend(payload: { content: string; source: 'text' | 'voice' }): Promise<void> {

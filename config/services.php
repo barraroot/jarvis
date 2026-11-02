@@ -28,6 +28,15 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    /*
+    | MCP connectors (US-9.1/9.2): HTTP/SSE only. Private and loopback hosts are
+    | rejected unless explicitly allowed for local development.
+    */
+    'mcp' => [
+        'allow_private_hosts' => (bool) env('MCP_ALLOW_PRIVATE_HOSTS', false),
+        'timeout_seconds' => (int) env('MCP_TIMEOUT_SECONDS', 15),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
