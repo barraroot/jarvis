@@ -12,14 +12,23 @@ const props = withDefaults(
     defineProps<{
         /** True when the layout blocks sending (e.g. realtime link down). */
         disabled?: boolean;
+        /** Live transcription shown while the core is LISTENING (US-4.1). */
+        voicePartial?: string;
+        /** Microphone permission denied; the voice button gets a tooltip. */
+        voiceBlocked?: boolean;
+        /** The core is SPEAKING; renders the speech controls (US-4.2). */
+        speaking?: boolean;
     }>(),
-    { disabled: false },
+    { disabled: false, voicePartial: '', voiceBlocked: false, speaking: false },
 );
 
 const emit = defineEmits<{
     send: [payload: { content: string; source: 'text' | 'voice' }];
     voice: [];
     interrupt: [];
+    pauseSpeech: [];
+    resumeSpeech: [];
+    stopSpeech: [];
     command: [payload: { type: 'new' | 'remember' | 'tasks' | 'memories' }];
 }>();
 
@@ -39,6 +48,14 @@ const voiceSupported =
     typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
 
 const capturing = computed(() => assistant.state === 'LISTENING' || assistant.state === 'SPEAKING');
+
+const voiceTooltip = computed(() => {
+    if (props.voiceBlocked) {
+        return t('footer.voiceDenied');
+    }
+
+    return voiceSupported ? undefined : t('footer.voiceUnsupported');
+});
 
 const blocked = computed(() => props.disabled || connection.isDisconnected);
 
@@ -67,8 +84,19 @@ function submit(): void {
     commandsOpen.value = false;
 }
 
+/** True when the event target is an editable field where Tab keeps its native behaviour (US-4.1). */
+function isEditableTarget(target: EventTarget | null): boolean {
+    const element = target as HTMLElement | null;
+
+    if (element === null) {
+        return false;
+    }
+
+    return element.isContentEditable || element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.tagName === 'SELECT';
+}
+
 function onKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Tab') {
+    if (event.key === 'Tab' && !isEditableTarget(event.target)) {
         event.preventDefault();
         emit('voice');
 
@@ -129,8 +157,26 @@ const commands = computed(() => [
             {{ t('footer.offline') }}
         </p>
 
-        <div v-if="capturing" class="mx-auto w-full max-w-md" data-testid="footer-capture">
+        <div v-if="capturing" class="mx-auto flex w-full max-w-md flex-col items-center gap-1" data-testid="footer-capture">
             <Waveform :level="assistant.audioLevel" />
+            <p
+                v-if="assistant.state === 'LISTENING' && voicePartial.trim() !== ''"
+                class="hud-label w-full truncate text-center font-mono text-[0.65rem] text-cyan-bright"
+                data-testid="footer-partial"
+            >
+                {{ voicePartial }}
+            </p>
+            <div v-if="props.speaking" class="flex items-center gap-1" data-testid="footer-speech-controls">
+                <HudButton variant="ghost" :aria-label="t('footer.speechPause')" data-testid="footer-speech-pause" @click="emit('pauseSpeech')">
+                    {{ t('footer.speechPause') }}
+                </HudButton>
+                <HudButton variant="ghost" :aria-label="t('footer.speechResume')" data-testid="footer-speech-resume" @click="emit('resumeSpeech')">
+                    {{ t('footer.speechResume') }}
+                </HudButton>
+                <HudButton variant="danger" :aria-label="t('footer.speechStop')" data-testid="footer-speech-stop" @click="emit('stopSpeech')">
+                    {{ t('footer.speechStop') }}
+                </HudButton>
+            </div>
         </div>
 
         <div class="flex min-w-0 items-end gap-2">
@@ -159,8 +205,8 @@ const commands = computed(() => [
 
             <HudButton
                 variant="ghost"
-                :disabled="!voiceSupported || blocked"
-                :title="voiceSupported ? undefined : t('footer.voiceUnsupported')"
+                :disabled="!voiceSupported || props.voiceBlocked || blocked"
+                :title="voiceTooltip"
                 :aria-label="t('footer.voice')"
                 :aria-pressed="capturing"
                 data-testid="footer-voice"

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\MeController;
 use App\Http\Controllers\Api\V1\Conversations\ConversationController;
 use App\Http\Controllers\Api\V1\Conversations\ConversationMessageController;
+use App\Http\Controllers\Api\V1\Preferences\PreferencesController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -32,6 +33,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         });
 
         Route::get('ai/models', ModelController::class)->name('ai.models');
+
+        Route::get('preferences', [PreferencesController::class, 'show'])->name('preferences.show');
+        Route::put('preferences', [PreferencesController::class, 'update'])->name('preferences.update');
 
         Route::get('conversations', [ConversationController::class, 'index'])->name('conversations.index');
         Route::post('conversations', [ConversationController::class, 'store'])->name('conversations.store');

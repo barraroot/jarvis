@@ -103,7 +103,12 @@
         "logout": "Sair",
         "more": "Mais opções",
         "userMenu": "Menu do usuário",
-        "voiceUnsupported": "Reconhecimento de voz não suportado neste navegador"
+        "voiceUnsupported": "Reconhecimento de voz não suportado neste navegador",
+        "voiceDenied": "Permissão de microfone negada — libere nas configurações do navegador",
+        "spokenResponses": "Resposta falada",
+        "spokenResponsesOn": "Desativar resposta falada",
+        "spokenResponsesOff": "Ativar resposta falada",
+        "wakeWordActive": "Escuta contínua ativa"
     },
     "panel": {
         "core": "Núcleo",
@@ -156,6 +161,10 @@
         "voice": "Falar",
         "stop": "Interromper",
         "voiceUnsupported": "Voz não suportada neste navegador",
+        "voiceDenied": "Permissão de microfone negada",
+        "speechPause": "Pausar fala",
+        "speechResume": "Retomar fala",
+        "speechStop": "Parar fala",
         "characterCount": "{count}/{limit}",
         "limitReached": "Limite de 8.000 caracteres",
         "offline": "Sem conexão — envio desativado",
@@ -187,5 +196,36 @@
         "createError": "Não foi possível criar a conversa",
         "renameError": "Não foi possível renomear a conversa",
         "deleteError": "Não foi possível excluir a conversa"
+    },
+    "voice": {
+        "permissionDenied": "Permissão de microfone negada — a voz foi desativada.",
+        "captureError": "Não foi possível capturar o áudio.",
+        "testPhrase": "Saudações, sou o J.A.R.V.I.S., seu sistema pessoal de inteligência."
+    },
+    "settings": {
+        "title": "Voz e idioma",
+        "locale": "Idioma da interface",
+        "localeHint": "Aplicado imediatamente.",
+        "speechLocale": "Idioma de voz",
+        "voice": "Voz",
+        "voiceNone": "Nenhuma voz encontrada para este idioma",
+        "speechRate": "Velocidade da fala",
+        "silenceTimeout": "Tempo de silêncio",
+        "silenceTimeoutHint": "Encerra a captura após este período sem fala.",
+        "spokenResponses": "Resposta falada",
+        "spokenResponsesHint": "Ler as respostas em voz alta.",
+        "wakeWord": "Wake word \"Hey JARVIS\"",
+        "wakeWordHint": "Escuta contínua enquanto a aba estiver aberta.",
+        "wakeWordUnsupported": "Este navegador não suporta reconhecimento de fala.",
+        "wakeWordConsentTitle": "Privacidade do wake word",
+        "wakeWordConsentBody": "O reconhecimento contínuo usa a API de fala do navegador e pode enviar áudio para os servidores do fornecedor do navegador. O JARVIS não recebe nenhum áudio — apenas o texto transcrito.",
+        "wakeWordConsentConfirm": "Aceito e ativar",
+        "wakeWordConsentCancel": "Cancelar",
+        "wakeWordConsentRequired": "Ativar o wake word exige aceitar o aviso de privacidade.",
+        "testVoice": "Testar voz",
+        "save": "Salvar preferências",
+        "saved": "Preferências salvas.",
+        "saveFailed": "Não foi possível salvar as preferências.",
+        "silenceTimeoutValue": "{ms} ms"
     }
 }

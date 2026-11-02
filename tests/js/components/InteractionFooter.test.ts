@@ -79,6 +79,20 @@ describe('InteractionFooter', () => {
         wrapper.unmount();
     });
 
+    it('keeps native Tab behaviour inside the composer instead of triggering voice', async () => {
+        Object.defineProperty(window, 'SpeechRecognition', { configurable: true, value: class {} });
+        const wrapper = mountFooter();
+
+        const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+        wrapper.find('textarea').element.dispatchEvent(event);
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.emitted('voice')).toBeUndefined();
+        expect(event.defaultPrevented).toBe(false);
+
+        wrapper.unmount();
+    });
+
     it('opens the commands menu on / and prefixes text for inline commands', async () => {
         const wrapper = mountFooter();
 

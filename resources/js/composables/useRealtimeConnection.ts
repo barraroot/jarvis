@@ -10,12 +10,13 @@ import {
 import { useAssistantStore } from '@/stores/assistant';
 import { useAuthStore } from '@/stores/auth';
 import { useConnectionStore } from '@/stores/connection';
-import { useMessagesStore } from '@/stores/messages';
+import { useMessagesStore, type MessageChannel } from '@/stores/messages';
 
 /**
- * Opens the Reverb socket and the `private-user.{id}` channel while someone is signed in.
+ * Opens the Reverb socket and the `private-user.{id}` channel while someone
+ * is signed in. Extra binders (e.g. speech output) get the channel too.
  */
-export function useRealtimeConnection(): void {
+export function useRealtimeConnection(additionalBinds: Array<(channel: MessageChannel) => void> = []): void {
     const auth = useAuthStore();
     const connection = useConnectionStore();
     const assistant = useAssistantStore();
@@ -43,6 +44,7 @@ export function useRealtimeConnection(): void {
                 assistant.applyServerState(payload);
             });
             messages.bind(channel);
+            additionalBinds.forEach((bind) => bind(channel));
         },
         { immediate: true },
     );

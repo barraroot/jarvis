@@ -9,9 +9,22 @@ import { useAuthStore } from '@/stores/auth';
 import { useConnectorsStore } from '@/stores/connectors';
 import { useNotificationsStore } from '@/stores/notifications';
 
+const props = withDefaults(
+    defineProps<{
+        /** Microphone permission denied; the mic buttons get a tooltip. */
+        voiceUnavailable?: boolean;
+        /** Continuous wake word recognition is running (US-4.4). */
+        wakeWordActive?: boolean;
+        /** "Resposta falada" is enabled (US-4.2). */
+        spokenResponsesEnabled?: boolean;
+    }>(),
+    { voiceUnavailable: false, wakeWordActive: false, spokenResponsesEnabled: true },
+);
+
 const emit = defineEmits<{
     microphone: [];
     conversations: [];
+    toggleSpoken: [];
 }>();
 
 const { t } = useI18n();
@@ -24,6 +37,18 @@ const isSleeping = computed(() => assistant.state === 'SLEEPING');
 
 const voiceSupported =
     typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+
+const micTooltip = computed(() => {
+    if (props.voiceUnavailable) {
+        return t('header.voiceDenied');
+    }
+
+    return voiceSupported ? undefined : t('header.voiceUnsupported');
+});
+
+const spokenLabel = computed(() =>
+    props.spokenResponsesEnabled ? t('header.spokenResponsesOn') : t('header.spokenResponsesOff'),
+);
 
 const hasConnectors = computed(() => connectors.connectedCount > 0 || connectors.errorCount > 0);
 
@@ -90,6 +115,16 @@ onBeforeUnmount(() => {
             <StatusBadge :status="assistant.state" />
         </div>
 
+        <span
+            v-if="props.wakeWordActive"
+            class="hud-label inline-flex items-center gap-1.5 rounded-sm border border-cyan/50 px-2 py-1 font-mono text-[0.6rem] text-cyan-bright"
+            :aria-label="t('header.wakeWordActive')"
+            data-testid="header-wake-word"
+        >
+            <span class="size-1.5 animate-pulse rounded-full bg-cyan-bright"></span>
+            {{ t('header.wakeWordActive') }}
+        </span>
+
         <!-- Desktop: clock, sleep, microphone, conversations, notifications, connectors, settings, user. -->
         <div class="ml-auto hidden items-center gap-1.5 md:flex" data-testid="header-actions">
             <div class="hidden lg:block">
@@ -118,8 +153,8 @@ onBeforeUnmount(() => {
                 type="button"
                 class="inline-flex size-9 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright disabled:cursor-not-allowed disabled:opacity-40"
                 :aria-label="t('nav.microphone')"
-                :title="voiceSupported ? undefined : t('header.voiceUnsupported')"
-                :disabled="!voiceSupported"
+                :title="micTooltip"
+                :disabled="!voiceSupported || props.voiceUnavailable"
                 data-testid="header-mic"
                 @click="emit('microphone')"
             >
@@ -127,6 +162,22 @@ onBeforeUnmount(() => {
                     <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
                     <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                     <line x1="12" x2="12" y1="19" y2="22" />
+                </svg>
+            </button>
+
+            <button
+                type="button"
+                class="inline-flex size-9 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
+                :class="props.spokenResponsesEnabled ? 'text-cyan-bright' : 'opacity-50'"
+                :aria-label="spokenLabel"
+                :aria-pressed="props.spokenResponsesEnabled"
+                data-testid="header-spoken"
+                @click="emit('toggleSpoken')"
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4" aria-hidden="true">
+                    <path d="M11 5 6 9H2v6h4l5 4V5z" />
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
                 </svg>
             </button>
 
@@ -231,8 +282,8 @@ onBeforeUnmount(() => {
                 type="button"
                 class="inline-flex size-9 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright disabled:cursor-not-allowed disabled:opacity-40"
                 :aria-label="t('nav.microphone')"
-                :title="voiceSupported ? undefined : t('header.voiceUnsupported')"
-                :disabled="!voiceSupported"
+                :title="micTooltip"
+                :disabled="!voiceSupported || props.voiceUnavailable"
                 data-testid="header-mic-mobile"
                 @click="emit('microphone')"
             >
@@ -271,6 +322,14 @@ onBeforeUnmount(() => {
                     @click="toggleSleep"
                 >
                     {{ isSleeping ? t('header.wake') : t('header.sleep') }}
+                </button>
+                <button
+                    type="button"
+                    class="hud-label flex items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                    data-testid="header-more-spoken"
+                    @click="emit('toggleSpoken'); closeMenus()"
+                >
+                    {{ t('header.spokenResponses') }}
                 </button>
                 <button
                     type="button"

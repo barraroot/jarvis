@@ -12,11 +12,31 @@ import { useConnectionStore } from '@/stores/connection';
 import { usePersistentFlag } from '@/composables/usePersistentFlag';
 import { SIDEBAR_COLLAPSED_STORAGE_KEY } from '@/layouts/constants';
 
+const props = withDefaults(
+    defineProps<{
+        /** Live voice transcription shown in the footer (US-4.1). */
+        voicePartial?: string;
+        /** Microphone permission denied; voice controls get a tooltip. */
+        voiceBlocked?: boolean;
+        /** The core is SPEAKING; renders the footer speech controls (US-4.2). */
+        speaking?: boolean;
+        /** Continuous wake word recognition is running (US-4.4). */
+        wakeWordActive?: boolean;
+        /** "Resposta falada" is enabled (US-4.2). */
+        spokenResponsesEnabled?: boolean;
+    }>(),
+    { voicePartial: '', voiceBlocked: false, speaking: false, wakeWordActive: false, spokenResponsesEnabled: true },
+);
+
 const emit = defineEmits<{
     microphone: [];
     send: [payload: { content: string; source: 'text' | 'voice' }];
     voice: [];
     interrupt: [];
+    toggleSpoken: [];
+    pauseSpeech: [];
+    resumeSpeech: [];
+    stopSpeech: [];
 }>();
 
 const { t } = useI18n();
@@ -101,7 +121,14 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
                 <span class="block h-4 w-3 border-l-2 border-current"></span>
             </button>
             <slot name="header">
-                <AppHeader @microphone="emit('microphone')" @conversations="conversationsOpen = true" />
+                <AppHeader
+                    :voice-unavailable="props.voiceBlocked"
+                    :wake-word-active="props.wakeWordActive"
+                    :spoken-responses-enabled="props.spokenResponsesEnabled"
+                    @microphone="emit('microphone')"
+                    @conversations="conversationsOpen = true"
+                    @toggle-spoken="emit('toggleSpoken')"
+                />
             </slot>
         </header>
 
@@ -164,9 +191,15 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
                 <slot name="footer" :sending-disabled="sendingDisabled">
                     <InteractionFooter
                         :disabled="sendingDisabled"
+                        :voice-partial="props.voicePartial"
+                        :voice-blocked="props.voiceBlocked"
+                        :speaking="props.speaking"
                         @send="emit('send', $event)"
                         @voice="emit('voice')"
                         @interrupt="emit('interrupt')"
+                        @pause-speech="emit('pauseSpeech')"
+                        @resume-speech="emit('resumeSpeech')"
+                        @stop-speech="emit('stopSpeech')"
                         @command="onCommand"
                     />
                 </slot>
