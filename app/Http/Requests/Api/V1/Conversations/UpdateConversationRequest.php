@@ -9,9 +9,10 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * PATCH /api/v1/conversations/{conversation} — switch the conversation's AI model.
+ * PATCH /api/v1/conversations/{conversation} — rename the conversation (US-2.6)
+ * and/or switch the AI model it uses (US-3.5).
  */
-class UpdateConversationModelRequest extends FormRequest
+class UpdateConversationRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -27,6 +28,7 @@ class UpdateConversationModelRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'title' => ['sometimes', 'required', 'string', 'min:1', 'max:120'],
             'ai_model_id' => [
                 'nullable',
                 'integer',

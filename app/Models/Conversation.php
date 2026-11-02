@@ -12,11 +12,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['user_id', 'ai_model_id', 'title', 'last_activity_at'])]
+#[Fillable(['user_id', 'ai_model_id', 'title', 'last_activity_at', 'meta'])]
 class Conversation extends Model
 {
     /** @use HasFactory<ConversationFactory> */
     use HasFactory, SoftDeletes;
+
+    /**
+     * Title given to a freshly created conversation, replaced by the
+     * `GenerateConversationTitle` job after the first assistant reply (US-2.6).
+     */
+    public const string PROVISIONAL_TITLE = 'Nova conversa';
 
     /**
      * @return array<string, string>
@@ -25,7 +31,24 @@ class Conversation extends Model
     {
         return [
             'last_activity_at' => 'datetime',
+            'meta' => 'array',
         ];
+    }
+
+    /**
+     * Whether the title is still the provisional one (never renamed, never auto-titled).
+     */
+    public function hasProvisionalTitle(): bool
+    {
+        return $this->title === self::PROVISIONAL_TITLE;
+    }
+
+    /**
+     * Whether the operator renamed the conversation manually; auto-titling must not override it.
+     */
+    public function titleWasEdited(): bool
+    {
+        return (bool) ($this->meta['title_edited'] ?? false);
     }
 
     /**

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\MeController;
 use App\Http\Controllers\Api\V1\Conversations\ConversationController;
+use App\Http\Controllers\Api\V1\Conversations\ConversationMessageController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -31,6 +32,14 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         });
 
         Route::get('ai/models', ModelController::class)->name('ai.models');
+
+        Route::get('conversations', [ConversationController::class, 'index'])->name('conversations.index');
+        Route::post('conversations', [ConversationController::class, 'store'])->name('conversations.store');
+        Route::get('conversations/{conversation}', [ConversationController::class, 'show'])->name('conversations.show');
         Route::patch('conversations/{conversation}', [ConversationController::class, 'update'])->name('conversations.update');
+        Route::delete('conversations/{conversation}', [ConversationController::class, 'destroy'])->name('conversations.destroy');
+        Route::post('conversations/{conversation}/messages', [ConversationMessageController::class, 'store'])
+            ->middleware('throttle:messages')
+            ->name('conversations.messages.store');
     });
 });
