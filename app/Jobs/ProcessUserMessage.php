@@ -12,6 +12,7 @@ use App\Models\Conversation;
 use App\Models\ExecutionStatus;
 use App\Models\Message;
 use App\Models\MessageRole;
+use App\Models\NotificationType;
 use App\Models\ResultType;
 use App\Models\User;
 use App\Services\AgentRunner;
@@ -20,6 +21,7 @@ use App\Services\BrainRequest;
 use App\Services\ContextBuilder;
 use App\Services\MemoryContextSource;
 use App\Services\MessageRouter;
+use App\Services\NotificationService;
 use App\Services\RoutedMessage;
 use App\Services\RunOptions;
 use App\Tools\RememberMemoryTool;
@@ -217,6 +219,16 @@ class ProcessUserMessage implements ShouldQueue
                 'exception' => class_basename($exception),
             ],
         ]);
+
+        if ($errorKey === 'usage_limit_exceeded') {
+            app(NotificationService::class)->notify(
+                $user,
+                NotificationType::USAGE_LIMIT_REACHED,
+                'Limite de consumo atingido',
+                'O limite mensal de custo foi atingido; novas chamadas foram bloqueadas.',
+                ['conversation_id' => $conversation->id],
+            );
+        }
 
         AssistantStateChanged::dispatch($user, AssistantStateChanged::ERROR, $conversation->id);
         AssistantStateChanged::dispatch($user, AssistantStateChanged::IDLE, $conversation->id);

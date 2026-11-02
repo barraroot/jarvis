@@ -5,15 +5,14 @@ namespace App\Services;
 use App\Events\Approval\ApprovalDecided;
 use App\Events\Assistant\AssistantStateChanged;
 use App\Events\Conversation\ConversationMessageCreated;
-use App\Events\NotificationCreated;
 use App\Exceptions\ApprovalNotDecidableException;
+use App\Jobs\RunTask;
 use App\Models\Approval;
 use App\Models\ApprovalStatus;
 use App\Models\AuditAction;
 use App\Models\ExecutionStatus;
 use App\Models\Message;
 use App\Models\MessageRole;
-use App\Models\Notification;
 use App\Models\NotificationType;
 use App\Models\Task;
 use App\Models\TaskStatus;
@@ -62,15 +61,13 @@ class ApprovalService
             $context->task?->conversation_id,
         );
 
-        $notification = Notification::query()->create([
-            'user_id' => $context->user->id,
-            'notification_type_id' => NotificationType::idFor(NotificationType::APPROVAL_PENDING),
-            'title' => 'Aprovação pendente',
-            'body' => "A ferramenta \"{$tool->name}\" aguarda sua aprovação.",
-            'data' => ['approval_id' => $approval->id],
-        ]);
-
-        NotificationCreated::dispatch($notification);
+        app(NotificationService::class)->notify(
+            $context->user,
+            NotificationType::APPROVAL_PENDING,
+            'Aprovação pendente',
+            "A ferramenta \"{$tool->name}\" aguarda sua aprovação.",
+            ['approval_id' => $approval->id],
+        );
 
         $this->publishApprovalRequest($approval, $tool, $context);
 
@@ -241,13 +238,20 @@ class ApprovalService
     }
 
     /**
-     * After a decision the task leaves the approval hold: the flow resumes
-     * (on denial the agent is told the action was refused).
+     * After a decision the task leaves the approval hold: the task flips back
+     * to `running` and a new `RunTask` job is dispatched with
+     * `resume_from_step` (concluded steps never repeat, US-10.3). The job
+     * itself marks the task running on pick-up; flipping here keeps the
+     * status visible immediately, matching the Phase 11 contract.
      */
     private function resumeTask(?Task $task): void
     {
-        if ($task !== null && $task->hasStatus(TaskStatus::WAITING_APPROVAL)) {
-            $task->update(['task_status_id' => TaskStatus::idFor(TaskStatus::RUNNING)]);
+        if ($task === null || ! $task->hasStatus(TaskStatus::WAITING_APPROVAL)) {
+            return;
         }
+
+        $task->update(['task_status_id' => TaskStatus::idFor(TaskStatus::RUNNING)]);
+
+        RunTask::dispatch($task, app(TaskService::class)->resumeFromStep($task))->onQueue('tasks');
     }
 }

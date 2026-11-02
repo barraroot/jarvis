@@ -26,6 +26,7 @@ class UserResource extends JsonResource
             'is_active' => $this->is_active,
             'last_login_at' => $this->last_login_at?->toIso8601String(),
             'preference' => UserPreferenceResource::make($this->whenLoaded('preference')),
+            'notifications_unread' => $this->notifications_unread ?? null,
         ];
     }
 }

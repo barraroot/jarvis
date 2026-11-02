@@ -61,8 +61,17 @@ class AgentSeederTest extends TestCase
         $this->assertTrue(Agent::query()->where('slug', 'knowledge')->firstOrFail()->tools->contains($memoryTool));
         $this->assertTrue(Agent::query()->where('slug', 'automation')->firstOrFail()->tools->contains($timeTool));
         $this->assertTrue(Agent::query()->where('slug', 'productivity')->firstOrFail()->tools->contains($timeTool));
-        $this->assertCount(0, Agent::query()->where('slug', 'research')->firstOrFail()->tools);
-        $this->assertCount(0, Agent::query()->where('slug', 'developer')->firstOrFail()->tools);
-        $this->assertCount(0, Agent::query()->where('slug', 'communication')->firstOrFail()->tools);
+
+        // Every agent ships with the task tools (Phase 13, US-10.1) and nothing else.
+        $taskToolIds = Tool::query()
+            ->whereIn('identifier', ['task.start_step', 'task.finish_step', 'task.log', 'task.set_progress'])
+            ->pluck('id');
+
+        foreach (['research', 'developer', 'communication'] as $slug) {
+            $tools = Agent::query()->where('slug', $slug)->firstOrFail()->tools;
+
+            $this->assertCount(4, $tools);
+            $this->assertSame($taskToolIds->sort()->values()->all(), $tools->pluck('id')->sort()->values()->all());
+        }
     }
 }

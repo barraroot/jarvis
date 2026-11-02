@@ -44,6 +44,7 @@ onMounted(() => {
     models.load().catch(() => undefined);
     memories.loadSummary();
     agents.loadHistory().catch(() => undefined);
+    tasks.load().catch(() => undefined);
 });
 
 const toolTone = {
@@ -133,11 +134,26 @@ function formatDuration(durationMs: number): string {
                     class="flex min-w-0 flex-col gap-1.5 border-b border-line/50 pb-3 last:border-none"
                     data-testid="panel-task"
                 >
-                    <div class="flex items-center justify-between gap-2">
-                        <span class="hud-label min-w-0 flex-1 truncate text-[0.65rem] text-text">{{ task.title }}</span>
-                        <StatusBadge :status="task.status" />
-                    </div>
-                    <ProgressBar :value="task.progress" variant="amber" />
+                    <button
+                        type="button"
+                        class="flex min-w-0 flex-col gap-1.5 text-left"
+                        :data-testid="`panel-task-${task.id}`"
+                        @click="tasks.openDetail(task.id)"
+                    >
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="hud-label min-w-0 flex-1 truncate text-[0.65rem] text-text">{{ task.title }}</span>
+                            <StatusBadge :status="task.status" />
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <span v-if="task.agent" class="hud-label min-w-0 truncate text-[0.55rem] text-muted">
+                                {{ task.agent.name }}
+                            </span>
+                            <span class="hud-label ml-auto shrink-0 truncate text-[0.55rem] text-cyan/90">
+                                {{ task.current_step?.name ?? '' }}
+                            </span>
+                        </div>
+                        <ProgressBar :value="task.progress" variant="amber" />
+                    </button>
                 </li>
             </ul>
         </HudPanel>

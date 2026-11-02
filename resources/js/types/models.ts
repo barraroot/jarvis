@@ -18,6 +18,7 @@ export interface User {
     is_active: boolean;
     last_login_at: string | null;
     preference?: UserPreference;
+    notifications_unread?: number | null;
 }
 
 export interface LoginCredentials {
@@ -114,12 +115,63 @@ export interface AgentHistoryEntry {
     duration_ms: number;
 }
 
-/** Background task card shown in the side panel, fed by task events (Phase 12). */
-export interface TaskCard {
+/** Background task card shown in the side panel, fed by `task.updated` (US-10.2). */
+export interface TaskSummary {
     id: string;
     title: string;
-    progress: number;
     status: TaskStatus;
+    progress: number;
+    agent?: { slug: string; name: string } | null;
+    current_step?: { position: number; name: string; status: string } | null;
+    result?: Record<string, unknown> | null;
+    result_type?: string | null;
+    error?: string | null;
+    queued_at?: string | null;
+    started_at?: string | null;
+    completed_at?: string | null;
+    created_at?: string;
+}
+
+/** One step of a task detail (US-10.2). */
+export interface TaskStepSummary {
+    id: number;
+    position: number;
+    name: string;
+    status: TaskStatus;
+    output: Record<string, unknown> | null;
+    error: string | null;
+    started_at: string | null;
+    finished_at: string | null;
+}
+
+/** One leveled log line of a task detail. */
+export interface TaskLogSummary {
+    id: number;
+    level: 'debug' | 'info' | 'warning' | 'error';
+    message: string;
+    context: Record<string, unknown> | null;
+    task_step_id: number | null;
+    created_at: string;
+}
+
+/** Full task detail returned by `GET /api/v1/tasks/{id}`. */
+export interface TaskDetail extends TaskSummary {
+    request: string;
+    retry_of_task_id?: number | null;
+    steps?: TaskStepSummary[];
+    logs?: { data: TaskLogSummary[] };
+    pending_approvals?: ApprovalSummary[];
+}
+
+/** Operator notification fed by `notification.created` (US-10.4). */
+export interface NotificationSummary {
+    id: string;
+    type: string;
+    title: string;
+    body: string | null;
+    data: Record<string, unknown> | null;
+    read_at: string | null;
+    created_at: string;
 }
 
 /** Terminal-style execution history line (agents, tools), fed by events (Phase 13). */

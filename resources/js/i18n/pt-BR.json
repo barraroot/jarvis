@@ -308,5 +308,26 @@
     "approved": "Ação aprovada e executada.",
     "denied": "Ação negada.",
     "actionError": "Não foi possível decidir esta aprovação."
+  },
+  "tasks": {
+    "detailTitle": "Detalhe da tarefa",
+    "agent": "Agente: {agent}",
+    "currentStep": "Etapa atual: {step}",
+    "steps": "Etapas",
+    "logs": "Logs",
+    "result": "Resultado",
+    "error": "Erro",
+    "approvals": "Aprovações pendentes",
+    "cancel": "Cancelar tarefa",
+    "retry": "Repetir tarefa",
+    "retryQueued": "Tarefa repetida e enfileirada.",
+    "noSteps": "Nenhuma etapa registrada",
+    "noLogs": "Nenhum log registrado",
+    "noResult": "Sem resultado"
+  },
+  "notifications": {
+    "title": "Notificações",
+    "empty": "Nenhuma notificação",
+    "markAll": "Marcar todas como lidas"
   }
 }

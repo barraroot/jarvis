@@ -1,5 +1,4 @@
 import { useApprovalsStore } from '@/stores/approvals';
-import { useNotificationsStore } from '@/stores/notifications';
 
 /** Echo-compatible channel; the real one comes from `useRealtimeConnection`. */
 export interface MessageChannel {
@@ -12,10 +11,10 @@ interface NotificationEventPayload {
 
 /**
  * Approval-related channel events (US-8.3): an `approval_pending`
- * notification bumps the header badge and refreshes an open pending list.
+ * notification refreshes an open pending list. The notification counter and
+ * list are handled by `useNotificationEvents`.
  */
 export function bindApprovalEvents(channel: MessageChannel): void {
-    const notifications = useNotificationsStore();
     const approvals = useApprovalsStore();
 
     channel.listen('notification.created', (payload: unknown) => {
@@ -25,7 +24,6 @@ export function bindApprovalEvents(channel: MessageChannel): void {
             return;
         }
 
-        notifications.increment();
         void approvals.refreshIfLoaded();
     });
 }

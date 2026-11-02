@@ -6,6 +6,7 @@ use App\Models\Agent;
 use App\Models\Tool;
 use App\Services\DelegationService;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Artisan;
 
 /**
  * Seeds the seven initial agents (US-7.1), idempotent by slug. Every agent
@@ -128,5 +129,23 @@ class AgentSeeder extends Seeder
         // `delegate.<slug>` catalogue rows exist from the first install, so
         // delegation can be authorized for agents in the admin (US-7.3).
         app(DelegationService::class)->syncTools();
+
+        // Task tools (Phase 13, US-10.1): every agent records its own task
+        // steps, logs and progress through the `task.*` internal tools.
+        Artisan::call('jarvis:tools:sync-internal');
+
+        $taskToolIds = Tool::query()
+            ->whereIn('identifier', [
+                'task.start_step',
+                'task.finish_step',
+                'task.log',
+                'task.set_progress',
+            ])
+            ->pluck('id')
+            ->all();
+
+        if ($taskToolIds !== []) {
+            Agent::query()->each(fn (Agent $agent) => $agent->tools()->syncWithoutDetaching($taskToolIds));
+        }
     }
 }

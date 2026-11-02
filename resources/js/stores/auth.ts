@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { API_PREFIX, HttpError, http, resetCsrfCookie } from '@/lib/http';
 import { redirectToLogin } from '@/lib/navigation';
+import { useNotificationsStore } from '@/stores/notifications';
 import type { LoginCredentials, User } from '@/types/models';
 
 interface UserEnvelope {
@@ -24,6 +25,7 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             const response = await http.get<UserEnvelope>(`${API_PREFIX}/auth/me`, { skipUnauthorizedHandler: true });
             user.value = response.data;
+            useNotificationsStore().setUnreadCount(response.data.notifications_unread ?? 0);
         } catch (error) {
             if (!(error instanceof HttpError) || (error.status !== 401 && error.status !== 403)) {
                 throw error;

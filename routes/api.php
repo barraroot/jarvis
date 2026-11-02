@@ -10,7 +10,9 @@ use App\Http\Controllers\Api\V1\Auth\MeController;
 use App\Http\Controllers\Api\V1\Conversations\ConversationController;
 use App\Http\Controllers\Api\V1\Conversations\ConversationMessageController;
 use App\Http\Controllers\Api\V1\Memories\MemoryController;
+use App\Http\Controllers\Api\V1\Notifications\NotificationController;
 use App\Http\Controllers\Api\V1\Preferences\PreferencesController;
+use App\Http\Controllers\Api\V1\Tasks\TaskController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -64,5 +66,14 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::get('approvals/{approval}', [ApprovalController::class, 'show'])->name('approvals.show');
         Route::post('approvals/{approval}/approve', [ApprovalController::class, 'approve'])->name('approvals.approve');
         Route::post('approvals/{approval}/deny', [ApprovalController::class, 'deny'])->name('approvals.deny');
+
+        Route::get('tasks', [TaskController::class, 'index'])->name('tasks.index');
+        Route::get('tasks/{task}', [TaskController::class, 'show'])->name('tasks.show');
+        Route::post('tasks/{task}/cancel', [TaskController::class, 'cancel'])->name('tasks.cancel');
+        Route::post('tasks/{task}/retry', [TaskController::class, 'retry'])->name('tasks.retry');
+
+        Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+        Route::post('notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
     });
 });

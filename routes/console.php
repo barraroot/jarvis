@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // Pending approvals past their window are closed every minute (US-8.3).
 Schedule::command('jarvis:approvals:expire')->everyMinute();
+
+// Expired execution data is pruned daily (Notes & Conventions, US-12.2).
+Schedule::command('jarvis:retention:prune')->daily();

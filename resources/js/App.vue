@@ -2,8 +2,11 @@
 import { onMounted } from 'vue';
 import { RouterView, useRoute, useRouter } from 'vue-router';
 import HudToast from '@/components/ui/HudToast.vue';
+import TaskDetail from '@/components/hud/TaskDetail.vue';
 import { bindAgentEvents } from '@/composables/useAgentEvents';
 import { bindApprovalEvents } from '@/composables/useApprovalEvents';
+import { bindNotificationEvents } from '@/composables/useNotificationEvents';
+import { bindTaskEvents } from '@/composables/useTaskEvents';
 import { useRealtimeConnection } from '@/composables/useRealtimeConnection';
 import { useSpeechOutput } from '@/composables/useSpeechOutput';
 import { bindToolEvents } from '@/composables/useToolEvents';
@@ -30,7 +33,14 @@ const speaking = speech.speaking;
 const wakeWord = useWakeWord({ onWake: () => void voice.start() });
 const wakeWordActive = wakeWord.listening;
 
-useRealtimeConnection([(channel) => speech.bind(channel), bindToolEvents, bindAgentEvents, bindApprovalEvents]);
+useRealtimeConnection([
+    (channel) => speech.bind(channel),
+    bindToolEvents,
+    bindAgentEvents,
+    bindApprovalEvents,
+    bindNotificationEvents,
+    bindTaskEvents,
+]);
 
 onMounted(() => {
     void preferences.ensureLoaded().catch(() => undefined);
@@ -102,4 +112,5 @@ function onToggleSpoken(): void {
     </HudLayout>
     <RouterView v-else />
     <HudToast />
+    <TaskDetail />
 </template>

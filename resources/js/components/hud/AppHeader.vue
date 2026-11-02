@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { RouterLink } from 'vue-router';
 import Clock from '@/components/ui/Clock.vue';
+import NotificationCenter from '@/components/hud/NotificationCenter.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import { useAssistantStore } from '@/stores/assistant';
 import { useAuthStore } from '@/stores/auth';
@@ -193,23 +194,18 @@ onBeforeUnmount(() => {
                 </svg>
             </button>
 
+            <NotificationCenter />
+
             <RouterLink
                 :to="{ name: 'approvals' }"
-                class="relative inline-flex size-9 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
+                class="inline-flex size-9 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
                 :aria-label="t('header.approvals')"
                 data-testid="header-approvals"
             >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4" aria-hidden="true">
-                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                    <path d="M9 11l3 3L22 4" />
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
                 </svg>
-                <span
-                    v-if="notifications.unreadCount > 0"
-                    class="absolute -right-1 -top-1 min-w-4 rounded-full bg-danger px-1 text-center font-mono text-[0.55rem] leading-4 text-bg"
-                    data-testid="header-notifications-count"
-                >
-                    {{ notifications.unreadCount }}
-                </span>
             </RouterLink>
 
             <span

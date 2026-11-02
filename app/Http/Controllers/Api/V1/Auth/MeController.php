@@ -17,6 +17,10 @@ class MeController extends Controller
         /** @var User $user */
         $user = $request->user();
 
+        // Work on a clone: transient attributes set below (e.g. the unread
+        // counter) must never leak into later saves of the shared auth instance.
+        $user = clone $user;
+
         $preference = $user->preference()->firstOrCreate();
 
         if ($preference->wasRecentlyCreated) {
@@ -25,6 +29,9 @@ class MeController extends Controller
         }
 
         $user->setRelation('preference', $preference);
+
+        // Unread counter for the notification centre (US-10.4).
+        $user->setAttribute('notifications_unread', $user->notifications()->unread()->count());
 
         return UserResource::make($user);
     }
