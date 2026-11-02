@@ -30,6 +30,9 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::define('admin', fn (User $user): bool => $user->isAdmin());
 
+        // Note: `ExecuteApprovedTool` is wired by Laravel's event discovery
+        // (app/Listeners); registering it here again would run it twice.
+
         $this->configureRateLimiting();
     }
 

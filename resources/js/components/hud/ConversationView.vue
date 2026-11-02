@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import JarvisCore from '@/components/hud/JarvisCore.vue';
+import ApprovalMessageCard from '@/components/hud/ApprovalMessageCard.vue';
 import MessageBubble from '@/components/hud/MessageBubble.vue';
 import ProcessingIndicator from '@/components/hud/ProcessingIndicator.vue';
 import { useAssistantStore } from '@/stores/assistant';
@@ -93,14 +94,15 @@ watch(
 
                 <MessageBubble v-for="message in messages" :key="message.id" :message="message" @retry="emit('retry', $event)">
                     <template #payload="slotProps">
+                        <ApprovalMessageCard
+                            v-if="slotProps.message.payload?.type === 'approval_request'"
+                            :message="slotProps.message"
+                        />
                         <slot name="payload" v-bind="slotProps" />
                     </template>
                 </MessageBubble>
 
                 <ProcessingIndicator v-if="showProcessing" :state="assistant.state" />
-
-                <!-- Approval card (Phase 11) renders in this slot. -->
-                <slot name="approval" />
             </div>
         </div>
 

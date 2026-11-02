@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Ai\ModelController;
+use App\Http\Controllers\Api\V1\Approvals\ApprovalController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\MeController;
@@ -53,5 +54,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::delete('memories/{memory}', [MemoryController::class, 'destroy'])->name('memories.destroy');
         Route::post('memories/{memory}/confirm', [MemoryController::class, 'confirm'])->name('memories.confirm');
         Route::post('memories/{memory}/discard', [MemoryController::class, 'discard'])->name('memories.discard');
+
+        Route::get('approvals', [ApprovalController::class, 'index'])->name('approvals.index');
+        Route::get('approvals/{approval}', [ApprovalController::class, 'show'])->name('approvals.show');
+        Route::post('approvals/{approval}/approve', [ApprovalController::class, 'approve'])->name('approvals.approve');
+        Route::post('approvals/{approval}/deny', [ApprovalController::class, 'deny'])->name('approvals.deny');
     });
 });

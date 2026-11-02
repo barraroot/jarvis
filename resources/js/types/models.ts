@@ -120,3 +120,27 @@ export interface ToolState {
     name: string;
     status: 'active' | 'error' | 'idle';
 }
+
+export type ApprovalStatus = 'pending' | 'approved' | 'denied' | 'expired';
+
+/** Approval request as returned by `GET /api/v1/approvals` (US-8.3). */
+export interface ApprovalSummary {
+    id: string;
+    status: ApprovalStatus;
+    tool: {
+        identifier: string;
+        name: string;
+        description: string;
+    };
+    effect: {
+        is_write: boolean;
+        is_sensitive: boolean;
+        external: boolean;
+    };
+    params: Record<string, unknown>;
+    agent: string | null;
+    requested_at: string;
+    expires_at: string;
+    decided_at: string | null;
+    decision_reason: string | null;
+}

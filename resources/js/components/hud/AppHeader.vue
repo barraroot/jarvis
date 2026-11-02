@@ -193,11 +193,11 @@ onBeforeUnmount(() => {
                 </svg>
             </button>
 
-            <button
-                type="button"
+            <RouterLink
+                :to="{ name: 'approvals' }"
                 class="relative inline-flex size-9 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
-                :aria-label="t('header.notifications')"
-                data-testid="header-notifications"
+                :aria-label="t('header.approvals')"
+                data-testid="header-approvals"
             >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4" aria-hidden="true">
                     <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
@@ -210,7 +210,7 @@ onBeforeUnmount(() => {
                 >
                     {{ notifications.unreadCount }}
                 </span>
-            </button>
+            </RouterLink>
 
             <span
                 v-if="hasConnectors"
@@ -353,20 +353,20 @@ onBeforeUnmount(() => {
                 >
                     {{ t('header.conversations') }}
                 </button>
-                <button
-                    type="button"
-                    class="hud-label flex items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
-                    data-testid="header-more-notifications"
+                <RouterLink
+                    :to="{ name: 'approvals' }"
+                    class="hud-label flex items-center gap-2 rounded-sm px-2 py-1.5 text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                    data-testid="header-more-approvals"
                     @click="closeMenus"
                 >
-                    {{ t('header.notifications') }}
+                    {{ t('header.approvals') }}
                     <span
                         v-if="notifications.unreadCount > 0"
                         class="ml-auto min-w-4 rounded-full bg-danger px-1 text-center font-mono text-[0.55rem] text-bg"
                     >
                         {{ notifications.unreadCount }}
                     </span>
-                </button>
+                </RouterLink>
                 <RouterLink
                     :to="{ name: 'memories' }"
                     class="hud-label flex items-center gap-2 rounded-sm px-2 py-1.5 text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"

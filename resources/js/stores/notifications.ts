@@ -2,8 +2,9 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
 /**
- * Notification counter for the header, fed by `notification.created` (Phase 13).
- * Empty until then: the badge stays hidden.
+ * Notification counter for the header, fed by `notification.created`. The
+ * counter only tracks unread approval notifications for now; the full
+ * notification centre lands with the retention phase.
  */
 export const useNotificationsStore = defineStore('notifications', () => {
     const unreadCount = ref(0);
@@ -12,5 +13,9 @@ export const useNotificationsStore = defineStore('notifications', () => {
         unreadCount.value = Math.max(0, Math.trunc(count));
     }
 
-    return { unreadCount, setUnreadCount };
+    function increment(): void {
+        unreadCount.value += 1;
+    }
+
+    return { unreadCount, setUnreadCount, increment };
 });

@@ -14,6 +14,7 @@ async function mountHeader() {
         routes: [
             { path: '/settings', name: 'settings', component: Blank },
             { path: '/memories', name: 'memories', component: Blank },
+            { path: '/approvals', name: 'approvals', component: Blank },
         ],
     });
     await router.push('/settings');

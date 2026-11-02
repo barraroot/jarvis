@@ -13,6 +13,7 @@ async function mountLayout(slots: Record<string, string> = {}) {
             { path: '/', name: 'hud', component: Blank },
             { path: '/settings', name: 'settings', component: Blank },
             { path: '/memories', name: 'memories', component: Blank },
+            { path: '/approvals', name: 'approvals', component: Blank },
         ],
     });
     await router.push('/');

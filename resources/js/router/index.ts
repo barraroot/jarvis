@@ -49,6 +49,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, titleKey: 'pages.activity' },
     },
     {
+        path: '/approvals',
+        name: 'approvals',
+        component: () => import('@/pages/ApprovalsPage.vue'),
+        meta: { requiresAuth: true, titleKey: 'pages.approvals' },
+    },
+    {
         path: '/:pathMatch(.*)*',
         redirect: { name: 'hud' },
     },
