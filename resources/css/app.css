@@ -1,9 +1,139 @@
 @import 'tailwindcss';
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
+@source '../js/**/*.{vue,ts}';
+@source '../views/app.blade.php';
+
+/*
+|--------------------------------------------------------------------------
+| JARVIS HUD design tokens
+|--------------------------------------------------------------------------
+| Derived from .spec/init/design/painel1.jpg, painel2.jpg and painel3.jpg:
+| deep navy background, cyan lines and glow, amber as alert/progress accent.
+*/
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --color-bg: #050a12;
+    --color-bg-navy: #0a1628;
+    --color-panel: rgba(10, 22, 40, 0.6);
+    --color-line: #164e63;
+    --color-cyan: #22d3ee;
+    --color-cyan-bright: #67e8f9;
+    --color-blue: #3b82f6;
+    --color-purple: #a78bfa;
+    --color-amber: #fbbf24;
+    --color-danger: #f87171;
+    --color-text: #cffafe;
+    --color-muted: #64748b;
+
+    --font-sans: 'Exo 2', 'Orbitron', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Orbitron', 'Exo 2', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    --tracking-hud: 0.25em;
+
+    --animate-hud-pulse: hud-pulse 2.4s ease-in-out infinite;
+    --animate-hud-spin: hud-spin 18s linear infinite;
+
+    @keyframes hud-pulse {
+        0%,
+        100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.45;
+        }
+    }
+
+    @keyframes hud-spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+}
+
+@layer base {
+    html {
+        color-scheme: dark;
+    }
+
+    body {
+        background-color: var(--color-bg);
+        color: var(--color-text);
+        font-family: var(--font-mono);
+        overflow-x: hidden;
+    }
+
+    h1,
+    h2,
+    h3 {
+        font-family: var(--font-display);
+    }
+
+    :focus-visible {
+        outline: 1px solid var(--color-cyan-bright);
+        outline-offset: 2px;
+    }
+}
+
+/* Cyan text glow used on titles, clock and key figures. */
+@utility hud-glow {
+    text-shadow:
+        0 0 6px rgba(34, 211, 238, 0.65),
+        0 0 18px rgba(34, 211, 238, 0.35);
+}
+
+/* Thin 1px frame with marked corners, like the panels of painel1. */
+@utility hud-border {
+    --hud-corner: 10px;
+    border: 1px solid color-mix(in srgb, var(--color-line) 85%, transparent);
+    background-image:
+        linear-gradient(var(--color-cyan), var(--color-cyan)), linear-gradient(var(--color-cyan), var(--color-cyan)),
+        linear-gradient(var(--color-cyan), var(--color-cyan)), linear-gradient(var(--color-cyan), var(--color-cyan)),
+        linear-gradient(var(--color-cyan), var(--color-cyan)), linear-gradient(var(--color-cyan), var(--color-cyan)),
+        linear-gradient(var(--color-cyan), var(--color-cyan)), linear-gradient(var(--color-cyan), var(--color-cyan));
+    background-repeat: no-repeat;
+    background-size:
+        var(--hud-corner) 2px, 2px var(--hud-corner),
+        var(--hud-corner) 2px, 2px var(--hud-corner),
+        var(--hud-corner) 2px, 2px var(--hud-corner),
+        var(--hud-corner) 2px, 2px var(--hud-corner);
+    background-position:
+        top left, top left,
+        top right, top right,
+        bottom left, bottom left,
+        bottom right, bottom right;
+}
+
+/* Translucent navy glass with backdrop blur. */
+@utility hud-glass {
+    background-color: var(--color-panel);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+/* Subtle technical grid for page backgrounds. */
+@utility hud-grid {
+    background-image:
+        linear-gradient(rgba(22, 78, 99, 0.18) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(22, 78, 99, 0.18) 1px, transparent 1px);
+    background-size: 32px 32px;
+}
+
+/* Spaced uppercase label typography used by panel titles. */
+@utility hud-label {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-hud);
+}
+
+/* Users who ask for less motion get no continuous animations. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0s !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0s !important;
+        scroll-behavior: auto !important;
+    }
 }

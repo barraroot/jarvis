@@ -12,5 +12,8 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         LookupModel::flushCache();
+
+        // The SPA shell uses @vite; tests never depend on a built manifest.
+        $this->withoutVite();
     }
 }

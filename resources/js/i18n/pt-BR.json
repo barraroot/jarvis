@@ -1,0 +1,96 @@
+{
+    "app": {
+        "name": "J.A.R.V.I.S.",
+        "tagline": "Just A Rather Very Intelligent System"
+    },
+    "common": {
+        "noData": "sem dados",
+        "loading": "carregando",
+        "close": "fechar",
+        "cancel": "cancelar",
+        "confirm": "confirmar",
+        "select": "selecione",
+        "on": "ligado",
+        "off": "desligado"
+    },
+    "nav": {
+        "hud": "HUD",
+        "chat": "Chat",
+        "agents": "Agentes",
+        "tasks": "Tarefas",
+        "settings": "Config",
+        "memories": "Memórias",
+        "activity": "Atividade",
+        "microphone": "Microfone",
+        "toggleSidebar": "Alternar painel lateral",
+        "openMenu": "Abrir menu",
+        "closeMenu": "Fechar menu",
+        "logout": "Sair"
+    },
+    "layout": {
+        "sidebar": "Painel lateral",
+        "main": "Área central",
+        "footer": "Interação",
+        "header": "Cabeçalho",
+        "disconnectedBanner": "Sem conexão com o servidor. Envio desativado até a reconexão.",
+        "reconnecting": "Reconectando em {seconds} s"
+    },
+    "pages": {
+        "hud": "Painel principal",
+        "conversation": "Conversa",
+        "settings": "Configurações",
+        "memories": "Memórias",
+        "activity": "Atividade"
+    },
+    "auth": {
+        "title": "Acesso restrito",
+        "subtitle": "Identifique-se para iniciar o sistema",
+        "email": "E-mail",
+        "password": "Senha",
+        "remember": "Manter conectado",
+        "submit": "Entrar",
+        "submitting": "Autenticando",
+        "throttled": "Muitas tentativas. Tente novamente em {seconds} s.",
+        "genericError": "Não foi possível entrar. Tente novamente."
+    },
+    "errors": {
+        "tooManyRequests": "Muitas requisições. Aguarde {seconds} s.",
+        "network": "Falha de rede. Verifique sua conexão.",
+        "unexpected": "Erro inesperado."
+    },
+    "connection": {
+        "connected": "Conectado",
+        "connecting": "Conectando",
+        "disconnected": "Desconectado"
+    },
+    "status": {
+        "IDLE": "Ocioso",
+        "LISTENING": "Ouvindo",
+        "THINKING": "Pensando",
+        "SPEAKING": "Falando",
+        "EXECUTING": "Executando",
+        "SLEEPING": "Dormindo",
+        "ERROR": "Erro",
+        "DISCONNECTED": "Desconectado",
+        "pending": "Pendente",
+        "queued": "Na fila",
+        "running": "Em execução",
+        "waiting_approval": "Aguardando aprovação",
+        "completed": "Concluída",
+        "failed": "Falhou",
+        "cancelled": "Cancelada",
+        "unknown": "Desconhecido"
+    },
+    "clock": {
+        "label": "Relógio"
+    },
+    "waveform": {
+        "label": "Nível de áudio"
+    },
+    "progress": {
+        "label": "Progresso"
+    },
+    "core": {
+        "label": "Núcleo JARVIS"
+    }
+}
