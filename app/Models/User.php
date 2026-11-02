@@ -3,19 +3,25 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Observers\UserObserver;
 use Database\Factories\UserFactory;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Gate;
 
 #[Fillable(['name', 'email', 'password', 'is_admin', 'is_active', 'monthly_cost_limit', 'last_login_at'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+#[ObservedBy(UserObserver::class)]
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, SoftDeletes;
@@ -43,6 +49,14 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->is_admin && $this->is_active;
+    }
+
+    /**
+     * Only active administrators may open the Filament panel (US-12.1).
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return Gate::forUser($this)->allows('admin');
     }
 
     /** @return HasOne<UserPreference, $this> */
