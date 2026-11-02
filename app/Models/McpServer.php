@@ -1,0 +1,94 @@
+<?php
+
+namespace App\Models;
+
+use Database\Factories\McpServerFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+#[Fillable([
+    'user_id',
+    'connector_status_id',
+    'name',
+    'url',
+    'credential',
+    'is_active',
+    'last_synced_at',
+    'last_checked_at',
+    'last_error',
+])]
+#[Hidden(['credential'])]
+class McpServer extends Model
+{
+    /** @use HasFactory<McpServerFactory> */
+    use HasFactory, SoftDeletes;
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'credential' => 'encrypted',
+            'is_active' => 'boolean',
+            'last_synced_at' => 'datetime',
+            'last_checked_at' => 'datetime',
+        ];
+    }
+
+    /**
+     * Global connectors (admin-managed) have no owner.
+     */
+    public function isGlobal(): bool
+    {
+        return $this->user_id === null;
+    }
+
+    #[Scope]
+    protected function global(Builder $query): void
+    {
+        $query->whereNull('user_id');
+    }
+
+    /**
+     * Connectors visible to a user: every global one plus their own.
+     */
+    #[Scope]
+    protected function forUser(Builder $query, User $user): void
+    {
+        $query->where(function (Builder $query) use ($user): void {
+            $query->whereNull('user_id')->orWhere('user_id', $user->id);
+        });
+    }
+
+    #[Scope]
+    protected function active(Builder $query): void
+    {
+        $query->where('is_active', true);
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /** @return BelongsTo<ConnectorStatus, $this> */
+    public function status(): BelongsTo
+    {
+        return $this->belongsTo(ConnectorStatus::class, 'connector_status_id');
+    }
+
+    /** @return HasMany<McpToolDefinition, $this> */
+    public function toolDefinitions(): HasMany
+    {
+        return $this->hasMany(McpToolDefinition::class);
+    }
+}

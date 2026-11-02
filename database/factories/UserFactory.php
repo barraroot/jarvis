@@ -30,7 +30,39 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'is_admin' => false,
+            'is_active' => true,
+            'monthly_cost_limit' => null,
+            'last_login_at' => null,
         ];
+    }
+
+    /**
+     * Grant access to the admin panel.
+     */
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_admin' => true,
+        ]);
+    }
+
+    /**
+     * Deactivated account: cannot log in nor act as admin.
+     */
+    public function inactive(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_active' => false,
+        ]);
+    }
+
+    /**
+     * Also create the user's preference row.
+     */
+    public function withPreference(): static
+    {
+        return $this->has(UserPreferenceFactory::new(), 'preference');
     }
 
     /**
