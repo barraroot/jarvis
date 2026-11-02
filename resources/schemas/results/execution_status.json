@@ -1,0 +1,64 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "execution_status",
+    "type": "object",
+    "required": [
+        "type",
+        "entity",
+        "status",
+        "message"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": [
+                "execution_status"
+            ]
+        },
+        "entity": {
+            "type": "string",
+            "enum": [
+                "tool",
+                "agent"
+            ]
+        },
+        "name": {
+            "type": "string"
+        },
+        "status": {
+            "type": "string"
+        },
+        "message": {
+            "type": "string"
+        },
+        "speech": {
+            "type": "string",
+            "maxLength": 300
+        },
+        "suggested_actions": {
+            "type": "array",
+            "maxItems": 4,
+            "items": {
+                "type": "object",
+                "required": [
+                    "label",
+                    "request"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 40
+                    },
+                    "request": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                    }
+                }
+            }
+        }
+    }
+}

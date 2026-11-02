@@ -1,0 +1,69 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "report",
+    "type": "object",
+    "required": [
+        "type",
+        "title",
+        "sections"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": [
+                "report"
+            ]
+        },
+        "title": {
+            "type": "string"
+        },
+        "sections": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "heading",
+                    "body"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "heading": {
+                        "type": "string"
+                    },
+                    "body": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "speech": {
+            "type": "string",
+            "maxLength": 300
+        },
+        "suggested_actions": {
+            "type": "array",
+            "maxItems": 4,
+            "items": {
+                "type": "object",
+                "required": [
+                    "label",
+                    "request"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 40
+                    },
+                    "request": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                    }
+                }
+            }
+        }
+    }
+}

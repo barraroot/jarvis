@@ -1,0 +1,72 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "task_card",
+    "type": "object",
+    "required": [
+        "type",
+        "task_id",
+        "title",
+        "status",
+        "progress"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "type": {
+            "type": "string",
+            "enum": [
+                "task_card"
+            ]
+        },
+        "task_id": {
+            "type": "integer"
+        },
+        "title": {
+            "type": "string"
+        },
+        "status": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "queued",
+                "running",
+                "waiting_approval",
+                "completed",
+                "failed",
+                "cancelled"
+            ]
+        },
+        "progress": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+        },
+        "speech": {
+            "type": "string",
+            "maxLength": 300
+        },
+        "suggested_actions": {
+            "type": "array",
+            "maxItems": 4,
+            "items": {
+                "type": "object",
+                "required": [
+                    "label",
+                    "request"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 40
+                    },
+                    "request": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                    }
+                }
+            }
+        }
+    }
+}
