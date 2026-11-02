@@ -7,6 +7,7 @@ use App\Events\Assistant\AssistantResponseCompleted;
 use App\Events\Assistant\AssistantStateChanged;
 use App\Events\Assistant\AssistantThinking;
 use App\Events\Conversation\ConversationMessageCreated;
+use App\Events\Conversation\ConversationTitleChanged;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
@@ -44,13 +45,14 @@ class AssistantEventsTest extends TestCase
         event(new AssistantThinking($this->user, $message->id));
         event(new AssistantStateChanged($this->user, AssistantStateChanged::THINKING, $conversation->id));
         event(new AssistantStateChanged($this->user, AssistantStateChanged::IDLE));
-        event(new AssistantResponseChunk($this->user, $message->id, 'Olá', 0));
+        event(new AssistantResponseChunk($this->user, $message->id, 'Olá', 0, $conversation->id));
         event(new AssistantResponseCompleted($this->user, $message));
 
         $expectedChannel = 'private-user.'.$this->user->id;
 
         Event::assertDispatched(ConversationMessageCreated::class, fn (ConversationMessageCreated $event): bool => $event->broadcastOn()->name === $expectedChannel
-            && $event->broadcastAs() === 'conversation.message.created');
+            && $event->broadcastAs() === 'conversation.message.created'
+            && $event->broadcastWith()['conversation'] === ['id' => $conversation->id, 'title' => $conversation->title]);
 
         Event::assertDispatched(AssistantThinking::class, fn (AssistantThinking $event): bool => $event->broadcastOn()->name === $expectedChannel
             && $event->broadcastAs() === 'assistant.thinking'
@@ -64,14 +66,15 @@ class AssistantEventsTest extends TestCase
 
         Event::assertDispatched(AssistantResponseChunk::class, fn (AssistantResponseChunk $event): bool => $event->broadcastOn()->name === $expectedChannel
             && $event->broadcastAs() === 'assistant.response.chunk'
-            && $event->broadcastWith() === ['message_id' => $message->id, 'delta' => 'Olá', 'index' => 0]);
+            && $event->broadcastWith() === ['message_id' => $message->id, 'delta' => 'Olá', 'index' => 0, 'conversation_id' => $conversation->id]);
 
-        Event::assertDispatched(AssistantResponseCompleted::class, function (AssistantResponseCompleted $event) use ($expectedChannel, $message): bool {
+        Event::assertDispatched(AssistantResponseCompleted::class, function (AssistantResponseCompleted $event) use ($expectedChannel, $message, $conversation): bool {
             $payload = $event->broadcastWith();
 
             return $event->broadcastOn()->name === $expectedChannel
                 && $event->broadcastAs() === 'assistant.response.completed'
                 && $payload['message']['id'] === $message->id
+                && $payload['conversation'] === ['id' => $conversation->id, 'title' => $conversation->title]
                 // Internal metadata and system prompts never leave the backend.
                 && ! array_key_exists('meta', $payload['message'])
                 && str_contains(json_encode($payload), 'never leaked') === false;
@@ -81,5 +84,18 @@ class AssistantEventsTest extends TestCase
         $otherUser = User::factory()->create();
 
         Event::assertDispatched(AssistantResponseChunk::class, fn (AssistantResponseChunk $event): bool => $event->broadcastOn()->name !== 'private-user.'.$otherUser->id);
+    }
+
+    public function test_title_changed_event_carries_conversation_title(): void
+    {
+        Event::fake();
+
+        $conversation = Conversation::factory()->create(['user_id' => $this->user->id, 'title' => 'Título gerado']);
+
+        event(new ConversationTitleChanged($this->user, $conversation));
+
+        Event::assertDispatched(ConversationTitleChanged::class, fn (ConversationTitleChanged $event): bool => $event->broadcastOn()->name === 'private-user.'.$this->user->id
+            && $event->broadcastAs() === 'conversation.title.changed'
+            && $event->broadcastWith() === ['conversation' => ['id' => $conversation->id, 'title' => 'Título gerado']]);
     }
 }

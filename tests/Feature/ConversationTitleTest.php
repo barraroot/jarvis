@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Events\Conversation\ConversationTitleChanged;
 use App\Jobs\GenerateConversationTitle;
 use App\Models\AiModel;
 use App\Models\AiProvider;
@@ -9,6 +10,7 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Laravel\Ai\Ai;
 use Laravel\Ai\AnonymousAgent;
 use Laravel\Ai\Responses\Data\Meta;
@@ -29,6 +31,9 @@ class ConversationTitleTest extends TestCase
         parent::setUp();
 
         $this->setUpSeedsLookups();
+
+        // The title job broadcasts synchronously; tests must not reach Reverb.
+        config(['broadcasting.default' => 'null']);
 
         $this->user = User::factory()->create();
 
@@ -71,5 +76,22 @@ class ConversationTitleTest extends TestCase
         (new GenerateConversationTitle($limited))->handle();
 
         $this->assertSame(str_repeat('a', 60), $limited->fresh()->title);
+    }
+
+    public function test_generated_title_broadcasts_title_changed_event(): void
+    {
+        Event::fake();
+
+        $conversation = Conversation::factory()->create(['user_id' => $this->user->id, 'title' => Conversation::PROVISIONAL_TITLE]);
+
+        Message::factory()->for($conversation, 'conversation')->create(['content' => 'Primeira mensagem']);
+
+        Ai::fakeAgent(AnonymousAgent::class, fn (string $prompt, mixed $attachments, mixed $provider, string $model): TextResponse => new TextResponse('Título automático', new TextUsage(10, 5), new Meta($provider->name(), $model)));
+
+        (new GenerateConversationTitle($conversation))->handle();
+
+        Event::assertDispatched(ConversationTitleChanged::class, fn (ConversationTitleChanged $event): bool => $event->broadcastOn()->name === 'private-user.'.$this->user->id
+            && $event->broadcastAs() === 'conversation.title.changed'
+            && $event->broadcastWith() === ['conversation' => ['id' => $conversation->id, 'title' => 'Título automático']]);
     }
 }

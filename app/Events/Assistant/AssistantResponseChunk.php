@@ -20,6 +20,7 @@ class AssistantResponseChunk implements ShouldBroadcastNow
         public readonly int $messageId,
         public readonly string $delta,
         public readonly int $index,
+        public readonly ?int $conversationId = null,
     ) {}
 
     public function broadcastOn(): PrivateChannel
@@ -33,7 +34,10 @@ class AssistantResponseChunk implements ShouldBroadcastNow
     }
 
     /**
-     * @return array{message_id: int, delta: string, index: int}
+     * `conversation_id` lets the SPA drop chunks that belong to another open
+     * conversation instead of leaking them into the current one (Phase 8).
+     *
+     * @return array{message_id: int, delta: string, index: int, conversation_id: int|null}
      */
     public function broadcastWith(): array
     {
@@ -41,6 +45,7 @@ class AssistantResponseChunk implements ShouldBroadcastNow
             'message_id' => $this->messageId,
             'delta' => $this->delta,
             'index' => $this->index,
+            'conversation_id' => $this->conversationId,
         ];
     }
 }

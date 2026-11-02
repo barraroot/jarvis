@@ -172,5 +172,6 @@ export const useConnectionStore = defineStore('connection', () => {
         start,
         stop,
         markDisconnected,
+        markConnected,
     };
 });

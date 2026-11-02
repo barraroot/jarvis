@@ -10,6 +10,7 @@ import {
 import { useAssistantStore } from '@/stores/assistant';
 import { useAuthStore } from '@/stores/auth';
 import { useConnectionStore } from '@/stores/connection';
+import { useMessagesStore } from '@/stores/messages';
 
 /**
  * Opens the Reverb socket and the `private-user.{id}` channel while someone is signed in.
@@ -18,6 +19,7 @@ export function useRealtimeConnection(): void {
     const auth = useAuthStore();
     const connection = useConnectionStore();
     const assistant = useAssistantStore();
+    const messages = useMessagesStore();
 
     const stopWatching = watch(
         () => auth.user?.id ?? null,
@@ -34,11 +36,13 @@ export function useRealtimeConnection(): void {
 
             const echo = getEcho();
             connection.start(createEchoTransport(echo));
-            subscribeToUserChannel(userId).listen('assistant.state.changed', (event: unknown) => {
+            const channel = subscribeToUserChannel(userId);
+            channel.listen('assistant.state.changed', (event: unknown) => {
                 const payload = (event as { state?: unknown } | null)?.state;
 
                 assistant.applyServerState(payload);
             });
+            messages.bind(channel);
         },
         { immediate: true },
     );

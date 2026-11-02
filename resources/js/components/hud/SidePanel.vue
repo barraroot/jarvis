@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import HudPanel from '@/components/ui/HudPanel.vue';
@@ -10,6 +10,7 @@ import JarvisCore from '@/components/hud/JarvisCore.vue';
 import { useActivityStore } from '@/stores/activity';
 import { useAgentsStore } from '@/stores/agents';
 import { useAssistantStore } from '@/stores/assistant';
+import { useModelsStore } from '@/stores/models';
 import { useTasksStore } from '@/stores/tasks';
 import { useToolsStore } from '@/stores/tools';
 
@@ -30,9 +31,15 @@ const agents = useAgentsStore();
 const tasks = useTasksStore();
 const activity = useActivityStore();
 const tools = useToolsStore();
+const models = useModelsStore();
 
 const showAgents = computed(() => props.expandedSection === null || props.expandedSection === 'agents');
 const showTasks = computed(() => props.expandedSection === null || props.expandedSection === 'tasks');
+
+/** The LLM status list is real data from the same API the selector consumes. */
+onMounted(() => {
+    models.load().catch(() => undefined);
+});
 
 const toolTone = {
     active: 'bg-cyan',
@@ -97,6 +104,23 @@ function formatTimestamp(timestamp: string): string {
                         <StatusBadge :status="task.status" />
                     </div>
                     <ProgressBar :value="task.progress" variant="amber" />
+                </li>
+            </ul>
+        </HudPanel>
+
+        <HudPanel :title="t('panel.llmStatus')">
+            <EmptyState v-if="models.providers.length === 0" :message="t('empty.llm')" />
+            <ul v-else class="flex min-w-0 flex-col gap-1.5" data-testid="panel-llm-list">
+                <li
+                    v-for="provider in models.providers"
+                    :key="provider.name"
+                    class="flex items-center gap-2"
+                    data-testid="panel-llm-provider"
+                >
+                    <span class="size-1.5 shrink-0 rounded-full bg-cyan"></span>
+                    <span class="hud-label min-w-0 flex-1 truncate text-[0.65rem] text-text">{{ provider.name }}</span>
+                    <span class="hud-label text-[0.55rem] text-muted">{{ t('panel.llmConnected') }}</span>
+                    <span class="font-mono text-[0.6rem] text-cyan-bright">{{ provider.count }}</span>
                 </li>
             </ul>
         </HudPanel>

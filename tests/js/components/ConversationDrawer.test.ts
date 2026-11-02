@@ -1,7 +1,9 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { createMemoryHistory, createRouter } from 'vue-router';
+import { nextTick } from 'vue';
 import { describe, expect, it } from 'vitest';
 import ConversationDrawer from '@/components/hud/ConversationDrawer.vue';
+import { useConversationsStore } from '@/stores/conversations';
 import { mockFetch } from '../helpers/fetch';
 
 const Blank = { render: () => null };
@@ -132,6 +134,43 @@ describe('ConversationDrawer', () => {
         const { wrapper } = await mountDrawer();
 
         expect(wrapper.get('[data-testid="empty-state"]').text()).toBe('Nenhuma conversa ainda');
+
+        wrapper.unmount();
+    });
+
+    it('navigates home when the open conversation is deleted', async () => {
+        const { calls } = mockFetch({
+            'GET /api/v1/conversations?page=1': { body: listEnvelope([makeConversation('c1', 'Aberta')], 1, 1) },
+            'DELETE /api/v1/conversations/c1': { status: 204 },
+        });
+        const { wrapper, router } = await mountDrawer();
+        const store = useConversationsStore();
+
+        store.activeId = 'c1';
+        store.active = makeConversation('c1', 'Aberta');
+
+        await wrapper.get('[data-testid="conversation-delete"]').trigger('click');
+        await wrapper.get('[data-testid="drawer-delete-confirm"]').trigger('click');
+        await flushPromises();
+
+        expect(calls.some((call) => call.method === 'DELETE' && call.url === '/api/v1/conversations/c1')).toBe(true);
+        expect(router.currentRoute.value.name).toBe('hud');
+        expect(store.activeId).toBeNull();
+
+        wrapper.unmount();
+    });
+
+    it('updates the listed title live when a title event changes it', async () => {
+        mockFetch({
+            'GET /api/v1/conversations?page=1': { body: listEnvelope([makeConversation('c1', 'Nova conversa')], 1, 1) },
+        });
+        const { wrapper } = await mountDrawer();
+        const store = useConversationsStore();
+
+        store.applyTitle('c1', 'Plano de voo');
+        await nextTick();
+
+        expect(wrapper.get('[data-testid="conversation-item"]').text()).toContain('Plano de voo');
 
         wrapper.unmount();
     });

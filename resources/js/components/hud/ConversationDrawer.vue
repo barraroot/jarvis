@@ -110,10 +110,16 @@ async function confirmDelete(): Promise<void> {
     }
 
     const id = deleting.value.id;
+    const wasActive = store.activeId !== null && String(store.activeId) === String(id);
     deleting.value = null;
 
     try {
         await store.remove(id);
+
+        // Deleting the open conversation leaves the conversation view.
+        if (wasActive) {
+            await router.push({ name: 'hud' });
+        }
     } catch {
         toasts.push(t('drawer.deleteError'), { variant: 'danger' });
     }

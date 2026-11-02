@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Events\Conversation\ConversationTitleChanged;
 use App\Models\Conversation;
 use App\Services\BrainClient;
 use App\Services\BrainRequest;
@@ -75,6 +76,8 @@ class GenerateConversationTitle implements ShouldQueue
             }
 
             $conversation->update(['title' => $title]);
+
+            event(new ConversationTitleChanged($user, $conversation));
         } catch (Throwable $exception) {
             // The provisional title stays; a later reply retries. No retries on the queue (AI billing).
             report($exception);

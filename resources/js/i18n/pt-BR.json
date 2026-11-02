@@ -111,13 +111,16 @@
         "agents": "Agentes ativos",
         "tasks": "Tarefas",
         "history": "Histórico de execuções",
-        "tools": "Ferramentas"
+        "tools": "Ferramentas",
+        "llmStatus": "LLM status",
+        "llmConnected": "conectado"
     },
     "empty": {
         "agents": "Nenhum agente ativo",
         "tasks": "Nenhuma tarefa em andamento",
         "history": "Nenhuma execução registrada",
-        "tools": "Nenhuma ferramenta monitorada"
+        "tools": "Nenhuma ferramenta monitorada",
+        "llm": "Nenhum modelo conectado"
     },
     "toolStatus": {
         "active": "ativo",
@@ -128,9 +131,24 @@
         "greeting": "Saudações. Sou o J.A.R.V.I.S., seu sistema pessoal de inteligência.",
         "greetingHint": "Digite uma solicitação ou pressione Tab para falar.",
         "goToEnd": "Ir ao fim",
+        "loadOlder": "Carregar mensagens anteriores",
         "you": "Você",
         "jarvis": "JARVIS",
-        "ariaLabel": "Mensagens da conversa"
+        "ariaLabel": "Mensagens da conversa",
+        "streaming": "Gerando resposta",
+        "failed": "Mensagem com erro",
+        "retry": "Tentar novamente"
+    },
+    "messages": {
+        "offline": "Sem conexão — a mensagem não foi enviada.",
+        "noConversation": "Nenhuma conversa aberta.",
+        "sendError": "Não foi possível enviar a mensagem."
+    },
+    "models": {
+        "label": "Modelo",
+        "default": "Padrão",
+        "loadError": "Não foi possível carregar os modelos.",
+        "chooseError": "Modelo indisponível — ele pode ter sido desativado. Escolha outro."
     },
     "footer": {
         "placeholder": "Digite, ou pressione Tab para falar…",

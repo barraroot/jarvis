@@ -34,18 +34,36 @@ export type MessageRole = 'user' | 'assistant' | 'tool' | 'system';
 
 export type MessageSource = 'text' | 'voice';
 
+export type MessageStatus = 'pending' | 'running' | 'completed' | 'failed';
+
+/** Text model offered by the AI brain (`GET /api/v1/ai/models`). */
+export interface AiModelSummary {
+    id: string;
+    name: string;
+    provider: string;
+    is_default: boolean;
+}
+
 export interface Conversation {
     id: string;
     title: string;
     last_activity_at: string;
+    ai_model_id?: string | null;
+    model?: AiModelSummary | null;
 }
 
 export interface Message {
     id: string;
+    conversation_id: string;
     role: MessageRole;
-    source: MessageSource;
+    source: MessageSource | null;
+    status: MessageStatus;
     content: string;
+    payload: Record<string, unknown> | null;
+    ai_model_id: string | null;
     created_at: string;
+    /** Client-side id of an optimistic message not yet confirmed by the server. */
+    localId?: string;
 }
 
 /** Agent currently working, fed by `agent.*` events (Phase 11). */

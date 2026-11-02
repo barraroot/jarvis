@@ -30,11 +30,18 @@ class ConversationMessageCreated implements ShouldBroadcastNow
 
     /**
      * Payloads use API resources; internal metadata and prompts never leave the backend.
+     * The conversation title rides along so drawers update live (Phase 8).
      *
      * @return array<string, mixed>
      */
     public function broadcastWith(): array
     {
-        return ['message' => MessageResource::make($this->message)->resolve()];
+        return [
+            'message' => MessageResource::make($this->message)->resolve(),
+            'conversation' => [
+                'id' => $this->message->conversation_id,
+                'title' => $this->message->conversation?->title,
+            ],
+        ];
     }
 }

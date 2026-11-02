@@ -100,14 +100,14 @@ class ProcessUserMessage implements ShouldQueue
                 instructions: $routed->instructions,
                 message: $assistantMessage,
             ),
-            function (string $delta) use ($assistantMessage, $user, &$content, &$chunkIndex): void {
+            function (string $delta) use ($assistantMessage, $user, $conversation, &$content, &$chunkIndex): void {
                 if ($chunkIndex === 0 && $assistantMessage->execution_status_id === ExecutionStatus::idFor(ExecutionStatus::PENDING)) {
                     $assistantMessage->update([
                         'execution_status_id' => ExecutionStatus::idFor(ExecutionStatus::RUNNING),
                     ]);
                 }
 
-                AssistantResponseChunk::dispatch($user, $assistantMessage->id, $delta, $chunkIndex);
+                AssistantResponseChunk::dispatch($user, $assistantMessage->id, $delta, $chunkIndex, $conversation->id);
 
                 $content .= $delta;
                 $chunkIndex++;

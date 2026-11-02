@@ -9,16 +9,30 @@ import type { Message } from '@/types/models';
 
 const props = withDefaults(
     defineProps<{
-        /** Messages are empty until the Phase 8 stores feed this view. */
+        /** Conversation messages in display order (oldest first), fed by the stores. */
         messages?: Message[];
+        /** True when the server still has older messages behind the cursor. */
+        hasOlder?: boolean;
     }>(),
-    { messages: () => [] },
+    { messages: () => [], hasOlder: false },
 );
+
+const emit = defineEmits<{
+    retry: [message: Message];
+    loadOlder: [];
+}>();
 
 const { t } = useI18n();
 const assistant = useAssistantStore();
 
 const processing = computed(() => assistant.state === 'THINKING' || assistant.state === 'EXECUTING');
+
+/** The bubble already receiving chunks replaces the processing row. */
+const streamingMessage = computed(() =>
+    props.messages.find((message) => message.role === 'assistant' && message.status === 'running'),
+);
+
+const showProcessing = computed(() => processing.value && streamingMessage.value === undefined);
 const showGreeting = computed(() => props.messages.length === 0 && !processing.value);
 
 const scrollerRef = ref<HTMLElement | null>(null);
@@ -43,9 +57,9 @@ function onScroll(): void {
     scrolledUp.value = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight > 80;
 }
 
-/** New messages (and chunk updates later) keep the view pinned to the end. */
+/** New messages, streamed content and state changes keep the view pinned to the end. */
 watch(
-    () => [props.messages.length, processing.value] as const,
+    () => [props.messages.length, props.messages.at(-1)?.content, processing.value] as const,
     async () => {
         await nextTick();
         scrollToEnd();
@@ -67,13 +81,23 @@ watch(
             </div>
 
             <div v-else class="flex min-w-0 flex-col gap-3" data-testid="conversation-messages">
-                <MessageBubble v-for="message in messages" :key="message.id" :message="message">
+                <div v-if="hasOlder" class="flex justify-center" data-testid="conversation-load-older">
+                    <button
+                        type="button"
+                        class="hud-label rounded-sm border border-line bg-bg-navy px-3 py-1.5 text-[0.6rem] text-cyan-bright hover:border-cyan"
+                        @click="emit('loadOlder')"
+                    >
+                        {{ t('conversation.loadOlder') }}
+                    </button>
+                </div>
+
+                <MessageBubble v-for="message in messages" :key="message.id" :message="message" @retry="emit('retry', $event)">
                     <template #payload="slotProps">
                         <slot name="payload" v-bind="slotProps" />
                     </template>
                 </MessageBubble>
 
-                <ProcessingIndicator v-if="processing" :state="assistant.state" />
+                <ProcessingIndicator v-if="showProcessing" :state="assistant.state" />
 
                 <!-- Approval card (Phase 11) renders in this slot. -->
                 <slot name="approval" />
