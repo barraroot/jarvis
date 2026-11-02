@@ -60,4 +60,8 @@ class AuditAction extends LookupModel
     public const string CONNECTOR_DELETED = 'connector_deleted';
 
     public const string MEMORY_DELETED = 'memory_deleted';
+
+    public const string TASK_CANCELLED = 'task_cancelled';
+
+    public const string PREFERENCE_UPDATED = 'preference_updated';
 }

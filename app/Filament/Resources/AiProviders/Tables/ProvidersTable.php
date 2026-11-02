@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\AiProviders\Tables;
 
+use App\Filament\Actions\ToggleActiveBulkActions;
 use App\Models\AiProvider;
+use App\Models\AuditAction;
 use App\Services\ProviderRegistry;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -75,6 +77,7 @@ class ProvidersTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    ...ToggleActiveBulkActions::make(AuditAction::PROVIDER_UPDATED),
                     RestoreBulkAction::make(),
                 ]),
             ]);

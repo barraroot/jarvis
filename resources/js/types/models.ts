@@ -260,3 +260,25 @@ export interface ConnectorStatusChange {
     last_checked_at: string | null;
     last_synced_at: string | null;
 }
+
+/** Kind of entry in the operator's activity history (US-12.4). */
+export type ActivityType = 'agent' | 'tool' | 'approval';
+
+/** One entry of `GET /api/v1/activity`: an agent run, a tool run or an approval decision. */
+export interface ActivityItem {
+    type: ActivityType;
+    id: number;
+    occurred_at: string | null;
+    status: string;
+    title: string;
+    conversation_id: number | null;
+    task_id: number | null;
+    details: Record<string, unknown>;
+}
+
+/** Period/type filters of the activity history; empty strings mean "no filter". */
+export interface ActivityFilters {
+    from: string;
+    to: string;
+    type: ActivityType | '';
+}

@@ -42,6 +42,8 @@ class AuditActionSeeder extends LookupTableSeeder
             'connector_updated' => ['name' => 'Connector Updated'],
             'connector_deleted' => ['name' => 'Connector Deleted'],
             'memory_deleted' => ['name' => 'Memory Deleted'],
+            'task_cancelled' => ['name' => 'Task Cancelled'],
+            'preference_updated' => ['name' => 'Preference Updated'],
         ];
     }
 }

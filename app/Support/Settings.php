@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\AuditAction;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
@@ -12,6 +13,30 @@ use Illuminate\Support\Facades\Cache;
 class Settings
 {
     public const string CACHE_PREFIX = 'settings:';
+
+    /**
+     * Editable keys with their accepted range (US-12.2). `max` null means unbounded;
+     * `type` decides how the submitted value is cast before persisting.
+     *
+     * @var array<string, array{min: int|float, max: int|float|null, type: 'int'|'float'}>
+     */
+    public const array RANGES = [
+        'brain.max_delegation_depth' => ['min' => 0, 'max' => 5, 'type' => 'int'],
+        'brain.tool_timeout_seconds' => ['min' => 5, 'max' => 300, 'type' => 'int'],
+        'brain.max_tool_calls' => ['min' => 1, 'max' => 100, 'type' => 'int'],
+        'brain.task_timeout_seconds' => ['min' => 60, 'max' => 3600, 'type' => 'int'],
+        'brain.messages_per_minute' => ['min' => 1, 'max' => 600, 'type' => 'int'],
+        'brain.approval_ttl_hours' => ['min' => 1, 'max' => 168, 'type' => 'int'],
+        'brain.context_messages' => ['min' => 2, 'max' => 100, 'type' => 'int'],
+        'memory.top_n' => ['min' => 1, 'max' => 20, 'type' => 'int'],
+        'memory.similarity_threshold' => ['min' => 0.5, 'max' => 0.99, 'type' => 'float'],
+        'memory.duplicate_threshold' => ['min' => 0.5, 'max' => 0.99, 'type' => 'float'],
+        'connector.health_check_minutes' => ['min' => 1, 'max' => 1440, 'type' => 'int'],
+        'retention.tool_executions_days' => ['min' => 1, 'max' => null, 'type' => 'int'],
+        'retention.task_logs_days' => ['min' => 1, 'max' => null, 'type' => 'int'],
+        'retention.usage_records_months' => ['min' => 1, 'max' => null, 'type' => 'int'],
+        'retention.read_notifications_days' => ['min' => 1, 'max' => null, 'type' => 'int'],
+    ];
 
     /**
      * Read a setting; the stored JSON value is returned as-is (scalar or array).
@@ -41,6 +66,43 @@ class Settings
         $this->forget($key);
 
         return $setting;
+    }
+
+    /**
+     * Persist every changed value (cast per `RANGES`), auditing each change as
+     * `setting_updated` with old/new values. Unknown or unchanged keys are skipped.
+     *
+     * @param  array<string, mixed>  $values
+     * @return list<string> keys that actually changed
+     */
+    public function update(array $values, User $by): array
+    {
+        $changed = [];
+
+        foreach ($values as $key => $value) {
+            if (! array_key_exists($key, self::RANGES)) {
+                continue;
+            }
+
+            $new = self::RANGES[$key]['type'] === 'float' ? (float) $value : (int) $value;
+            $old = $this->get($key);
+
+            if ($old !== null && $old == $new) {
+                continue;
+            }
+
+            $setting = $this->set($key, $new, $by);
+
+            app(AuditLogger::class)->log(AuditAction::SETTING_UPDATED, $by, $setting, [
+                'key' => $key,
+                'old' => $old,
+                'new' => $new,
+            ]);
+
+            $changed[] = $key;
+        }
+
+        return $changed;
     }
 
     /**

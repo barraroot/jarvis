@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\Agents\Tables;
 
+use App\Filament\Actions\ToggleActiveBulkActions;
 use App\Models\Agent;
 use App\Models\AuditAction;
+use App\Services\DelegationService;
 use App\Support\AuditLogger;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -80,6 +82,12 @@ class AgentsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    ...ToggleActiveBulkActions::make(AuditAction::AGENT_UPDATED,
+                        deactivationBlocker: fn (Agent $agent): ?string => $agent->is_default
+                            ? 'O agente padrão não pode ser desativado; promova outro agente antes.'
+                            : null,
+                        after: fn () => app(DelegationService::class)->syncTools(),
+                    ),
                     RestoreBulkAction::make(),
                 ]),
             ]);

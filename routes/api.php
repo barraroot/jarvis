@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Activity\ActivityController;
 use App\Http\Controllers\Api\V1\Agents\AgentController;
 use App\Http\Controllers\Api\V1\Agents\AgentExecutionController;
 use App\Http\Controllers\Api\V1\Ai\ModelController;
@@ -44,6 +45,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 
         Route::get('agents', [AgentController::class, 'index'])->name('agents.index');
         Route::get('agent-executions', [AgentExecutionController::class, 'index'])->name('agent-executions.index');
+
+        Route::get('activity', ActivityController::class)->name('activity.index');
 
         Route::get('preferences', [PreferencesController::class, 'show'])->name('preferences.show');
         Route::put('preferences', [PreferencesController::class, 'update'])->name('preferences.update');

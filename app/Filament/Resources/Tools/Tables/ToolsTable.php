@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Tools\Tables;
 
+use App\Filament\Actions\ToggleActiveBulkActions;
 use App\Models\AuditAction;
 use App\Models\Tool;
 use App\Support\AuditLogger;
@@ -70,6 +71,7 @@ class ToolsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    ...ToggleActiveBulkActions::make(AuditAction::TOOL_UPDATED),
                     RestoreBulkAction::make(),
                 ]),
             ]);

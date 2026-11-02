@@ -380,5 +380,29 @@
     "remove": "Remover",
     "removeTitle": "Remover conector",
     "removeBody": "Remover {name}? As ferramentas dele deixam de ficar disponíveis."
+  },
+  "activity": {
+    "terminal": "jarvis://activity",
+    "subtitle": "Execuções de agentes, ferramentas e decisões feitas em seu nome.",
+    "live": "histórico",
+    "from": "De",
+    "to": "Até",
+    "type": "Tipo",
+    "allTypes": "Todos",
+    "types": {
+      "agent": "Agente",
+      "tool": "Ferramenta",
+      "approval": "Decisão"
+    },
+    "empty": "Nenhuma atividade no período.",
+    "loadError": "Não foi possível carregar o histórico.",
+    "openConversation": "Conversa #{id}",
+    "openTask": "Tarefa #{id}",
+    "toolCalls": "{count} chamadas de ferramenta",
+    "duration": "{ms} ms",
+    "previous": "Anterior",
+    "next": "Próxima",
+    "page": "Página {page} de {last}",
+    "total": "{total} registros"
   }
 }

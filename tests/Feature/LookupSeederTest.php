@@ -28,7 +28,7 @@ class LookupSeederTest extends TestCase
         'ai_provider_drivers' => 13,
         'ai_model_capabilities' => 2,
         'notification_types' => 5,
-        'audit_actions' => 27,
+        'audit_actions' => 29,
         'log_levels' => 4,
     ];
 
