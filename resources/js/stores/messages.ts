@@ -254,11 +254,21 @@ export const useMessagesStore = defineStore('messages', () => {
     }
 
     // Reconnection restore (US-2.4): back from a drop, reload the open conversation
-    // so pending/running bubbles are replaced by their actual server state.
+    // so pending/running bubbles are replaced by their actual server state. The way
+    // back usually passes through `connecting` (browser `online`, backoff retry).
+    let droppedSinceConnected = false;
+
     watch(
-        () => connection.state,
-        (state, previous) => {
-            if (previous === 'disconnected' && state === 'connected') {
+        () => [connection.isDisconnected, connection.state] as const,
+        ([disconnected, state]) => {
+            if (disconnected) {
+                droppedSinceConnected = true;
+
+                return;
+            }
+
+            if (state === 'connected' && droppedSinceConnected) {
+                droppedSinceConnected = false;
                 const id = conversations.activeId;
 
                 if (id !== null) {

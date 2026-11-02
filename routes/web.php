@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PwaManifestController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\Route;
 | fallback route so any backend route registered later still wins.
 |
 */
+
+Route::get('/manifest.webmanifest', PwaManifestController::class)->name('pwa.manifest');
 
 Route::view('/', 'app')->name('spa');
 

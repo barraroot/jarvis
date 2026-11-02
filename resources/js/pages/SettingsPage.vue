@@ -2,6 +2,7 @@
 import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ConnectorsPanel from '@/components/hud/ConnectorsPanel.vue';
+import InstallAppPanel from '@/components/hud/InstallAppPanel.vue';
 import HudButton from '@/components/ui/HudButton.vue';
 import HudModal from '@/components/ui/HudModal.vue';
 import HudPanel from '@/components/ui/HudPanel.vue';
@@ -286,6 +287,8 @@ onBeforeUnmount(() => {
                 </div>
             </div>
         </HudPanel>
+
+        <InstallAppPanel />
 
         <ConnectorsPanel />
 

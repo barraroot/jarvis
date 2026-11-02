@@ -7,8 +7,11 @@ import BottomNav from '@/components/hud/BottomNav.vue';
 import ConversationDrawer from '@/components/hud/ConversationDrawer.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import InteractionFooter from '@/components/hud/InteractionFooter.vue';
+import JarvisCore from '@/components/hud/JarvisCore.vue';
 import SidePanel from '@/components/hud/SidePanel.vue';
+import { useAssistantStore } from '@/stores/assistant';
 import { useConnectionStore } from '@/stores/connection';
+import { useLayoutMode } from '@/composables/useLayoutMode';
 import { usePersistentFlag } from '@/composables/usePersistentFlag';
 import { SIDEBAR_COLLAPSED_STORAGE_KEY } from '@/layouts/constants';
 
@@ -43,16 +46,26 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const connection = useConnectionStore();
+const assistant = useAssistantStore();
+const { mode } = useLayoutMode();
 
 /** Sending (text, voice) is blocked while the realtime link is down. */
 const sendingDisabled = computed(() => connection.isDisconnected);
 
-/** Tablet (768–1279px) collapse state, persisted between visits. */
-const sidebarCollapsed = usePersistentFlag(SIDEBAR_COLLAPSED_STORAGE_KEY);
-/** Mobile (<768px) drawer, transient; agents/tasks open it as a section sheet. */
+/**
+ * Tablet (768–1279px) collapse state, persisted between visits. Tablets start
+ * collapsed so the conversation keeps the width; the toggle reopens the panel.
+ */
+const sidebarCollapsed = usePersistentFlag(SIDEBAR_COLLAPSED_STORAGE_KEY, mode.value === 'tablet');
+/** Mobile (<768px) drawer, transient; agents/tasks open it as a bottom sheet. */
 const drawerOpen = ref(false);
 const drawerSection = ref<'agents' | 'tasks' | null>(null);
+/** Bottom sheet height: half screen by default, expandable to full height. */
+const sheetExpanded = ref(false);
 const conversationsOpen = ref(false);
+
+const isMobile = computed(() => mode.value === 'mobile');
+const isSheet = computed(() => isMobile.value && drawerOpen.value && drawerSection.value !== null);
 
 watch(
     () => route.fullPath,
@@ -61,9 +74,22 @@ watch(
     },
 );
 
+/** Leaving mobile closes the transient drawer/sheet. */
+watch(isMobile, (mobile) => {
+    if (!mobile) {
+        drawerOpen.value = false;
+    }
+});
+
 const sidebarClasses = computed(() => [
     drawerOpen.value ? 'flex' : 'hidden',
     sidebarCollapsed.value ? 'md:hidden xl:flex' : 'md:flex',
+    isSheet.value
+        ? [
+              'z-40 inset-x-0 left-0 w-full rounded-t-md border-t',
+              sheetExpanded.value ? 'top-14 bottom-0' : 'top-auto bottom-0 max-h-[60dvh]',
+          ]
+        : 'z-30 bottom-0 left-0 top-14 w-[min(20rem,85vw)] border-r md:w-80',
 ]);
 
 const offsetClasses = computed(() => (sidebarCollapsed.value ? 'xl:pl-80' : 'md:pl-80'));
@@ -78,7 +104,14 @@ function toggleDrawer(): void {
 }
 
 function openSection(section: 'agents' | 'tasks'): void {
+    if (drawerOpen.value && drawerSection.value === section) {
+        drawerOpen.value = false;
+
+        return;
+    }
+
     drawerSection.value = section;
+    sheetExpanded.value = false;
     drawerOpen.value = true;
 }
 
@@ -91,14 +124,18 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
 </script>
 
 <template>
-    <div class="hud-grid relative min-h-dvh w-full overflow-x-hidden bg-bg text-text" data-testid="hud-layout">
+    <div
+        class="hud-grid relative min-h-dvh w-full overflow-x-hidden bg-bg text-text"
+        :data-layout="mode"
+        data-testid="hud-layout"
+    >
         <header
             class="hud-glass fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 border-b border-line px-3 sm:px-5"
             data-testid="layout-header"
         >
             <button
                 type="button"
-                class="inline-flex size-9 shrink-0 items-center justify-center rounded-sm border border-line text-cyan md:hidden"
+                class="inline-flex size-11 shrink-0 items-center justify-center rounded-sm border border-line text-cyan md:hidden"
                 :aria-label="drawerOpen ? t('nav.closeMenu') : t('nav.openMenu')"
                 :aria-expanded="drawerOpen"
                 data-testid="drawer-toggle"
@@ -112,7 +149,7 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
             </button>
             <button
                 type="button"
-                class="hidden size-9 shrink-0 items-center justify-center rounded-sm border border-line text-cyan md:inline-flex xl:hidden"
+                class="hidden size-11 shrink-0 items-center justify-center rounded-sm border border-line text-cyan md:inline-flex xl:hidden"
                 :aria-label="t('nav.toggleSidebar')"
                 :aria-expanded="!sidebarCollapsed"
                 data-testid="sidebar-toggle"
@@ -140,11 +177,23 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
         ></div>
 
         <aside
-            class="hud-glass fixed bottom-0 left-0 top-14 z-30 w-[min(20rem,85vw)] flex-col gap-4 overflow-y-auto border-r border-line p-4 md:w-80"
+            class="hud-glass fixed flex-col gap-4 overflow-y-auto border-line p-4"
             :class="sidebarClasses"
             :aria-label="t('layout.sidebar')"
+            :data-sheet="isSheet ? (sheetExpanded ? 'expanded' : 'half') : undefined"
             data-testid="layout-sidebar"
         >
+            <button
+                v-if="isSheet"
+                type="button"
+                class="hud-label -mt-2 flex min-h-11 w-full shrink-0 flex-col items-center justify-center gap-1 text-[0.6rem] text-muted"
+                :aria-expanded="sheetExpanded"
+                :aria-label="sheetExpanded ? t('layout.sheetCollapse') : t('layout.sheetExpand')"
+                data-testid="sheet-handle"
+                @click="sheetExpanded = !sheetExpanded"
+            >
+                <span class="h-1 w-10 rounded-full bg-line"></span>
+            </button>
             <slot name="sidebar">
                 <SidePanel :expanded-section="drawerSection" />
             </slot>
@@ -165,6 +214,17 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
                 </span>
             </div>
             <slot name="banner" />
+
+            <!-- Mobile: the core moves out of the hidden side panel into a compact strip on top. -->
+            <div
+                v-if="isMobile"
+                class="flex items-center justify-center border-b border-line/60 py-1"
+                data-testid="mobile-core"
+            >
+                <div class="w-24">
+                    <JarvisCore :state="assistant.state" :level="assistant.audioLevel" size="compact" />
+                </div>
+            </div>
 
             <main
                 class="min-w-0 flex-1 px-3 pt-4 pb-40 sm:px-5 md:pb-28"

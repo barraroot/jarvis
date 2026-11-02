@@ -248,7 +248,7 @@ const commands = computed(() => [
 
             <button
                 type="button"
-                class="hud-label flex items-center gap-1 rounded-sm border border-line px-2 py-1 text-[0.6rem] text-text hover:border-cyan hover:text-cyan-bright"
+                class="hud-label flex min-h-11 items-center gap-1 rounded-sm border border-line px-2 py-1 text-[0.6rem] text-text hover:border-cyan hover:text-cyan-bright"
                 :aria-label="t('footer.commandsOpen')"
                 :aria-expanded="commandsOpen"
                 data-testid="footer-commands-toggle"
@@ -261,14 +261,14 @@ const commands = computed(() => [
 
         <div
             v-if="commandsOpen"
-            class="hud-glass absolute bottom-full left-0 z-40 flex w-64 flex-col gap-1 rounded-sm border border-line p-2"
+            class="hud-glass absolute bottom-full left-0 z-40 flex w-64 max-w-full flex-col gap-1 rounded-sm border border-line p-2"
             data-testid="footer-commands-menu"
         >
             <button
                 v-for="command in commands"
                 :key="command.key"
                 type="button"
-                class="hud-label flex items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
                 :data-testid="`footer-command-${command.key}`"
                 @click="command.action"
             >

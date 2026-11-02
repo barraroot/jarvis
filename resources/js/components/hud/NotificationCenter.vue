@@ -66,7 +66,7 @@ function openNotification(notification: NotificationSummary): void {
     <div ref="root" class="relative">
         <button
             type="button"
-            class="relative inline-flex size-9 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
+            class="relative inline-flex size-11 items-center xl:size-9 justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
             :aria-label="t('header.notifications')"
             :aria-expanded="open"
             data-testid="header-notifications"

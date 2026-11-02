@@ -3,11 +3,13 @@ import { onMounted, watch } from 'vue';
 import { RouterView, useRoute, useRouter } from 'vue-router';
 import HudToast from '@/components/ui/HudToast.vue';
 import TaskDetail from '@/components/hud/TaskDetail.vue';
+import UpdatePrompt from '@/components/hud/UpdatePrompt.vue';
 import { bindAgentEvents } from '@/composables/useAgentEvents';
 import { bindApprovalEvents } from '@/composables/useApprovalEvents';
 import { bindConnectorEvents } from '@/composables/useConnectorEvents';
 import { bindNotificationEvents } from '@/composables/useNotificationEvents';
 import { bindTaskEvents } from '@/composables/useTaskEvents';
+import { useOfflineShell } from '@/composables/useOfflineShell';
 import { useRealtimeConnection } from '@/composables/useRealtimeConnection';
 import { useSpeechOutput } from '@/composables/useSpeechOutput';
 import { bindToolEvents } from '@/composables/useToolEvents';
@@ -48,16 +50,25 @@ useRealtimeConnection([
     bindConnectorEvents,
 ]);
 
+useOfflineShell();
+
 onMounted(() => {
     void preferences.ensureLoaded().catch(() => undefined);
 });
 
-/** Header connector indicator (US-9.4): loaded once the operator is signed in. */
+/**
+ * Header connector indicator (US-9.4): loaded once the operator is signed in.
+ * After an offline boot this also reloads the preferences that failed to load.
+ */
 watch(
     () => auth.isAuthenticated,
-    (authenticated) => {
+    (authenticated, wasAuthenticated) => {
         if (authenticated) {
             void connectors.load().catch(() => undefined);
+        }
+
+        if (authenticated && wasAuthenticated === false) {
+            void preferences.ensureLoaded().catch(() => undefined);
         }
     },
     { immediate: true },
@@ -129,5 +140,6 @@ function onToggleSpoken(): void {
     </HudLayout>
     <RouterView v-else />
     <HudToast />
+    <UpdatePrompt />
     <TaskDetail />
 </template>

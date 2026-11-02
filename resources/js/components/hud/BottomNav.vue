@@ -24,7 +24,7 @@ const { t } = useI18n();
     >
         <RouterLink
             :to="{ name: 'hud' }"
-            class="hud-label flex min-w-0 flex-col items-center truncate py-3 text-[0.6rem] text-muted"
+            class="hud-label flex min-h-11 min-w-0 flex-col items-center justify-center truncate py-3 text-[0.6rem] text-muted"
             active-class="text-cyan-bright"
             data-testid="bottom-nav-chat"
         >
@@ -33,7 +33,7 @@ const { t } = useI18n();
 
         <button
             type="button"
-            class="hud-label flex min-w-0 flex-col items-center truncate py-3 text-[0.6rem] text-muted"
+            class="hud-label flex min-h-11 min-w-0 flex-col items-center justify-center truncate py-3 text-[0.6rem] text-muted"
             data-testid="bottom-nav-agents"
             @click="emit('select', 'agents')"
         >
@@ -53,7 +53,7 @@ const { t } = useI18n();
 
         <button
             type="button"
-            class="hud-label flex min-w-0 flex-col items-center truncate py-3 text-[0.6rem] text-muted"
+            class="hud-label flex min-h-11 min-w-0 flex-col items-center justify-center truncate py-3 text-[0.6rem] text-muted"
             data-testid="bottom-nav-tasks"
             @click="emit('select', 'tasks')"
         >
@@ -62,7 +62,7 @@ const { t } = useI18n();
 
         <RouterLink
             :to="{ name: 'settings' }"
-            class="hud-label flex min-w-0 flex-col items-center truncate py-3 text-[0.6rem] text-muted"
+            class="hud-label flex min-h-11 min-w-0 flex-col items-center justify-center truncate py-3 text-[0.6rem] text-muted"
             active-class="text-cyan-bright"
             data-testid="bottom-nav-settings"
         >

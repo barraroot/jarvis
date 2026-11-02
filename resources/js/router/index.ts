@@ -71,6 +71,12 @@ export function createAppRouter(history: RouterHistory = createWebHistory()): Ro
 
         await auth.ensureLoaded();
 
+        // Offline boot (US-2.5): the session is unknown, so the HUD shell opens DISCONNECTED
+        // instead of the login page; useOfflineShell re-probes once the server is back.
+        if (to.meta.requiresAuth && !auth.isAuthenticated && auth.unreachable) {
+            return true;
+        }
+
         if (to.meta.requiresAuth && !auth.isAuthenticated) {
             return {
                 name: 'login',

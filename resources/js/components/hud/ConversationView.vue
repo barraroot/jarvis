@@ -86,7 +86,7 @@ watch(
                 <div v-if="hasOlder" class="flex justify-center" data-testid="conversation-load-older">
                     <button
                         type="button"
-                        class="hud-label rounded-sm border border-line bg-bg-navy px-3 py-1.5 text-[0.6rem] text-cyan-bright hover:border-cyan"
+                        class="hud-label min-h-11 rounded-sm border border-line bg-bg-navy px-3 py-1.5 text-[0.6rem] text-cyan-bright hover:border-cyan"
                         @click="emit('loadOlder')"
                     >
                         {{ t('conversation.loadOlder') }}
@@ -111,7 +111,7 @@ watch(
         <button
             v-if="scrolledUp"
             type="button"
-            class="hud-label absolute bottom-3 left-1/2 -translate-x-1/2 rounded-sm border border-line bg-bg-navy px-3 py-1.5 text-[0.6rem] text-cyan-bright hover:border-cyan"
+            class="hud-label absolute bottom-3 left-1/2 -translate-x-1/2 min-h-11 rounded-sm border border-line bg-bg-navy px-3 py-1.5 text-[0.6rem] text-cyan-bright hover:border-cyan"
             data-testid="conversation-go-to-end"
             @click="scrollToEnd"
         >

@@ -3,6 +3,7 @@ import { createMemoryHistory, createRouter } from 'vue-router';
 import { describe, expect, it } from 'vitest';
 import { SIDEBAR_COLLAPSED_STORAGE_KEY } from '@/layouts/constants';
 import HudLayout from '@/layouts/HudLayout.vue';
+import { mockViewport } from '../helpers/matchMedia';
 
 const Blank = { render: () => null };
 
@@ -49,6 +50,7 @@ describe('HudLayout', () => {
     });
 
     it('uses a 320px desktop sidebar and offsets the content', async () => {
+        mockViewport(1280);
         const wrapper = await mountLayout();
         const sidebar = wrapper.get('[data-testid="layout-sidebar"]');
 
@@ -58,6 +60,7 @@ describe('HudLayout', () => {
     });
 
     it('persists the tablet collapse state in localStorage', async () => {
+        mockViewport(1280);
         const wrapper = await mountLayout();
 
         await wrapper.get('[data-testid="sidebar-toggle"]').trigger('click');

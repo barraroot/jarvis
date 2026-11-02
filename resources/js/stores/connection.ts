@@ -33,13 +33,15 @@ export const useConnectionStore = defineStore('connection', () => {
     const reconnectAttempt = ref(0);
     const nextRetryDelayMs = ref<number | null>(null);
     const lastHeartbeatAt = ref<number>(Date.now());
+    /** The offline PWA shell could not reach the server at all (no socket yet). */
+    const serverUnreachable = ref(false);
 
     let transport: ConnectionTransport | null = null;
     let watchdogTimer: ReturnType<typeof setInterval> | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
     const isConnected = computed(() => state.value === 'connected');
-    const isDisconnected = computed(() => state.value === 'disconnected');
+    const isDisconnected = computed(() => serverUnreachable.value || state.value === 'disconnected');
 
     function isBrowserOnline(): boolean {
         return typeof navigator === 'undefined' || navigator.onLine !== false;
@@ -128,6 +130,22 @@ export const useConnectionStore = defineStore('connection', () => {
     }
 
     /**
+     * Offline shell (US-2.5): the boot probe failed, so the HUD is DISCONNECTED
+     * even without a transport; `retryDelayMs` feeds the banner countdown.
+     */
+    function markServerUnreachable(retryDelayMs: number | null = null): void {
+        serverUnreachable.value = true;
+        nextRetryDelayMs.value = retryDelayMs;
+    }
+
+    function markServerReachable(): void {
+        if (serverUnreachable.value) {
+            serverUnreachable.value = false;
+            nextRetryDelayMs.value = null;
+        }
+    }
+
+    /**
      * Starts monitoring a realtime transport (Echo/Pusher) plus `navigator.onLine`.
      */
     function start(connectionTransport: ConnectionTransport): void {
@@ -167,11 +185,14 @@ export const useConnectionStore = defineStore('connection', () => {
         reconnectAttempt,
         nextRetryDelayMs,
         lastHeartbeatAt,
+        serverUnreachable,
         isConnected,
         isDisconnected,
         start,
         stop,
         markDisconnected,
         markConnected,
+        markServerUnreachable,
+        markServerReachable,
     };
 });

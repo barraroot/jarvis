@@ -34,7 +34,9 @@
     "footer": "Interação",
     "header": "Cabeçalho",
     "disconnectedBanner": "Sem conexão com o servidor. Envio desativado até a reconexão.",
-    "reconnecting": "Reconectando em {seconds} s"
+    "reconnecting": "Reconectando em {seconds} s",
+    "sheetExpand": "Expandir painel",
+    "sheetCollapse": "Recolher painel"
   },
   "pages": {
     "hud": "Painel principal",
@@ -404,5 +406,20 @@
     "next": "Próxima",
     "page": "Página {page} de {last}",
     "total": "{total} registros"
+  },
+  "pwa": {
+    "updateTitle": "Nova versão disponível",
+    "updateBody": "Uma nova versão do JARVIS foi baixada. Atualize para aplicar.",
+    "updateApply": "Atualizar agora",
+    "updateLater": "Depois",
+    "installTitle": "Aplicativo",
+    "installBody": "Instale o JARVIS para abrir em tela cheia, direto da área de trabalho ou da tela inicial.",
+    "installButton": "Instalar JARVIS",
+    "installAccepted": "JARVIS instalado.",
+    "installed": "O JARVIS já está instalado neste dispositivo.",
+    "iosTitle": "No iPhone/iPad, instale pelo Safari:",
+    "iosStepShare": "Toque no botão Compartilhar.",
+    "iosStepAdd": "Escolha \"Adicionar à Tela de Início\".",
+    "iosStepConfirm": "Confirme em \"Adicionar\"."
   }
 }

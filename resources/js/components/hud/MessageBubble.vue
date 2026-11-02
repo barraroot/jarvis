@@ -28,8 +28,8 @@ const isFailed = computed(() => props.message.status === 'failed');
         :data-testid="isUser ? 'message-bubble-user' : 'message-bubble-assistant'"
     >
         <div
-            class="hud-glass flex max-w-[85%] min-w-0 flex-col gap-1 rounded-sm border px-3 py-2 sm:max-w-[75%]"
-            :class="isUser ? 'border-line' : isFailed ? 'border-danger/60' : 'border-cyan/40'"
+            class="hud-glass flex min-w-0 flex-col gap-1 rounded-sm border px-3 py-2 sm:max-w-[75%]"
+            :class="[isUser ? 'border-line max-w-[85%]' : isFailed ? 'border-danger/60 max-w-full' : 'border-cyan/40 max-w-full']"
         >
             <div class="flex min-w-0 items-start gap-2">
                 <span

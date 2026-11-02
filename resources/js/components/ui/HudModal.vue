@@ -44,13 +44,13 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
             role="dialog"
             aria-modal="true"
             :aria-label="title"
-            class="hud-border hud-glass relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-y-auto rounded-sm bg-bg-navy/90 p-5"
+            class="hud-border hud-glass relative flex max-h-[90dvh] w-full min-w-0 max-w-lg flex-col overflow-y-auto rounded-sm bg-bg-navy/90 p-4 sm:p-5"
         >
             <header class="mb-4 flex items-center justify-between gap-3 border-b border-line/70 pb-2">
                 <h2 v-if="title" class="hud-label truncate text-sm text-cyan hud-glow">{{ title }}</h2>
                 <button
                     type="button"
-                    class="ml-auto text-muted hover:text-cyan-bright"
+                    class="ml-auto inline-flex size-11 shrink-0 items-center justify-center text-lg text-muted hover:text-cyan-bright"
                     :aria-label="t('common.close')"
                     data-testid="hud-modal-close"
                     @click="close"

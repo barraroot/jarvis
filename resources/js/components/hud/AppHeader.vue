@@ -138,7 +138,7 @@ onBeforeUnmount(() => {
 
             <button
                 type="button"
-                class="inline-flex size-9 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
+                class="inline-flex size-11 items-center xl:size-9 justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
                 :aria-label="isSleeping ? t('header.wake') : t('header.sleep')"
                 data-testid="header-sleep"
                 @click="toggleSleep"
@@ -156,7 +156,7 @@ onBeforeUnmount(() => {
 
             <button
                 type="button"
-                class="inline-flex size-9 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright disabled:cursor-not-allowed disabled:opacity-40"
+                class="inline-flex size-11 items-center xl:size-9 justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright disabled:cursor-not-allowed disabled:opacity-40"
                 :aria-label="t('nav.microphone')"
                 :title="micTooltip"
                 :disabled="!voiceSupported || props.voiceUnavailable"
@@ -172,7 +172,7 @@ onBeforeUnmount(() => {
 
             <button
                 type="button"
-                class="inline-flex size-9 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
+                class="inline-flex size-11 items-center xl:size-9 justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
                 :class="props.spokenResponsesEnabled ? 'text-cyan-bright' : 'opacity-50'"
                 :aria-label="spokenLabel"
                 :aria-pressed="props.spokenResponsesEnabled"
@@ -188,7 +188,7 @@ onBeforeUnmount(() => {
 
             <button
                 type="button"
-                class="inline-flex size-9 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
+                class="inline-flex size-11 items-center xl:size-9 justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
                 :aria-label="t('header.conversations')"
                 data-testid="header-conversations"
                 @click="emit('conversations')"
@@ -202,7 +202,7 @@ onBeforeUnmount(() => {
 
             <RouterLink
                 :to="{ name: 'approvals' }"
-                class="inline-flex size-9 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
+                class="inline-flex size-11 items-center xl:size-9 justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
                 :aria-label="t('header.approvals')"
                 data-testid="header-approvals"
             >
@@ -215,7 +215,7 @@ onBeforeUnmount(() => {
             <RouterLink
                 v-if="hasConnectors"
                 :to="{ name: 'settings', hash: '#connectors' }"
-                class="hud-label inline-flex items-center gap-1 rounded-sm border border-line px-2 py-1.5 font-mono text-[0.6rem] hover:border-cyan"
+                class="hud-label inline-flex items-center gap-1 rounded-sm border border-line px-2 py-1.5 font-mono text-[0.6rem] hover:border-cyan min-h-11 xl:min-h-0"
                 :aria-label="connectorsSummary"
                 :title="connectorsSummary"
                 data-testid="header-connectors"
@@ -228,7 +228,7 @@ onBeforeUnmount(() => {
 
             <RouterLink
                 :to="{ name: 'memories' }"
-                class="inline-flex size-9 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
+                class="inline-flex size-11 items-center xl:size-9 justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
                 :aria-label="t('nav.memories')"
                 data-testid="header-memories"
             >
@@ -242,7 +242,7 @@ onBeforeUnmount(() => {
 
             <RouterLink
                 :to="{ name: 'settings' }"
-                class="inline-flex size-9 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
+                class="inline-flex size-11 items-center xl:size-9 justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
                 :aria-label="t('header.settings')"
                 data-testid="header-settings"
             >
@@ -258,7 +258,7 @@ onBeforeUnmount(() => {
             <div class="relative">
                 <button
                     type="button"
-                    class="inline-flex h-9 max-w-40 items-center gap-2 rounded-sm border border-line px-2 text-text hover:border-cyan hover:text-cyan-bright"
+                    class="inline-flex h-11 max-w-40 xl:h-9 items-center gap-2 rounded-sm border border-line px-2 text-text hover:border-cyan hover:text-cyan-bright"
                     :aria-label="t('header.userMenu')"
                     :aria-expanded="userOpen"
                     data-testid="header-user"
@@ -277,7 +277,7 @@ onBeforeUnmount(() => {
                     </div>
                     <button
                         type="button"
-                        class="hud-label flex items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                        class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
                         data-testid="header-logout"
                         @click="logout"
                     >
@@ -296,7 +296,7 @@ onBeforeUnmount(() => {
         <div class="ml-auto flex items-center gap-1.5 md:hidden" data-testid="header-actions-mobile">
             <button
                 type="button"
-                class="inline-flex size-9 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright disabled:cursor-not-allowed disabled:opacity-40"
+                class="inline-flex size-11 items-center xl:size-9 justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright disabled:cursor-not-allowed disabled:opacity-40"
                 :aria-label="t('nav.microphone')"
                 :title="micTooltip"
                 :disabled="!voiceSupported || props.voiceUnavailable"
@@ -312,7 +312,7 @@ onBeforeUnmount(() => {
 
             <button
                 type="button"
-                class="inline-flex size-9 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
+                class="inline-flex size-11 items-center xl:size-9 justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
                 :aria-label="t('header.more')"
                 :aria-expanded="moreOpen"
                 data-testid="header-more"
@@ -333,7 +333,7 @@ onBeforeUnmount(() => {
                 </div>
                 <button
                     type="button"
-                    class="hud-label flex items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                    class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
                     data-testid="header-more-sleep"
                     @click="toggleSleep"
                 >
@@ -341,7 +341,7 @@ onBeforeUnmount(() => {
                 </button>
                 <button
                     type="button"
-                    class="hud-label flex items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                    class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
                     data-testid="header-more-spoken"
                     @click="emit('toggleSpoken'); closeMenus()"
                 >
@@ -349,7 +349,7 @@ onBeforeUnmount(() => {
                 </button>
                 <button
                     type="button"
-                    class="hud-label flex items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                    class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
                     data-testid="header-more-conversations"
                     @click="emit('conversations'); closeMenus()"
                 >
@@ -357,7 +357,7 @@ onBeforeUnmount(() => {
                 </button>
                 <RouterLink
                     :to="{ name: 'approvals' }"
-                    class="hud-label flex items-center gap-2 rounded-sm px-2 py-1.5 text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                    class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
                     data-testid="header-more-approvals"
                     @click="closeMenus"
                 >
@@ -371,7 +371,7 @@ onBeforeUnmount(() => {
                 </RouterLink>
                 <RouterLink
                     :to="{ name: 'memories' }"
-                    class="hud-label flex items-center gap-2 rounded-sm px-2 py-1.5 text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                    class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
                     data-testid="header-more-memories"
                     @click="closeMenus"
                 >
@@ -379,7 +379,7 @@ onBeforeUnmount(() => {
                 </RouterLink>
                 <RouterLink
                     :to="{ name: 'settings' }"
-                    class="hud-label flex items-center gap-2 rounded-sm px-2 py-1.5 text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                    class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
                     data-testid="header-more-settings"
                     @click="closeMenus"
                 >
@@ -387,7 +387,7 @@ onBeforeUnmount(() => {
                 </RouterLink>
                 <button
                     type="button"
-                    class="hud-label flex items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                    class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
                     data-testid="header-more-logout"
                     @click="logout"
                 >

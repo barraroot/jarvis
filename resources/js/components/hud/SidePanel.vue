@@ -83,7 +83,8 @@ function formatDuration(durationMs: number): string {
 
 <template>
     <div class="flex min-w-0 flex-col gap-4" data-testid="side-panel">
-        <HudPanel :title="t('panel.core')">
+        <!-- Section sheets (mobile agents/tasks) skip the core: it already sits on top of the screen. -->
+        <HudPanel v-if="expandedSection === null" :title="t('panel.core')">
             <div class="flex items-center justify-center py-2">
                 <JarvisCore :state="assistant.state" :level="assistant.audioLevel" size="compact" />
             </div>
@@ -158,7 +159,7 @@ function formatDuration(durationMs: number): string {
             </ul>
         </HudPanel>
 
-        <HudPanel :title="t('panel.llmStatus')">
+        <HudPanel v-if="expandedSection === null" :title="t('panel.llmStatus')">
             <EmptyState v-if="models.providers.length === 0" :message="t('empty.llm')" />
             <ul v-else class="flex min-w-0 flex-col gap-1.5" data-testid="panel-llm-list">
                 <li
@@ -175,7 +176,7 @@ function formatDuration(durationMs: number): string {
             </ul>
         </HudPanel>
 
-        <HudPanel :title="t('panel.memoryInsights')" data-testid="panel-memory-insights">
+        <HudPanel v-if="expandedSection === null" :title="t('panel.memoryInsights')" data-testid="panel-memory-insights">
             <div class="flex min-w-0 flex-col gap-1.5">
                 <div class="flex items-center justify-between gap-2" data-testid="panel-memory-confirmed">
                     <span class="hud-label min-w-0 flex-1 truncate text-[0.65rem] text-text">{{ t('panel.memoriesConfirmed') }}</span>
@@ -195,7 +196,7 @@ function formatDuration(durationMs: number): string {
             </div>
         </HudPanel>
 
-        <HudPanel :title="t('panel.history')">
+        <HudPanel v-if="expandedSection === null" :title="t('panel.history')">
             <EmptyState
                 v-if="agents.history.length === 0 && activity.entries.length === 0"
                 :message="t('empty.history')"
@@ -238,7 +239,7 @@ function formatDuration(durationMs: number): string {
             </template>
         </HudPanel>
 
-        <HudPanel :title="t('panel.tools')">
+        <HudPanel v-if="expandedSection === null" :title="t('panel.tools')">
             <EmptyState v-if="tools.tools.length === 0" :message="t('empty.tools')" />
             <ul v-else class="flex min-w-0 flex-col gap-1.5">
                 <li

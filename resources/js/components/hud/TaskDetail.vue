@@ -99,8 +99,8 @@ async function retry(): Promise<void> {
         </div>
 
         <div v-else-if="detail" class="flex min-w-0 flex-col gap-4" data-testid="task-detail">
-            <div class="flex items-start justify-between gap-3">
-                <div class="flex min-w-0 flex-col gap-1">
+            <div class="flex min-w-0 flex-wrap items-start justify-between gap-3">
+                <div class="flex min-w-0 flex-1 flex-col gap-1">
                     <h3 class="hud-label truncate text-sm text-text" data-testid="task-detail-title">{{ detail.title }}</h3>
                     <span v-if="detail.agent" class="hud-label truncate text-[0.6rem] text-muted" data-testid="task-detail-agent">
                         {{ t('tasks.agent', { agent: detail.agent.name }) }}
@@ -158,7 +158,7 @@ async function retry(): Promise<void> {
                 <pre v-else class="hud-border max-h-48 overflow-y-auto whitespace-pre-wrap rounded-sm bg-bg-navy p-3 font-mono text-[0.65rem] text-text" data-testid="task-detail-result">{{ resultText }}</pre>
             </section>
 
-            <div v-if="cancellable || retryable" class="flex items-center justify-end gap-2 border-t border-line/70 pt-3" data-testid="task-detail-actions">
+            <div v-if="cancellable || retryable" class="flex flex-wrap items-center justify-end gap-2 border-t border-line/70 pt-3" data-testid="task-detail-actions">
                 <HudButton v-if="cancellable" variant="danger" :loading="working" @click="cancel">
                     {{ t('tasks.cancel') }}
                 </HudButton>

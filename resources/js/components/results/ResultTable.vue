@@ -68,11 +68,11 @@ function cellLabel(cell: TableCell | undefined): string {
                             v-for="(column, index) in payload.columns"
                             :key="index"
                             scope="col"
-                            class="whitespace-nowrap px-2 py-1.5 text-left"
+                            class="whitespace-nowrap px-2 text-left"
                         >
                             <button
                                 type="button"
-                                class="hud-label inline-flex items-center gap-1 text-[0.65rem] text-cyan-bright hover:text-cyan"
+                                class="hud-label inline-flex min-h-11 items-center gap-1 text-[0.65rem] text-cyan-bright hover:text-cyan"
                                 :data-testid="`result-table-sort-${index}`"
                                 @click="toggleSort(index)"
                             >

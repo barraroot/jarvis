@@ -3,6 +3,7 @@ import { watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ConversationView from '@/components/hud/ConversationView.vue';
 import ModelSelector from '@/components/hud/ModelSelector.vue';
+import { useConnectionStore } from '@/stores/connection';
 import { useConversationsStore } from '@/stores/conversations';
 import { useMessagesStore } from '@/stores/messages';
 import { useToastStore } from '@/stores/toast';
@@ -16,16 +17,28 @@ const { t } = useI18n();
 const conversations = useConversationsStore();
 const messages = useMessagesStore();
 const toasts = useToastStore();
+const connection = useConnectionStore();
 
 /** Opening the route loads the conversation (latest 50) plus the backward cursor. */
-watch(
-    () => props.id,
-    (id) => {
-        conversations.open(id).catch(() => {
+function load(id: string): void {
+    conversations.open(id).catch(() => {
+        // Offline the banner already explains it; the load is retried on reconnection.
+        if (!connection.isDisconnected) {
             toasts.push(t('errors.unexpected'), { variant: 'danger' });
-        });
+        }
+    });
+}
+
+watch(() => props.id, load, { immediate: true });
+
+/** Opened while offline (PWA shell): load once the server is reachable again (US-2.4). */
+watch(
+    () => connection.isConnected,
+    (connected) => {
+        if (connected && String(conversations.activeId) !== String(props.id)) {
+            load(props.id);
+        }
     },
-    { immediate: true },
 );
 
 function onRetry(message: Message): void {

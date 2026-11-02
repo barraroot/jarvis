@@ -188,7 +188,7 @@ function formatDate(timestamp: string): string {
                     :maxlength="500"
                     data-testid="approval-deny-reason"
                 />
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                     <HudButton
                         variant="danger"
                         :disabled="pendingAction !== null"
@@ -203,7 +203,7 @@ function formatDate(timestamp: string): string {
                 </div>
             </div>
 
-            <div v-else class="flex items-center gap-2">
+            <div v-else class="flex flex-wrap items-center gap-2">
                 <HudButton :disabled="pendingAction !== null || remainingMs === 0" data-testid="approval-approve" @click="approve">
                     {{ t('approval.approve') }}
                 </HudButton>
