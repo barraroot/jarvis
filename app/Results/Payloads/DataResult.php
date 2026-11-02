@@ -35,6 +35,6 @@ class DataResult extends ResultPayload
      */
     public function toArray(): array
     {
-        return ['type' => self::type(), 'label' => $this->label, 'value' => $this->value, 'unit' => $this->unit, 'series' => $this->series, ...$this->commonFields()];
+        return $this->compact(['type' => self::type(), 'label' => $this->label, 'value' => $this->value, 'unit' => $this->unit, 'series' => $this->series, ...$this->commonFields()]);
     }
 }

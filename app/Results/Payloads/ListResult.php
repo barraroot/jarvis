@@ -33,6 +33,6 @@ class ListResult extends ResultPayload
      */
     public function toArray(): array
     {
-        return ['type' => self::type(), 'title' => $this->title, 'items' => $this->items, ...$this->commonFields()];
+        return $this->compact(['type' => self::type(), 'title' => $this->title, 'items' => $this->items, ...$this->commonFields()]);
     }
 }

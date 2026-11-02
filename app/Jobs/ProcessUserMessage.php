@@ -137,10 +137,13 @@ class ProcessUserMessage implements ShouldQueue
             },
         );
 
+        $result = $response->structuredResult ?? $this->textResult($content);
+
         $assistantMessage->update([
             'content' => $content,
-            'payload' => ['type' => ResultType::TEXT, 'text' => $content],
-            'result_type_id' => ResultType::idFor(ResultType::TEXT),
+            'payload' => $result['payload'],
+            'result_type_id' => ResultType::idFor($result['type']),
+            'suggested_actions' => $result['payload']['suggested_actions'] ?? null,
             'ai_model_id' => $response->model->id,
             'execution_status_id' => ExecutionStatus::idFor(ExecutionStatus::COMPLETED),
         ]);
@@ -185,11 +188,13 @@ class ProcessUserMessage implements ShouldQueue
         }
 
         $content = (string) ($execution->meta['output'] ?? '');
+        $result = $execution->meta['result'] ?? $this->textResult($content);
 
         $assistantMessage->update([
             'content' => $content,
-            'payload' => ['type' => ResultType::TEXT, 'text' => $content],
-            'result_type_id' => ResultType::idFor(ResultType::TEXT),
+            'payload' => $result['payload'],
+            'result_type_id' => ResultType::idFor($result['type']),
+            'suggested_actions' => $result['payload']['suggested_actions'] ?? null,
             'ai_model_id' => $routed->agent->effectiveModel()->id,
             'agent_id' => $routed->agent->id,
             'execution_status_id' => ExecutionStatus::idFor(ExecutionStatus::COMPLETED),
@@ -203,6 +208,16 @@ class ProcessUserMessage implements ShouldQueue
         $conversation->touchActivity();
 
         $this->dispatchTitleJob($conversation);
+    }
+
+    /**
+     * Canonical plain-text result for replies without a structured block.
+     *
+     * @return array{type: string, payload: array<string, mixed>}
+     */
+    private function textResult(string $content): array
+    {
+        return ['type' => ResultType::TEXT, 'payload' => ['type' => ResultType::TEXT, 'text' => $content]];
     }
 
     /**

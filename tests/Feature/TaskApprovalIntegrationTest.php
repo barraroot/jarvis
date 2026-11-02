@@ -22,6 +22,7 @@ use App\Services\AgentRuntimeFactory;
 use App\Services\ApprovalService;
 use App\Services\ProviderRegistry;
 use App\Services\RunOptions;
+use App\Services\StructuredResultExtractor;
 use App\Services\TaskContext;
 use App\Services\TaskService;
 use App\Services\UsageRecorder;
@@ -183,6 +184,7 @@ class TaskApprovalIntegrationTest extends TestCase
             app(ProviderRegistry::class),
             app(UsageRecorder::class),
             app(Settings::class),
+            app(StructuredResultExtractor::class),
         ));
     }
 

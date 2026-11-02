@@ -77,7 +77,7 @@ class TaskFactory extends Factory
             'completed_at' => now(),
             'progress' => 100,
             'result_type_id' => ResultType::idFor(ResultType::TEXT),
-            'result' => ['text' => fake()->sentence()],
+            'result' => ['type' => 'text', 'text' => fake()->sentence()],
         ]);
     }
 

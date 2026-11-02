@@ -37,6 +37,7 @@ class AgentRunner
         private readonly ProviderRegistry $providerRegistry,
         private readonly UsageRecorder $usageRecorder,
         private readonly Settings $settings,
+        private readonly StructuredResultExtractor $structuredResults,
     ) {}
 
     public function run(Agent $agent, User $user, string $prompt, RunOptions $options): AgentExecution
@@ -58,7 +59,8 @@ class AgentRunner
             return $this->finishAs($execution, $user, ExecutionStatus::FAILED, $exception, $startedAt, null, '', $options);
         }
 
-        $runtimeAgent = $this->factory->make($agent, $this->contextFor($user, $execution, $options), $this->messagesFor($options, $model));
+        $history = $this->messagesFor($options, $model);
+        $runtimeAgent = $this->factory->make($agent, $this->contextFor($user, $execution, $options), $history);
 
         $limit = $agent->max_tool_calls > 0 ? $agent->max_tool_calls : $this->settings->maxToolCalls();
 
@@ -112,10 +114,24 @@ class AgentRunner
 
             $usage = $stream->usage ?? new TextUsage;
 
+            $meta = ['output' => $content];
+
+            $structured = $this->structuredResults->extract(
+                $user,
+                $model,
+                $content,
+                $history,
+                $toolCalls > 0,
+            );
+
+            if ($structured !== null) {
+                $meta['result'] = $structured;
+            }
+
             $execution->update([
                 'execution_status_id' => ExecutionStatus::idFor(ExecutionStatus::COMPLETED),
                 'finished_at' => now(),
-                'meta' => ['output' => $content],
+                'meta' => $meta,
             ]);
 
             $this->usageRecorder->record(

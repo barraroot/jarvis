@@ -164,6 +164,15 @@
     "noConversation": "Nenhuma conversa aberta.",
     "sendError": "Não foi possível enviar a mensagem."
   },
+  "results": {
+    "invalid": "Resultado inválido recebido — exibido como texto.",
+    "suggestedActions": "Ações sugeridas",
+    "openTask": "Ver tarefa",
+    "progress": "Progresso",
+    "searchResultsFor": "Resultados para",
+    "entityTool": "Ferramenta",
+    "entityAgent": "Agente"
+  },
   "models": {
     "label": "Modelo",
     "default": "Padrão",

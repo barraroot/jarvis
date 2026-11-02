@@ -5,6 +5,7 @@ import JarvisCore from '@/components/hud/JarvisCore.vue';
 import ApprovalMessageCard from '@/components/hud/ApprovalMessageCard.vue';
 import MessageBubble from '@/components/hud/MessageBubble.vue';
 import ProcessingIndicator from '@/components/hud/ProcessingIndicator.vue';
+import ResultRenderer from '@/components/results/ResultRenderer.vue';
 import { useAssistantStore } from '@/stores/assistant';
 import type { Message } from '@/types/models';
 
@@ -98,6 +99,7 @@ watch(
                             v-if="slotProps.message.payload?.type === 'approval_request'"
                             :message="slotProps.message"
                         />
+                        <ResultRenderer v-else-if="slotProps.message.role === 'assistant'" :message="slotProps.message" />
                         <slot name="payload" v-bind="slotProps" />
                     </template>
                 </MessageBubble>

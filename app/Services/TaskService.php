@@ -165,13 +165,16 @@ class TaskService
      */
     public function markCompleted(Task $task, AgentExecution $execution): Task
     {
-        $output = $execution->fresh()?->meta['output'] ?? '';
+        $fresh = $execution->fresh();
+
+        $output = $fresh?->meta['output'] ?? '';
+        $result = $fresh?->meta['result'] ?? ['type' => ResultType::TEXT, 'payload' => ['type' => ResultType::TEXT, 'text' => (string) $output]];
 
         $task->update([
             'task_status_id' => TaskStatus::idFor(TaskStatus::COMPLETED),
             'progress' => 100,
-            'result_type_id' => ResultType::idFor(ResultType::TEXT),
-            'result' => ['text' => (string) $output],
+            'result_type_id' => ResultType::idFor($result['type']),
+            'result' => $result['payload'],
             'completed_at' => now(),
         ]);
 

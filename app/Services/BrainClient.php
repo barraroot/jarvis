@@ -10,6 +10,7 @@ use Laravel\Ai\Messages\Message as AiMessage;
 use Laravel\Ai\Responses\Data\TextUsage;
 use Laravel\Ai\Responses\StreamableAgentResponse;
 use Laravel\Ai\Streaming\Events\TextDelta;
+use Laravel\Ai\Streaming\Events\ToolCall;
 use Throwable;
 
 use function Laravel\Ai\agent;
@@ -24,6 +25,7 @@ class BrainClient
         private readonly ProviderRegistry $registry,
         private readonly UsageRecorder $usageRecorder,
         private readonly CostLimitGuard $costLimitGuard,
+        private readonly StructuredResultExtractor $structuredResults,
     ) {}
 
     /**
@@ -68,12 +70,21 @@ class BrainClient
                     $request->message,
                 );
 
+                $structuredResult = $this->structuredResults->extract(
+                    $request->user,
+                    $model,
+                    $streamed->text ?? '',
+                    $request->messages,
+                    $streamed->events->whereInstanceOf(ToolCall::class)->isNotEmpty(),
+                );
+
                 return new BrainResponse(
                     $streamed->text ?? '',
                     $model,
                     $usage->inputTokens,
                     $usage->outputTokens,
                     $latencyMs,
+                    $structuredResult,
                 );
             } catch (Throwable $exception) {
                 $lastException = $exception;

@@ -35,6 +35,6 @@ class TableResult extends ResultPayload
      */
     public function toArray(): array
     {
-        return ['type' => self::type(), 'columns' => $this->columns, 'rows' => $this->rows, 'caption' => $this->caption, ...$this->commonFields()];
+        return $this->compact(['type' => self::type(), 'columns' => $this->columns, 'rows' => $this->rows, 'caption' => $this->caption, ...$this->commonFields()]);
     }
 }

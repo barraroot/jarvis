@@ -35,13 +35,13 @@ class ExecutionStatusResult extends ResultPayload
      */
     public function toArray(): array
     {
-        return [
+        return $this->compact([
             'type' => self::type(),
             'entity' => $this->entity,
             'name' => $this->name,
             'status' => $this->status,
             'message' => $this->message,
             ...$this->commonFields(),
-        ];
+        ]);
     }
 }
