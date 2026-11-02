@@ -14,6 +14,7 @@ class BrainRequest
 {
     /**
      * @param  list<array{role: string, content: string}>  $messages  Conversation history, oldest first.
+     * @param  iterable<int, object>  $tools  Laravel AI tools offered to the model.
      */
     public function __construct(
         public readonly User $user,
@@ -23,5 +24,6 @@ class BrainRequest
         public readonly ?string $instructions = null,
         public readonly ?AgentExecution $agentExecution = null,
         public readonly ?Message $message = null,
+        public readonly iterable $tools = [],
     ) {}
 }

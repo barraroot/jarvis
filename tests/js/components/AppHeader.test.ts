@@ -11,7 +11,10 @@ const Blank = { render: () => null };
 async function mountHeader() {
     const router = createRouter({
         history: createMemoryHistory(),
-        routes: [{ path: '/settings', name: 'settings', component: Blank }],
+        routes: [
+            { path: '/settings', name: 'settings', component: Blank },
+            { path: '/memories', name: 'memories', component: Blank },
+        ],
     });
     await router.push('/settings');
     await router.isReady();

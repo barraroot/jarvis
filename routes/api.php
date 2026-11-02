@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\MeController;
 use App\Http\Controllers\Api\V1\Conversations\ConversationController;
 use App\Http\Controllers\Api\V1\Conversations\ConversationMessageController;
+use App\Http\Controllers\Api\V1\Memories\MemoryController;
 use App\Http\Controllers\Api\V1\Preferences\PreferencesController;
 use Illuminate\Support\Facades\Route;
 
@@ -45,5 +46,12 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::post('conversations/{conversation}/messages', [ConversationMessageController::class, 'store'])
             ->middleware('throttle:messages')
             ->name('conversations.messages.store');
+
+        Route::get('memories', [MemoryController::class, 'index'])->name('memories.index');
+        Route::post('memories', [MemoryController::class, 'store'])->name('memories.store');
+        Route::patch('memories/{memory}', [MemoryController::class, 'update'])->name('memories.update');
+        Route::delete('memories/{memory}', [MemoryController::class, 'destroy'])->name('memories.destroy');
+        Route::post('memories/{memory}/confirm', [MemoryController::class, 'confirm'])->name('memories.confirm');
+        Route::post('memories/{memory}/discard', [MemoryController::class, 'discard'])->name('memories.discard');
     });
 });

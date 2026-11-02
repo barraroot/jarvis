@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { RouterLink } from 'vue-router';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import HudPanel from '@/components/ui/HudPanel.vue';
 import ProgressBar from '@/components/ui/ProgressBar.vue';
@@ -10,6 +11,7 @@ import JarvisCore from '@/components/hud/JarvisCore.vue';
 import { useActivityStore } from '@/stores/activity';
 import { useAgentsStore } from '@/stores/agents';
 import { useAssistantStore } from '@/stores/assistant';
+import { useMemoriesStore } from '@/stores/memories';
 import { useModelsStore } from '@/stores/models';
 import { useTasksStore } from '@/stores/tasks';
 import { useToolsStore } from '@/stores/tools';
@@ -32,6 +34,7 @@ const tasks = useTasksStore();
 const activity = useActivityStore();
 const tools = useToolsStore();
 const models = useModelsStore();
+const memories = useMemoriesStore();
 
 const showAgents = computed(() => props.expandedSection === null || props.expandedSection === 'agents');
 const showTasks = computed(() => props.expandedSection === null || props.expandedSection === 'tasks');
@@ -39,6 +42,7 @@ const showTasks = computed(() => props.expandedSection === null || props.expande
 /** The LLM status list is real data from the same API the selector consumes. */
 onMounted(() => {
     models.load().catch(() => undefined);
+    memories.loadSummary();
 });
 
 const toolTone = {
@@ -123,6 +127,26 @@ function formatTimestamp(timestamp: string): string {
                     <span class="font-mono text-[0.6rem] text-cyan-bright">{{ provider.count }}</span>
                 </li>
             </ul>
+        </HudPanel>
+
+        <HudPanel :title="t('panel.memoryInsights')" data-testid="panel-memory-insights">
+            <div class="flex min-w-0 flex-col gap-1.5">
+                <div class="flex items-center justify-between gap-2" data-testid="panel-memory-confirmed">
+                    <span class="hud-label min-w-0 flex-1 truncate text-[0.65rem] text-text">{{ t('panel.memoriesConfirmed') }}</span>
+                    <span class="font-mono text-[0.6rem] text-cyan-bright">{{ memories.summary.confirmed }}</span>
+                </div>
+                <div class="flex items-center justify-between gap-2" data-testid="panel-memory-hypotheses">
+                    <span class="hud-label min-w-0 flex-1 truncate text-[0.65rem] text-text">{{ t('panel.memoriesHypotheses') }}</span>
+                    <span class="font-mono text-[0.6rem] text-amber">{{ memories.summary.hypotheses }}</span>
+                </div>
+                <RouterLink
+                    :to="{ name: 'memories' }"
+                    class="hud-label mt-1 rounded-sm border border-line px-2 py-1 text-center text-[0.6rem] text-cyan-bright hover:border-cyan"
+                    data-testid="panel-memory-link"
+                >
+                    {{ t('panel.openMemories') }}
+                </RouterLink>
+            </div>
         </HudPanel>
 
         <HudPanel :title="t('panel.history')">

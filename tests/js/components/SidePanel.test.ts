@@ -1,10 +1,24 @@
 import { flushPromises, mount } from '@vue/test-utils';
+import { createMemoryHistory, createRouter } from 'vue-router';
 import { describe, expect, it } from 'vitest';
 import SidePanel from '@/components/hud/SidePanel.vue';
 import { mockFetch } from '../helpers/fetch';
 
 function makeModel(id: string, name: string, provider: string) {
     return { id, name, provider, is_default: false };
+}
+
+const Blank = { render: () => null };
+
+async function mountPanel() {
+    const router = createRouter({
+        history: createMemoryHistory(),
+        routes: [{ path: '/memories', name: 'memories', component: Blank }],
+    });
+    await router.push('/memories');
+    await router.isReady();
+
+    return mount(SidePanel, { global: { plugins: [router] } });
 }
 
 describe('SidePanel LLM status', () => {
@@ -21,7 +35,7 @@ describe('SidePanel LLM status', () => {
             },
         });
 
-        const wrapper = mount(SidePanel);
+        const wrapper = await mountPanel();
         await flushPromises();
 
         const rows = wrapper.findAll('[data-testid="panel-llm-provider"]');
@@ -37,7 +51,7 @@ describe('SidePanel LLM status', () => {
     it('shows the empty state while no model is connected', async () => {
         mockFetch({ 'GET /api/v1/ai/models': { body: { data: [] } } });
 
-        const wrapper = mount(SidePanel);
+        const wrapper = await mountPanel();
         await flushPromises();
 
         expect(wrapper.findAll('[data-testid="panel-llm-provider"]')).toHaveLength(0);

@@ -6,6 +6,7 @@ use App\Events\Assistant\AssistantResponseChunk;
 use App\Events\Assistant\AssistantResponseCompleted;
 use App\Events\Assistant\AssistantStateChanged;
 use App\Events\Assistant\AssistantThinking;
+use App\Jobs\ExtractMemoryHypotheses;
 use App\Jobs\GenerateConversationTitle;
 use App\Jobs\ProcessUserMessage;
 use App\Models\AiModel;
@@ -22,6 +23,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Ai\Ai;
 use Laravel\Ai\AnonymousAgent;
+use Laravel\Ai\Embeddings;
 use Laravel\Ai\Responses\Data\Meta;
 use Laravel\Ai\Responses\Data\TextUsage;
 use Laravel\Ai\Responses\TextResponse;
@@ -48,6 +50,10 @@ class ProcessUserMessageTest extends TestCase
 
         $provider = AiProvider::factory()->create();
         $this->model = AiModel::factory()->for($provider, 'provider')->create();
+
+        // Memory retrieval embeds the incoming message; no stored memories exist.
+        AiModel::factory()->defaultEmbedding()->for($provider, 'provider')->create();
+        Embeddings::fake();
     }
 
     public function test_streams_chunks_and_persists_completed_message(): void
@@ -113,6 +119,9 @@ class ProcessUserMessageTest extends TestCase
 
         // The first successful reply queues the auto-title job for the provisional title.
         Queue::assertPushed(GenerateConversationTitle::class, fn (GenerateConversationTitle $job): bool => $job->conversation->is($conversation));
+
+        // Hypothesis extraction follows every completed reply on the low queue.
+        Queue::assertPushed(ExtractMemoryHypotheses::class, fn (ExtractMemoryHypotheses $job): bool => $job->assistantMessage->is($assistant) && $job->queue === 'low');
 
         // The reply bumps the conversation activity.
         $this->assertTrue($conversation->fresh()->last_activity_at->gte($userMessage->created_at));
@@ -200,6 +209,7 @@ class ProcessUserMessageTest extends TestCase
             'output_tokens' => 30,
         ]);
 
-        $this->assertSame(1, UsageRecord::query()->count());
+        // One record for the memory-retrieval embedding, one for the reply itself.
+        $this->assertSame(2, UsageRecord::query()->count());
     }
 }

@@ -57,7 +57,7 @@ class ModelSelector
             ->first();
     }
 
-    private function defaultTextModel(): ?AiModel
+    public function defaultTextModel(): ?AiModel
     {
         return AiModel::query()
             ->with('provider')

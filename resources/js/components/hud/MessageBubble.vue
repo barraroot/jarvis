@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import MemoryHypothesesCard from '@/components/hud/MemoryHypothesesCard.vue';
 import type { Message } from '@/types/models';
 
 const props = defineProps<{
@@ -99,6 +100,9 @@ const isFailed = computed(() => props.message.status === 'failed');
 
             <!-- Structured results (Phase 14) render in this slot. -->
             <slot name="payload" :message="message" />
+
+            <!-- Hypothesis confirmation prompt (US-6.2) on assistant replies. -->
+            <MemoryHypothesesCard v-if="!isUser" :message="message" />
         </div>
     </article>
 </template>

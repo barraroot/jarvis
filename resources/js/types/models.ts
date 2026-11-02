@@ -62,8 +62,33 @@ export interface Message {
     payload: Record<string, unknown> | null;
     ai_model_id: string | null;
     created_at: string;
+    /** Hypothesis memories proposed after this reply (US-6.2). */
+    hypotheses?: MemoryHypothesis[] | null;
     /** Client-side id of an optimistic message not yet confirmed by the server. */
     localId?: string;
+}
+
+/** Minimal hypothesis payload rendered by the confirmation card in the chat. */
+export interface MemoryHypothesis {
+    id: string;
+    content: string;
+    status: string;
+}
+
+export type MemoryStatus = 'confirmed' | 'hypothesis';
+
+/** Long-term memory (US-6.4). */
+export interface Memory {
+    id: string;
+    content: string;
+    status: MemoryStatus;
+    category: string;
+    source_conversation_id: string | null;
+    source_message_id: string | null;
+    confirmed_at: string | null;
+    last_used_at: string | null;
+    created_at: string;
+    updated_at: string;
 }
 
 /** Agent currently working, fed by `agent.*` events (Phase 11). */

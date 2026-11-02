@@ -225,6 +225,20 @@ onBeforeUnmount(() => {
             </span>
 
             <RouterLink
+                :to="{ name: 'memories' }"
+                class="inline-flex size-9 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
+                :aria-label="t('nav.memories')"
+                data-testid="header-memories"
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4" aria-hidden="true">
+                    <path d="M12 2a4 4 0 0 0-4 4v2a4 4 0 0 0 8 0V6a4 4 0 0 0-4-4Z" />
+                    <path d="M4.9 4.9A5 5 0 0 0 3 8.5c0 2.2 1.5 4 3.5 4.5" />
+                    <path d="M19.1 4.9A5 5 0 0 1 21 8.5c0 2.2-1.5 4-3.5 4.5" />
+                    <path d="M12 12v3" /><path d="M12 19a2 2 0 0 1-2 2h4a2 2 0 0 1-2-2" />
+                </svg>
+            </RouterLink>
+
+            <RouterLink
                 :to="{ name: 'settings' }"
                 class="inline-flex size-9 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
                 :aria-label="t('header.settings')"
@@ -353,6 +367,14 @@ onBeforeUnmount(() => {
                         {{ notifications.unreadCount }}
                     </span>
                 </button>
+                <RouterLink
+                    :to="{ name: 'memories' }"
+                    class="hud-label flex items-center gap-2 rounded-sm px-2 py-1.5 text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                    data-testid="header-more-memories"
+                    @click="closeMenus"
+                >
+                    {{ t('nav.memories') }}
+                </RouterLink>
                 <RouterLink
                     :to="{ name: 'settings' }"
                     class="hud-label flex items-center gap-2 rounded-sm px-2 py-1.5 text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"

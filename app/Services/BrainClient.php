@@ -104,6 +104,7 @@ class BrainClient
         $streamable = agent(
             instructions: $request->instructions ?? 'You are JARVIS, a helpful personal AI assistant.',
             messages: $messages,
+            tools: $request->tools,
         )->stream(
             $request->prompt,
             provider: $model->provider->slug,

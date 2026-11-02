@@ -79,6 +79,8 @@
         "completed": "Concluída",
         "failed": "Falhou",
         "cancelled": "Cancelada",
+        "confirmed": "Confirmada",
+        "hypothesis": "Hipótese",
         "unknown": "Desconhecido"
     },
     "clock": {
@@ -118,7 +120,11 @@
         "history": "Histórico de execuções",
         "tools": "Ferramentas",
         "llmStatus": "LLM status",
-        "llmConnected": "conectado"
+        "llmConnected": "conectado",
+        "memoryInsights": "Memory insights",
+        "memoriesConfirmed": "Confirmadas",
+        "memoriesHypotheses": "Hipóteses",
+        "openMemories": "Gerenciar memórias"
     },
     "empty": {
         "agents": "Nenhum agente ativo",
@@ -181,6 +187,53 @@
         "commandRemember": "lembrar",
         "commandTasks": "tarefas",
         "commandMemories": "memorias"
+    },
+    "memories": {
+        "title": "Memórias",
+        "searchPlaceholder": "Buscar memórias…",
+        "filter": "Filtrar",
+        "filterStatus": "Status",
+        "filterCategory": "Categoria",
+        "allStatuses": "Todos os status",
+        "allCategories": "Todas as categorias",
+        "empty": "Nenhuma memória encontrada",
+        "emptyHint": "Peça ao JARVIS para lembrar algo no chat, ou crie uma aqui.",
+        "edit": "Editar",
+        "save": "Salvar",
+        "delete": "Excluir",
+        "deleteTitle": "Excluir memória",
+        "deleteMessage": "Excluir esta memória permanentemente? Esta ação não pode ser desfeita.",
+        "confirm": "Confirmar",
+        "discard": "Descartar",
+        "loadMore": "Carregar mais",
+        "source": "Origem",
+        "sourceConversation": "Conversa #{id}",
+        "saved": "Memória salva.",
+        "updated": "Memória atualizada.",
+        "deleted": "Memória excluída.",
+        "confirmed": "Hipótese confirmada.",
+        "discarded": "Hipótese descartada.",
+        "createError": "Não foi possível salvar a memória.",
+        "updateError": "Não foi possível editar a memória.",
+        "deleteError": "Não foi possível excluir a memória.",
+        "actionError": "Não foi possível concluir a ação.",
+        "create": "Nova memória",
+        "createPlaceholder": "Escreva a nova memória…",
+        "createHint": "Salva como memória confirmada.",
+        "editPlaceholder": "Edite o conteúdo…",
+        "cancel": "Cancelar",
+        "categories": {
+            "preference": "Preferência",
+            "project": "Projeto",
+            "context": "Contexto",
+            "learning": "Aprendizado",
+            "fact": "Fato"
+        }
+    },
+    "memoryCard": {
+        "title": "JARVIS acha que aprendeu:",
+        "confirm": "Confirmar",
+        "discard": "Descartar"
     },
     "drawer": {
         "title": "Conversas",

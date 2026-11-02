@@ -17,7 +17,9 @@ use App\Models\User;
 use App\Services\BrainClient;
 use App\Services\BrainRequest;
 use App\Services\ContextBuilder;
+use App\Services\MemoryContextSource;
 use App\Services\MessageRouter;
+use App\Tools\RememberMemoryTool;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Throwable;
@@ -86,7 +88,14 @@ class ProcessUserMessage implements ShouldQueue
     {
         $routed = app(MessageRouter::class)->route($this->userMessage);
 
-        $history = app(ContextBuilder::class)->build($conversation, $routed->model, excluding: $this->userMessage);
+        $history = app(ContextBuilder::class)->build(
+            $conversation,
+            $routed->model,
+            excluding: $this->userMessage,
+            sources: [
+                app(MemoryContextSource::class, ['user' => $user, 'query' => $this->userMessage->content]),
+            ],
+        );
 
         $content = '';
         $chunkIndex = 0;
@@ -99,6 +108,9 @@ class ProcessUserMessage implements ShouldQueue
                 messages: $history,
                 instructions: $routed->instructions,
                 message: $assistantMessage,
+                tools: [
+                    app(RememberMemoryTool::class, ['user' => $user, 'source' => $this->userMessage]),
+                ],
             ),
             function (string $delta) use ($assistantMessage, $user, $conversation, &$content, &$chunkIndex): void {
                 if ($chunkIndex === 0 && $assistantMessage->execution_status_id === ExecutionStatus::idFor(ExecutionStatus::PENDING)) {
@@ -124,6 +136,10 @@ class ProcessUserMessage implements ShouldQueue
 
         AssistantResponseCompleted::dispatch($user, $assistantMessage->fresh());
         AssistantStateChanged::dispatch($user, AssistantStateChanged::IDLE, $conversation->id);
+
+        // After the completed event, the low-priority job proposes memory
+        // hypotheses for this exchange (US-6.2).
+        ExtractMemoryHypotheses::dispatch($assistantMessage)->onConnection('redis')->onQueue('low');
 
         $conversation->touchActivity();
 

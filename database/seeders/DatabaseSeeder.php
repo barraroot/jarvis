@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             LookupSeeder::class,
             SettingsSeeder::class,
             AdminUserSeeder::class,
+            RememberMemoryToolSeeder::class,
         ]);
     }
 }
