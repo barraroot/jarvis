@@ -1,7 +1,9 @@
 <?php
 
+use App\Exceptions\Handler;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\EnsureUserIsAdmin;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -30,4 +32,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
-    })->create();
+    })
+    // The custom handler strips `api_key` from exception context (US-5.1).
+    // Rebinding happens while the application is registering, before the handler
+    // is resolved for the first time, so the `withExceptions` config above applies.
+    ->withSingletons([
+        ExceptionHandler::class => Handler::class,
+    ])
+    ->create();
