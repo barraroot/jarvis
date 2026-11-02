@@ -1,19 +1,27 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { RouterLink, useRoute } from 'vue-router';
-import Clock from '@/components/ui/Clock.vue';
+import { useRoute, useRouter } from 'vue-router';
+import AppHeader from '@/components/hud/AppHeader.vue';
+import BottomNav from '@/components/hud/BottomNav.vue';
+import ConversationDrawer from '@/components/hud/ConversationDrawer.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
+import InteractionFooter from '@/components/hud/InteractionFooter.vue';
+import SidePanel from '@/components/hud/SidePanel.vue';
 import { useConnectionStore } from '@/stores/connection';
 import { usePersistentFlag } from '@/composables/usePersistentFlag';
 import { SIDEBAR_COLLAPSED_STORAGE_KEY } from '@/layouts/constants';
 
 const emit = defineEmits<{
     microphone: [];
+    send: [payload: { content: string; source: 'text' | 'voice' }];
+    voice: [];
+    interrupt: [];
 }>();
 
 const { t } = useI18n();
 const route = useRoute();
+const router = useRouter();
 const connection = useConnectionStore();
 
 /** Sending (text, voice) is blocked while the realtime link is down. */
@@ -21,8 +29,10 @@ const sendingDisabled = computed(() => connection.isDisconnected);
 
 /** Tablet (768–1279px) collapse state, persisted between visits. */
 const sidebarCollapsed = usePersistentFlag(SIDEBAR_COLLAPSED_STORAGE_KEY);
-/** Mobile (<768px) drawer, transient. */
+/** Mobile (<768px) drawer, transient; agents/tasks open it as a section sheet. */
 const drawerOpen = ref(false);
+const drawerSection = ref<'agents' | 'tasks' | null>(null);
+const conversationsOpen = ref(false);
 
 watch(
     () => route.fullPath,
@@ -42,16 +52,22 @@ function toggleSidebar(): void {
     sidebarCollapsed.value = !sidebarCollapsed.value;
 }
 
-function openDrawer(): void {
+function toggleDrawer(): void {
+    drawerOpen.value = !drawerOpen.value;
+    drawerSection.value = null;
+}
+
+function openSection(section: 'agents' | 'tasks'): void {
+    drawerSection.value = section;
     drawerOpen.value = true;
 }
 
-const navItems = computed(() => [
-    { key: 'chat', label: t('nav.chat'), to: { name: 'hud' } },
-    { key: 'agents', label: t('nav.agents'), to: null },
-    { key: 'tasks', label: t('nav.tasks'), to: null },
-    { key: 'settings', label: t('nav.settings'), to: { name: 'settings' } },
-]);
+/** `/nova` navigates to a fresh conversation view (Phase 8 wires the real creation). */
+function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' }): void {
+    if (payload.type === 'new') {
+        void router.push({ name: 'hud' });
+    }
+}
 </script>
 
 <template>
@@ -66,7 +82,7 @@ const navItems = computed(() => [
                 :aria-label="drawerOpen ? t('nav.closeMenu') : t('nav.openMenu')"
                 :aria-expanded="drawerOpen"
                 data-testid="drawer-toggle"
-                @click="drawerOpen = !drawerOpen"
+                @click="toggleDrawer"
             >
                 <span class="flex w-4 flex-col gap-1">
                     <span class="h-px w-full bg-current"></span>
@@ -85,10 +101,7 @@ const navItems = computed(() => [
                 <span class="block h-4 w-3 border-l-2 border-current"></span>
             </button>
             <slot name="header">
-                <span class="hud-label min-w-0 truncate font-display text-sm text-cyan hud-glow">{{ t('app.name') }}</span>
-                <div class="ml-auto hidden sm:block">
-                    <Clock :show-date="false" />
-                </div>
+                <AppHeader @microphone="emit('microphone')" @conversations="conversationsOpen = true" />
             </slot>
         </header>
 
@@ -106,9 +119,11 @@ const navItems = computed(() => [
             data-testid="layout-sidebar"
         >
             <slot name="sidebar">
-                <EmptyState />
+                <SidePanel :expanded-section="drawerSection" />
             </slot>
         </aside>
+
+        <ConversationDrawer v-model:open="conversationsOpen" />
 
         <div class="flex min-h-dvh min-w-0 flex-col pt-14" :class="offsetClasses">
             <div
@@ -147,46 +162,17 @@ const navItems = computed(() => [
                 data-testid="layout-footer-controls"
             >
                 <slot name="footer" :sending-disabled="sendingDisabled">
-                    <EmptyState />
+                    <InteractionFooter
+                        :disabled="sendingDisabled"
+                        @send="emit('send', $event)"
+                        @voice="emit('voice')"
+                        @interrupt="emit('interrupt')"
+                        @command="onCommand"
+                    />
                 </slot>
             </fieldset>
 
-            <nav
-                class="hud-glass grid grid-cols-5 items-end border-t border-line px-1 pb-[env(safe-area-inset-bottom)] md:hidden"
-                data-testid="bottom-nav"
-            >
-                <template v-for="(item, index) in navItems" :key="item.key">
-                    <button
-                        v-if="index === 2"
-                        type="button"
-                        class="mx-auto -mt-5 mb-1 inline-flex size-14 items-center justify-center rounded-full border-2 border-cyan bg-bg-navy text-cyan-bright shadow-[0_0_18px_rgba(34,211,238,0.55)]"
-                        :aria-label="t('nav.microphone')"
-                        data-testid="bottom-nav-microphone"
-                        :disabled="sendingDisabled"
-                        @click="emit('microphone')"
-                    >
-                        <span class="block h-5 w-3 rounded-full border-2 border-current"></span>
-                    </button>
-                    <RouterLink
-                        v-if="item.to"
-                        :to="item.to"
-                        class="hud-label flex min-w-0 flex-col items-center truncate py-3 text-[0.6rem] text-muted"
-                        active-class="text-cyan-bright"
-                        :data-testid="`bottom-nav-${item.key}`"
-                    >
-                        {{ item.label }}
-                    </RouterLink>
-                    <button
-                        v-else
-                        type="button"
-                        class="hud-label flex min-w-0 flex-col items-center truncate py-3 text-[0.6rem] text-muted"
-                        :data-testid="`bottom-nav-${item.key}`"
-                        @click="openDrawer"
-                    >
-                        {{ item.label }}
-                    </button>
-                </template>
-            </nav>
+            <BottomNav :disabled="sendingDisabled" @select="openSection" @microphone="emit('microphone')" />
         </footer>
     </div>
 </template>

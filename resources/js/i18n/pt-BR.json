@@ -92,5 +92,82 @@
     },
     "core": {
         "label": "Núcleo JARVIS"
+    },
+    "header": {
+        "sleep": "Dormir",
+        "wake": "Acordar",
+        "notifications": "Notificações",
+        "connectors": "Conectores",
+        "conversations": "Conversas",
+        "settings": "Configurações",
+        "logout": "Sair",
+        "more": "Mais opções",
+        "userMenu": "Menu do usuário",
+        "voiceUnsupported": "Reconhecimento de voz não suportado neste navegador"
+    },
+    "panel": {
+        "core": "Núcleo",
+        "activity": "Atividade do núcleo",
+        "agents": "Agentes ativos",
+        "tasks": "Tarefas",
+        "history": "Histórico de execuções",
+        "tools": "Ferramentas"
+    },
+    "empty": {
+        "agents": "Nenhum agente ativo",
+        "tasks": "Nenhuma tarefa em andamento",
+        "history": "Nenhuma execução registrada",
+        "tools": "Nenhuma ferramenta monitorada"
+    },
+    "toolStatus": {
+        "active": "ativo",
+        "error": "erro",
+        "idle": "ocioso"
+    },
+    "conversation": {
+        "greeting": "Saudações. Sou o J.A.R.V.I.S., seu sistema pessoal de inteligência.",
+        "greetingHint": "Digite uma solicitação ou pressione Tab para falar.",
+        "goToEnd": "Ir ao fim",
+        "you": "Você",
+        "jarvis": "JARVIS",
+        "ariaLabel": "Mensagens da conversa"
+    },
+    "footer": {
+        "placeholder": "Digite, ou pressione Tab para falar…",
+        "send": "Enviar",
+        "voice": "Falar",
+        "stop": "Interromper",
+        "voiceUnsupported": "Voz não suportada neste navegador",
+        "characterCount": "{count}/{limit}",
+        "limitReached": "Limite de 8.000 caracteres",
+        "offline": "Sem conexão — envio desativado",
+        "shortcuts": "Atalhos",
+        "shortcutVoice": "falar",
+        "shortcutInterrupt": "interromper",
+        "shortcutCommands": "comandos",
+        "keyVoice": "Tab",
+        "keyInterrupt": "Esc",
+        "keyCommands": "/",
+        "commands": "Comandos rápidos",
+        "commandsOpen": "Abrir comandos rápidos",
+        "commandNew": "nova",
+        "commandRemember": "lembrar",
+        "commandTasks": "tarefas",
+        "commandMemories": "memorias"
+    },
+    "drawer": {
+        "title": "Conversas",
+        "new": "Nova conversa",
+        "loadMore": "Carregar mais",
+        "rename": "Renomear",
+        "renameLabel": "Título da conversa",
+        "delete": "Excluir",
+        "deleteTitle": "Excluir conversa",
+        "deleteMessage": "Excluir esta conversa e todas as suas mensagens? Esta ação não pode ser desfeita.",
+        "empty": "Nenhuma conversa ainda",
+        "open": "Abrir conversa",
+        "createError": "Não foi possível criar a conversa",
+        "renameError": "Não foi possível renomear a conversa",
+        "deleteError": "Não foi possível excluir a conversa"
     }
 }

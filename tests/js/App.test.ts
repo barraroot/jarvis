@@ -37,7 +37,8 @@ describe('App smoke test', () => {
 
         expect(router.currentRoute.value.name).toBe('hud');
         expect(wrapper.find('[data-testid="hud-layout"]').exists()).toBe(true);
-        await vi.waitFor(() => expect(wrapper.get('[data-testid="layout-main"]').text()).toContain('Painel principal'));
+        await vi.waitFor(() => expect(wrapper.find('[data-testid="conversation-view"]').exists()).toBe(true));
+        expect(wrapper.get('[data-testid="conversation-greeting"]').text()).toContain('Saudações');
 
         wrapper.unmount();
     });

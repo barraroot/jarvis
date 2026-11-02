@@ -7,6 +7,7 @@ import {
     leaveUserChannel,
     subscribeToUserChannel,
 } from '@/lib/echo';
+import { useAssistantStore } from '@/stores/assistant';
 import { useAuthStore } from '@/stores/auth';
 import { useConnectionStore } from '@/stores/connection';
 
@@ -16,6 +17,7 @@ import { useConnectionStore } from '@/stores/connection';
 export function useRealtimeConnection(): void {
     const auth = useAuthStore();
     const connection = useConnectionStore();
+    const assistant = useAssistantStore();
 
     const stopWatching = watch(
         () => auth.user?.id ?? null,
@@ -32,7 +34,11 @@ export function useRealtimeConnection(): void {
 
             const echo = getEcho();
             connection.start(createEchoTransport(echo));
-            subscribeToUserChannel(userId);
+            subscribeToUserChannel(userId).listen('assistant.state.changed', (event: unknown) => {
+                const payload = (event as { state?: unknown } | null)?.state;
+
+                assistant.applyServerState(payload);
+            });
         },
         { immediate: true },
     );

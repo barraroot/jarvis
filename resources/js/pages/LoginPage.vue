@@ -83,7 +83,7 @@ onBeforeUnmount(stopCountdown);
 <template>
     <div class="hud-grid flex min-h-dvh w-full items-center justify-center overflow-x-hidden bg-bg px-4 py-8">
         <div class="flex w-full max-w-md flex-col items-center gap-6">
-            <JarvisCore :size="180" />
+            <JarvisCore state="IDLE" size="full" />
 
             <div class="text-center">
                 <h1 class="hud-label font-display text-2xl text-cyan hud-glow sm:text-3xl">{{ t('app.name') }}</h1>

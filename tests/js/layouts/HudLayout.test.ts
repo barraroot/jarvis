@@ -34,12 +34,16 @@ describe('HudLayout', () => {
         expect(wrapper.find('[data-testid="layout-footer"] #f').exists()).toBe(true);
     });
 
-    it('fills empty slots with EmptyState instead of simulated data', async () => {
+    it('mounts the HUD chrome in the default slots, empty states only', async () => {
         const wrapper = await mountLayout();
 
-        expect(wrapper.get('[data-testid="layout-sidebar"]').text()).toBe('sem dados');
+        expect(wrapper.find('[data-testid="app-header"]').exists()).toBe(true);
         expect(wrapper.get('[data-testid="layout-main"]').text()).toBe('sem dados');
-        expect(wrapper.findAll('[data-testid="empty-state"]')).toHaveLength(3);
+        expect(wrapper.find('[data-testid="interaction-footer"]').exists()).toBe(true);
+
+        const sidebar = wrapper.get('[data-testid="layout-sidebar"]');
+        expect(sidebar.text()).toContain('Núcleo');
+        expect(sidebar.findAll('[data-testid="empty-state"]').length).toBeGreaterThanOrEqual(4);
     });
 
     it('uses a 320px desktop sidebar and offsets the content', async () => {
@@ -95,6 +99,19 @@ describe('HudLayout', () => {
 
         await wrapper.get('[data-testid="bottom-nav-agents"]').trigger('click');
         expect(wrapper.get('[data-testid="layout-sidebar"]').classes()).toContain('flex');
+    });
+
+    it('opens the drawer as an expandable sheet for the selected bottom nav section', async () => {
+        const wrapper = await mountLayout();
+        const sectionTitles = () => wrapper.get('[data-testid="layout-sidebar"]').findAll('h2').map((title) => title.text());
+
+        await wrapper.get('[data-testid="bottom-nav-agents"]').trigger('click');
+        expect(sectionTitles()).toContain('Agentes ativos');
+        expect(sectionTitles()).not.toContain('Tarefas');
+
+        await wrapper.get('[data-testid="bottom-nav-tasks"]').trigger('click');
+        expect(sectionTitles()).toContain('Tarefas');
+        expect(sectionTitles()).not.toContain('Agentes ativos');
     });
 
     it('prevents horizontal scroll on narrow screens', async () => {

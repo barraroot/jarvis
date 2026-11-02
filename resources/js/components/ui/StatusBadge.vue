@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-
-export type AssistantState = 'IDLE' | 'LISTENING' | 'THINKING' | 'SPEAKING' | 'EXECUTING' | 'SLEEPING' | 'ERROR' | 'DISCONNECTED';
-export type TaskStatus = 'pending' | 'queued' | 'running' | 'waiting_approval' | 'completed' | 'failed' | 'cancelled';
+import type { AssistantState, TaskStatus } from '@/types/models';
 
 const props = defineProps<{
     status: AssistantState | TaskStatus | string;
