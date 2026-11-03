@@ -26,6 +26,7 @@ class SecurityHeadersTest extends TestCase
             'broadcasting.connections.reverb.options.host' => 'ws.jarvis.test',
             'broadcasting.connections.reverb.options.port' => 443,
             'broadcasting.connections.reverb.options.scheme' => 'https',
+            'services.reverb.public.host' => null,
         ]);
 
         foreach (['/', '/conversas/42', '/configuracoes'] as $path) {
@@ -54,12 +55,28 @@ class SecurityHeadersTest extends TestCase
             'broadcasting.connections.reverb.options.host' => 'localhost',
             'broadcasting.connections.reverb.options.port' => 8080,
             'broadcasting.connections.reverb.options.scheme' => 'http',
+            'services.reverb.public.host' => null,
         ]);
 
         $this->assertStringContainsString(
             'ws://localhost:8080',
             (string) $this->get('/')->headers->get('Content-Security-Policy'),
         );
+    }
+
+    public function test_public_reverb_address_is_allowed_instead_of_the_internal_host(): void
+    {
+        config([
+            'broadcasting.connections.reverb.options.host' => 'reverb',
+            'broadcasting.connections.reverb.options.port' => 8080,
+            'broadcasting.connections.reverb.options.scheme' => 'http',
+            'services.reverb.public' => ['host' => 'localhost', 'port' => 8080, 'scheme' => 'http'],
+        ]);
+
+        $csp = (string) $this->get('/')->headers->get('Content-Security-Policy');
+
+        $this->assertStringContainsString('ws://localhost:8080', $csp);
+        $this->assertStringNotContainsString('ws://reverb', $csp);
     }
 
     public function test_api_responses_include_nosniff_without_spa_csp(): void

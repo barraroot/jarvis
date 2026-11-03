@@ -69,13 +69,18 @@ class SecurityHeaders
     }
 
     /**
-     * WebSocket origin(s) of the Reverb server the SPA connects to.
+     * WebSocket origin(s) of the Reverb server the SPA connects to: the
+     * browser-facing address (`services.reverb.public`) when set, otherwise
+     * the broadcasting host the backend publishes to.
      *
      * @return list<string>
      */
     private function reverbOrigins(): array
     {
-        $options = config('broadcasting.connections.reverb.options', []);
+        $public = config('services.reverb.public', []);
+        $options = filled($public['host'] ?? null)
+            ? $public
+            : config('broadcasting.connections.reverb.options', []);
         $host = $options['host'] ?? null;
 
         if (blank($host)) {

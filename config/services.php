@@ -41,9 +41,19 @@ return [
     | Reverb health probe used by `/up`: defaults to the broadcasting host
     | (`REVERB_SCHEME://REVERB_HOST:REVERB_PORT/up`); set it when the app
     | reaches Reverb through another address (e.g. `http://reverb:8080/up`).
+    |
+    | `public` is the address the browser uses (the frontend build's
+    | `VITE_REVERB_*`), allowed in the SPA CSP `connect-src`. It differs from
+    | `REVERB_HOST` when the backend reaches Reverb on an internal host
+    | (Sail: `reverb`) while the browser uses `localhost`.
     */
     'reverb' => [
         'health_url' => env('REVERB_HEALTH_URL'),
+        'public' => [
+            'host' => env('VITE_REVERB_HOST'),
+            'port' => env('VITE_REVERB_PORT'),
+            'scheme' => env('VITE_REVERB_SCHEME'),
+        ],
     ],
 
     'slack' => [
