@@ -53,7 +53,7 @@ class ConversationController extends Controller
     {
         Gate::authorize('view', $conversation);
 
-        $messagesQuery = $conversation->messages()->latest('id')->limit(50);
+        $messagesQuery = $conversation->messages()->with(['role', 'source', 'status'])->latest('id')->limit(50);
 
         if ($request->filled('before')) {
             $messagesQuery->where('id', '<', (int) $request->integer('before'));

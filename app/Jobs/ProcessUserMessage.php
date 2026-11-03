@@ -8,6 +8,7 @@ use App\Events\Assistant\AssistantStateChanged;
 use App\Events\Assistant\AssistantThinking;
 use App\Exceptions\AllProvidersFailedException;
 use App\Exceptions\UsageLimitExceededException;
+use App\Jobs\Middleware\WithLogContext;
 use App\Models\Conversation;
 use App\Models\ExecutionStatus;
 use App\Models\Message;
@@ -45,6 +46,20 @@ class ProcessUserMessage implements ShouldQueue
     public int $timeout = 120;
 
     public function __construct(public readonly Message $userMessage) {}
+
+    /**
+     * Log lines of this job carry the operator, conversation and message.
+     *
+     * @return list<object>
+     */
+    public function middleware(): array
+    {
+        return [new WithLogContext([
+            'user_id' => $this->userMessage->user_id,
+            'conversation_id' => $this->userMessage->conversation_id,
+            'message_id' => $this->userMessage->id,
+        ])];
+    }
 
     public function handle(): void
     {

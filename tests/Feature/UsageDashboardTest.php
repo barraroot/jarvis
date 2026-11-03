@@ -74,6 +74,7 @@ class UsageDashboardTest extends TestCase
         $this->assertSame(165, $today['tokens']);
         $this->assertSame(2, $today['calls']);
         $this->assertEqualsWithDelta(300.0, $today['avg_latency_ms'], 0.01);
+        $this->assertSame(390, $today['p95_latency_ms']);
 
         $month = $report->currentMonth();
         $this->assertEqualsWithDelta(6.0, $month['cost'], 0.0001);

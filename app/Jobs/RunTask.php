@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Exceptions\TaskCancelledException;
+use App\Jobs\Middleware\WithLogContext;
 use App\Models\Agent;
 use App\Models\AgentExecution;
 use App\Models\ExecutionStatus;
@@ -33,6 +34,8 @@ class RunTask implements ShouldQueue
 {
     use Queueable;
 
+    public const string QUEUE = 'tasks';
+
     public int $tries = 1;
 
     public int $timeout;
@@ -42,6 +45,24 @@ class RunTask implements ShouldQueue
         public readonly int $resumeFromStep = 0,
     ) {
         $this->timeout = max(1, $this->task->timeout_seconds ?: app(Settings::class)->taskTimeoutSeconds());
+
+        // Long tasks never share workers with chat/default jobs; dedicated
+        // workers are recycled with `--max-jobs`/`--max-time` (see README).
+        $this->onQueue(self::QUEUE);
+    }
+
+    /**
+     * Log lines of this job carry the operator, task and conversation.
+     *
+     * @return list<object>
+     */
+    public function middleware(): array
+    {
+        return [new WithLogContext([
+            'user_id' => $this->task->user_id,
+            'task_id' => $this->task->id,
+            'conversation_id' => $this->task->conversation_id,
+        ])];
     }
 
     public function handle(TaskService $tasks): void

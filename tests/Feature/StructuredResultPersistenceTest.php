@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Ai\Agents\RuntimeAgent;
 use App\Jobs\ProcessUserMessage;
 use App\Models\Agent;
 use App\Models\AiModel;
@@ -171,7 +172,7 @@ class StructuredResultPersistenceTest extends TestCase
         $agent = Agent::factory()->create();
         $task = Task::factory()->for($this->user)->for($agent)->create();
 
-        Ai::fakeAgent(AnonymousAgent::class, function (string $prompt, mixed $attachments, mixed $provider, string $model): TextResponse {
+        Ai::fakeAgent(RuntimeAgent::class, function (string $prompt, mixed $attachments, mixed $provider, string $model): TextResponse {
             return new TextResponse(
                 "Resultado:\n\n- Cliente ACME\n- Cliente Beta\n- Cliente Gamma",
                 new TextUsage(30, 20),

@@ -18,12 +18,13 @@ return [
     |
     */
 
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-        '%s%s',
-        'localhost,localhost:80,localhost:5173,127.0.0.1,127.0.0.1:80,127.0.0.1:5173,::1',
-        Sanctum::currentApplicationUrlWithPort(),
-        // Sanctum::currentRequestHost(),
-    ))),
+    // Without SANCTUM_STATEFUL_DOMAINS, only the app itself and FRONTEND_URL
+    // are stateful; development hosts belong in the local .env.
+    'stateful' => array_values(array_filter(explode(',', env('SANCTUM_STATEFUL_DOMAINS', implode(',', [
+        ltrim(Sanctum::currentApplicationUrlWithPort(), ','),
+        (string) parse_url((string) env('FRONTEND_URL', ''), PHP_URL_HOST)
+            .(parse_url((string) env('FRONTEND_URL', ''), PHP_URL_PORT) ? ':'.parse_url((string) env('FRONTEND_URL', ''), PHP_URL_PORT) : ''),
+    ]))))),
 
     /*
     |--------------------------------------------------------------------------

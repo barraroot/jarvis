@@ -28,7 +28,7 @@ class ApprovalController extends Controller
         Gate::authorize('viewAny', Approval::class);
 
         $approvals = Approval::query()
-            ->with(['tool', 'status', 'agentExecution.agent'])
+            ->with(['tool.type', 'status', 'agentExecution.agent'])
             ->where('user_id', $request->user()->getKey())
             ->when($request->query('status') === 'pending', fn ($query) => $query->where('approval_status_id', ApprovalStatus::idFor(ApprovalStatus::PENDING)))
             ->latest('requested_at')
@@ -41,7 +41,7 @@ class ApprovalController extends Controller
     {
         Gate::authorize('view', $approval);
 
-        return ApprovalResource::make($approval->load(['tool', 'status', 'agentExecution.agent']));
+        return ApprovalResource::make($approval->load(['tool.type', 'status', 'agentExecution.agent']));
     }
 
     public function approve(Request $request, Approval $approval): JsonResponse
@@ -51,7 +51,7 @@ class ApprovalController extends Controller
         $this->decide(fn (): Approval => $this->approvals->approve($approval, $request->user()));
 
         return response()->json([
-            'data' => ApprovalResource::make($approval->fresh(['tool', 'status', 'agentExecution.agent']))->resolve(),
+            'data' => ApprovalResource::make($approval->fresh(['tool.type', 'status', 'agentExecution.agent']))->resolve(),
         ]);
     }
 
@@ -62,7 +62,7 @@ class ApprovalController extends Controller
         $this->decide(fn (): Approval => $this->approvals->deny($approval, $request->user(), $request->validated('reason')));
 
         return response()->json([
-            'data' => ApprovalResource::make($approval->fresh(['tool', 'status', 'agentExecution.agent']))->resolve(),
+            'data' => ApprovalResource::make($approval->fresh(['tool.type', 'status', 'agentExecution.agent']))->resolve(),
         ]);
     }
 

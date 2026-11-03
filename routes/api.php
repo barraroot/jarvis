@@ -69,8 +69,12 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 
         Route::get('approvals', [ApprovalController::class, 'index'])->name('approvals.index');
         Route::get('approvals/{approval}', [ApprovalController::class, 'show'])->name('approvals.show');
-        Route::post('approvals/{approval}/approve', [ApprovalController::class, 'approve'])->name('approvals.approve');
-        Route::post('approvals/{approval}/deny', [ApprovalController::class, 'deny'])->name('approvals.deny');
+        Route::post('approvals/{approval}/approve', [ApprovalController::class, 'approve'])
+            ->middleware('throttle:approvals')
+            ->name('approvals.approve');
+        Route::post('approvals/{approval}/deny', [ApprovalController::class, 'deny'])
+            ->middleware('throttle:approvals')
+            ->name('approvals.deny');
 
         Route::get('tasks', [TaskController::class, 'index'])->name('tasks.index');
         Route::get('tasks/{task}', [TaskController::class, 'show'])->name('tasks.show');
@@ -81,7 +85,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::post('connectors', [ConnectorController::class, 'store'])->name('connectors.store');
         Route::patch('connectors/{connector}', [ConnectorController::class, 'update'])->name('connectors.update');
         Route::delete('connectors/{connector}', [ConnectorController::class, 'destroy'])->name('connectors.destroy');
-        Route::post('connectors/{connector}/resync', [ConnectorController::class, 'resync'])->name('connectors.resync');
+        Route::post('connectors/{connector}/resync', [ConnectorController::class, 'resync'])
+            ->middleware('throttle:connectors.resync')
+            ->name('connectors.resync');
         Route::get('connectors/{connector}/tools', [ConnectorToolController::class, 'index'])->name('connectors.tools.index');
         Route::patch('connectors/{connector}/tools/{tool}', [ConnectorToolController::class, 'update'])->name('connectors.tools.update');
 

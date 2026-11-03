@@ -2,13 +2,15 @@
 
 namespace App\Services;
 
+use App\Ai\Agents\RuntimeAgent;
 use App\Models\Agent;
 use App\Models\Tool;
+use App\Support\Settings;
+use App\Support\UntrustedContent;
 use App\Tools\AgentTool;
 use App\Tools\ToolAdapter;
 use App\Tools\ToolContext;
 use App\Tools\ToolExecutor;
-use Laravel\Ai\AnonymousAgent;
 
 /**
  * Builds the `laravel/ai` runtime agent for a catalogue agent (US-7.3): its
@@ -22,23 +24,33 @@ class AgentRuntimeFactory
     public function __construct(
         private readonly ToolExecutor $executor,
         private readonly ApprovalService $approvals,
+        private readonly Settings $settings,
     ) {}
 
     /**
      * @param  list<array{role: string, content: string}>  $messages  Context (history + context sources) for the model.
      */
-    public function make(Agent $agent, ToolContext $context, array $messages = []): AnonymousAgent
+    public function make(Agent $agent, ToolContext $context, array $messages = []): RuntimeAgent
     {
-        return new AnonymousAgent(
+        return new RuntimeAgent(
             $this->instructions($agent),
             $messages,
             $this->tools($agent, $context),
+            $this->toolCallLimit($agent),
         );
+    }
+
+    /**
+     * The agent's own limit when set, otherwise the global setting (US-7.3).
+     */
+    public function toolCallLimit(Agent $agent): int
+    {
+        return $agent->max_tool_calls > 0 ? $agent->max_tool_calls : $this->settings->maxToolCalls();
     }
 
     private function instructions(Agent $agent): string
     {
-        return "# {$agent->name}\n\nObjetivo: {$agent->objective}\n\n{$agent->instructions}";
+        return UntrustedContent::withPolicy("# {$agent->name}\n\nObjetivo: {$agent->objective}\n\n{$agent->instructions}");
     }
 
     /**
@@ -48,6 +60,7 @@ class AgentRuntimeFactory
     {
         return $agent->tools()
             ->active()
+            ->with(['type', 'mcpToolDefinition.server'])
             ->get()
             ->map(function (Tool $tool) use ($context): ?object {
                 if (str_starts_with($tool->identifier, 'delegate.')) {

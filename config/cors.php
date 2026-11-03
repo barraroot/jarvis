@@ -8,18 +8,20 @@
 | The SPA authenticates with Sanctum cookies, so credentials must be allowed
 | and the origins must be listed explicitly (wildcards are not permitted
 | together with credentials). FRONTEND_URL covers a Vite dev server or a
-| separately hosted build; APP_URL covers the SPA served by Laravel itself.
+| separately hosted build; APP_URL covers the SPA served by Laravel itself;
+| CORS_ALLOWED_ORIGINS (comma separated) adds any other origin. Nothing is
+| hardcoded: development origins come from the local .env.
 |
 */
 
-$origins = array_values(array_unique(array_filter([
-    env('APP_URL', 'http://localhost'),
-    env('FRONTEND_URL', 'http://localhost:5173'),
-    'http://localhost',
-    'http://localhost:5173',
-    'http://127.0.0.1',
-    'http://127.0.0.1:5173',
-])));
+$origins = array_values(array_unique(array_filter(array_map(
+    fn (string $origin): string => rtrim(trim($origin), '/'),
+    [
+        (string) env('APP_URL', ''),
+        (string) env('FRONTEND_URL', ''),
+        ...explode(',', (string) env('CORS_ALLOWED_ORIGINS', '')),
+    ],
+))));
 
 return [
 

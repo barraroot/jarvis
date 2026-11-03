@@ -29,7 +29,7 @@ class TaskController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $tasks = Task::query()
-            ->with(['agent', 'status', 'steps'])
+            ->with(['agent', 'status', 'resultType', 'steps.status'])
             ->where('user_id', $request->user()->getKey())
             ->when(
                 $request->query('active') === '1',
@@ -50,13 +50,13 @@ class TaskController extends Controller
     {
         Gate::authorize('view', $task);
 
-        $task->load(['agent', 'status', 'steps']);
+        $task->load(['agent', 'status', 'resultType', 'steps.status']);
 
         // Pending approvals of a parked task render the ApprovalCard inline.
         if ($task->hasStatus(TaskStatus::WAITING_APPROVAL)) {
             $task->load(['approvals' => fn ($query) => $query
                 ->where('approval_status_id', ApprovalStatus::idFor(ApprovalStatus::PENDING))
-                ->with(['tool', 'status', 'agentExecution.agent']),
+                ->with(['tool.type', 'status', 'agentExecution.agent']),
             ]);
         } else {
             $task->setRelation('approvals', collect());

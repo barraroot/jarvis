@@ -37,7 +37,9 @@ class UsageStatsOverview extends StatsOverviewWidget
             Stat::make('Custo no período', self::money($period['cost']))
                 ->description(self::tokens($period['tokens']).' tokens · '.$period['calls'].' chamadas'),
             Stat::make('Latência média', $period['avg_latency_ms'] !== null ? number_format($period['avg_latency_ms'], 0, ',', '.').' ms' : '—')
-                ->description('no período filtrado'),
+                ->description($period['p95_latency_ms'] !== null
+                    ? 'p95 '.number_format($period['p95_latency_ms'], 0, ',', '.').' ms no período filtrado'
+                    : 'no período filtrado'),
         ];
     }
 

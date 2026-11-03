@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\AllProvidersFailedException;
 use App\Models\AiModel;
 use App\Models\ExecutionStatus;
+use App\Support\UntrustedContent;
 use Laravel\Ai\Exceptions\RateLimitedException;
 use Laravel\Ai\Messages\Message as AiMessage;
 use Laravel\Ai\Responses\Data\TextUsage;
@@ -113,7 +114,7 @@ class BrainClient
         );
 
         $streamable = agent(
-            instructions: $request->instructions ?? 'You are JARVIS, a helpful personal AI assistant.',
+            instructions: UntrustedContent::withPolicy($request->instructions ?? 'You are JARVIS, a helpful personal AI assistant.'),
             messages: $messages,
             tools: $request->tools,
         )->stream(

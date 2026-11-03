@@ -21,6 +21,7 @@ class ExpireApprovals extends Command
     public function handle(ApprovalService $approvals): int
     {
         $expired = Approval::query()
+            ->with(['tool', 'user', 'task', 'status'])
             ->where('approval_status_id', ApprovalStatus::idFor(ApprovalStatus::PENDING))
             ->where('expires_at', '<', now())
             ->get();

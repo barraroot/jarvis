@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Exceptions\InvalidMcpUrlException;
 use App\Exceptions\McpConnectionException;
+use App\Jobs\Middleware\WithLogContext;
 use App\Models\ConnectorStatus;
 use App\Models\McpServer;
 use App\Models\McpToolDefinition;
@@ -30,6 +31,19 @@ class SyncMcpServerTools implements ShouldQueue
     public int $timeout = 120;
 
     public function __construct(public readonly McpServer $server) {}
+
+    /**
+     * Log lines of this job carry the connector (and its owner, when personal).
+     *
+     * @return list<object>
+     */
+    public function middleware(): array
+    {
+        return [new WithLogContext([
+            'user_id' => $this->server->user_id,
+            'mcp_server_id' => $this->server->id,
+        ])];
+    }
 
     public function handle(ConnectorStatusService $statuses): void
     {

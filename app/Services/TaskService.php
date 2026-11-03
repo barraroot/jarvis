@@ -72,7 +72,7 @@ class TaskService
             'queued_at' => $task->queued_at ?? now(),
         ]);
 
-        RunTask::dispatch($task)->onQueue('tasks');
+        RunTask::dispatch($task)->onQueue(RunTask::QUEUE);
 
         $this->broadcastUpdated($task);
 

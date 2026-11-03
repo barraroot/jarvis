@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Ai\Agents\RuntimeAgent;
 use App\Models\Agent;
 use App\Models\AgentExecution;
 use App\Models\AiModel;
@@ -15,7 +16,6 @@ use App\Tools\ToolContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Laravel\Ai\Ai;
-use Laravel\Ai\AnonymousAgent;
 use Laravel\Ai\Responses\Data\Meta;
 use Laravel\Ai\Responses\Data\TextUsage;
 use Laravel\Ai\Responses\TextResponse;
@@ -118,7 +118,7 @@ class DelegationTest extends TestCase
             'message_id' => $assistantMessage->id,
         ]);
 
-        Ai::fakeAgent(AnonymousAgent::class, function (string $prompt, mixed $attachments, mixed $provider, string $model): mixed {
+        Ai::fakeAgent(RuntimeAgent::class, function (string $prompt, mixed $attachments, mixed $provider, string $model): mixed {
             return new TextResponse('Subtarefa concluída.', new TextUsage(20, 8), new Meta($provider->name(), $model));
         });
 
@@ -128,7 +128,8 @@ class DelegationTest extends TestCase
             new ToolContext($this->user, agentExecution: $parent),
         );
 
-        $this->assertSame('Subtarefa concluída.', $result);
+        // The child's answer reaches the parent model as delimited, untrusted data.
+        $this->assertStringContainsString('trusted="false">Subtarefa concluída.</tool_result>', $result);
 
         $child = AgentExecution::query()->where('parent_agent_execution_id', $parent->id)->firstOrFail();
 
@@ -149,7 +150,7 @@ class DelegationTest extends TestCase
 
         $parent = AgentExecution::factory()->running()->for($this->user)->for($origin)->create(['depth' => 0]);
 
-        Ai::fakeAgent(AnonymousAgent::class, function (): never {
+        Ai::fakeAgent(RuntimeAgent::class, function (): never {
             throw new RuntimeException('Falha simulada no agente filho.');
         });
 

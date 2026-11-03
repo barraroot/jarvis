@@ -37,6 +37,15 @@ return [
         'timeout_seconds' => (int) env('MCP_TIMEOUT_SECONDS', 15),
     ],
 
+    /*
+    | Reverb health probe used by `/up`: defaults to the broadcasting host
+    | (`REVERB_SCHEME://REVERB_HOST:REVERB_PORT/up`); set it when the app
+    | reaches Reverb through another address (e.g. `http://reverb:8080/up`).
+    */
+    'reverb' => [
+        'health_url' => env('REVERB_HEALTH_URL'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

@@ -38,11 +38,11 @@ class UsageReport
     }
 
     /**
-     * @return array{cost: float, input_tokens: int, output_tokens: int, tokens: int, calls: int, avg_latency_ms: float|null}
+     * @return array{cost: float, input_tokens: int, output_tokens: int, tokens: int, calls: int, avg_latency_ms: float|null, p95_latency_ms: int|null}
      */
     public function totals(CarbonImmutable $from, CarbonImmutable $until): array
     {
-        /** @var object{cost: string|null, input_tokens: string|null, output_tokens: string|null, calls: string|int, avg_latency_ms: string|null} $row */
+        /** @var object{cost: string|null, input_tokens: string|null, output_tokens: string|null, calls: string|int, avg_latency_ms: string|null, p95_latency_ms: string|null} $row */
         $row = UsageRecord::query()
             ->whereBetween('created_at', [$from, $until])
             ->toBase()
@@ -51,6 +51,7 @@ class UsageReport
             ->selectRaw('COALESCE(SUM(output_tokens), 0) AS output_tokens')
             ->selectRaw('COUNT(*) AS calls')
             ->selectRaw('AVG(latency_ms) AS avg_latency_ms')
+            ->selectRaw('PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY latency_ms) AS p95_latency_ms')
             ->first();
 
         $input = (int) $row->input_tokens;
@@ -63,11 +64,12 @@ class UsageReport
             'tokens' => $input + $output,
             'calls' => (int) $row->calls,
             'avg_latency_ms' => $row->avg_latency_ms !== null ? round((float) $row->avg_latency_ms, 1) : null,
+            'p95_latency_ms' => $row->p95_latency_ms !== null ? (int) round((float) $row->p95_latency_ms) : null,
         ];
     }
 
     /**
-     * @return array{cost: float, input_tokens: int, output_tokens: int, tokens: int, calls: int, avg_latency_ms: float|null}
+     * @return array{cost: float, input_tokens: int, output_tokens: int, tokens: int, calls: int, avg_latency_ms: float|null, p95_latency_ms: int|null}
      */
     public function today(): array
     {
@@ -75,7 +77,7 @@ class UsageReport
     }
 
     /**
-     * @return array{cost: float, input_tokens: int, output_tokens: int, tokens: int, calls: int, avg_latency_ms: float|null}
+     * @return array{cost: float, input_tokens: int, output_tokens: int, tokens: int, calls: int, avg_latency_ms: float|null, p95_latency_ms: int|null}
      */
     public function currentMonth(): array
     {

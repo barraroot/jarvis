@@ -120,7 +120,7 @@ services:
             - redis
     queue:
         image: 'sail-8.5/app'
-        command: 'php artisan queue:work redis --tries=3 --timeout=960'
+        command: 'php artisan queue:work redis --queue=tasks,default,low --tries=3 --timeout=960 --max-jobs=500 --max-time=3600'
         environment:
             WWWUSER: '${WWWUSER}'
             LARAVEL_SAIL: 1

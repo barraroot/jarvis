@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Ai\Agents\RuntimeAgent;
 use App\Events\Agent\Completed;
 use App\Events\Agent\Failed;
 use App\Events\Agent\Started;
@@ -23,7 +24,6 @@ use App\Tools\ToolContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Laravel\Ai\Ai;
-use Laravel\Ai\AnonymousAgent;
 use Laravel\Ai\Responses\Data\Meta;
 use Laravel\Ai\Responses\Data\TextUsage;
 use Laravel\Ai\Responses\Data\ToolCall;
@@ -61,7 +61,7 @@ class AgentRunnerTest extends TestCase
         $assistantMessage = Message::factory()->for($conversation)->for($user)->fromAssistant()
             ->create(['execution_status_id' => ExecutionStatus::idFor(ExecutionStatus::PENDING), 'content' => '']);
 
-        Ai::fakeAgent(AnonymousAgent::class, function (string $prompt, mixed $attachments, mixed $provider, string $model): mixed {
+        Ai::fakeAgent(RuntimeAgent::class, function (string $prompt, mixed $attachments, mixed $provider, string $model): mixed {
             return new TextResponse('Olá, operador.', new TextUsage(30, 12), new Meta($provider->name(), $model));
         });
 
@@ -114,7 +114,7 @@ class AgentRunnerTest extends TestCase
         $agent->tools()->attach($tool);
 
         // Every step answers with another tool call, forever.
-        Ai::fakeAgent(AnonymousAgent::class, fn (): ToolCall => new ToolCall('call-1', 'time.current', []));
+        Ai::fakeAgent(RuntimeAgent::class, fn (): ToolCall => new ToolCall('call-1', 'time.current', []));
 
         $execution = app(AgentRunner::class)->run($agent, $user, 'Que horas são?', new RunOptions);
 
@@ -140,7 +140,7 @@ class AgentRunnerTest extends TestCase
         $user = User::factory()->create();
         $agent = Agent::factory()->create(['timeout_seconds' => 30]);
 
-        Ai::fakeAgent(AnonymousAgent::class, function (): never {
+        Ai::fakeAgent(RuntimeAgent::class, function (): never {
             throw new RuntimeException('Connection timed out after 30 seconds.');
         });
 

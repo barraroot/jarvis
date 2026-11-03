@@ -60,6 +60,7 @@ class ContextBuilder
         $limit = max(1, $this->settings->contextMessages());
 
         return $conversation->messages()
+            ->with('role')
             ->whereIn('message_role_id', [
                 MessageRole::idFor(MessageRole::USER),
                 MessageRole::idFor(MessageRole::ASSISTANT),

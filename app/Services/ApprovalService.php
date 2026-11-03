@@ -252,6 +252,6 @@ class ApprovalService
 
         $task->update(['task_status_id' => TaskStatus::idFor(TaskStatus::RUNNING)]);
 
-        RunTask::dispatch($task, app(TaskService::class)->resumeFromStep($task))->onQueue('tasks');
+        RunTask::dispatch($task, app(TaskService::class)->resumeFromStep($task))->onQueue(RunTask::QUEUE);
     }
 }

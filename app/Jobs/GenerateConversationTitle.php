@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Events\Conversation\ConversationTitleChanged;
+use App\Jobs\Middleware\WithLogContext;
 use App\Models\Conversation;
 use App\Services\BrainClient;
 use App\Services\BrainRequest;
@@ -33,6 +34,19 @@ class GenerateConversationTitle implements ShouldQueue
     public int $timeout = 120;
 
     public function __construct(public readonly Conversation $conversation) {}
+
+    /**
+     * Log lines of this job carry the operator and conversation.
+     *
+     * @return list<object>
+     */
+    public function middleware(): array
+    {
+        return [new WithLogContext([
+            'user_id' => $this->conversation->user_id,
+            'conversation_id' => $this->conversation->id,
+        ])];
+    }
 
     public function handle(): void
     {

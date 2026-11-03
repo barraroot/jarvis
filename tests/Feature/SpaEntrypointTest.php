@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class SpaEntrypointTest extends TestCase
@@ -33,6 +34,8 @@ class SpaEntrypointTest extends TestCase
         $this->getJson('/api/v1/unknown')->assertNotFound()->assertJsonMissingPath('view');
         $this->getJson('/api/v1/auth/me')->assertUnauthorized();
         $this->get('/sanctum/csrf-cookie')->assertNoContent();
+        Http::fake(['*/up' => Http::response('{"health":"ok"}')]);
+
         $this->get('/up')->assertOk()->assertDontSee('<div id="app"', false);
     }
 }

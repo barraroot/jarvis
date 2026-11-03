@@ -4,6 +4,7 @@ namespace App\Tools;
 
 use App\Models\Tool;
 use App\Support\Settings;
+use App\Support\UntrustedContent;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -47,7 +48,7 @@ class HttpToolHandler
             );
         }
 
-        return $this->parseOutput($response);
+        return UntrustedContent::neutralizeArray($this->parseOutput($response));
     }
 
     /**

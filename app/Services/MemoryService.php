@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\SensitiveMemoryRejectedException;
+use App\Models\AuditAction;
 use App\Models\Memory;
 use App\Models\MemoryCategory;
 use App\Models\MemoryEmbedding;
@@ -120,7 +121,7 @@ class MemoryService
             $memory->embedding()->delete();
             $memory->delete();
 
-            $this->auditLogger->log('memory_deleted', $actor, $memory, [
+            $this->auditLogger->log(AuditAction::MEMORY_DELETED, $actor, $memory, [
                 'user_id' => $memory->user_id,
                 'status' => $memory->status->slug,
                 'category' => $memory->category->slug,

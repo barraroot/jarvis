@@ -5,6 +5,7 @@ namespace App\Tools;
 use App\Models\Approval;
 use App\Models\Tool;
 use App\Services\ApprovalService;
+use App\Support\UntrustedContent;
 use App\Tools\Exceptions\ToolNotAuthorizedException;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Deserializer;
@@ -121,15 +122,11 @@ class ToolAdapter implements Approvable, SdkTool
         try {
             $result = $this->executor->execute($this->tool, $request->all(), $context);
         } catch (ToolNotAuthorizedException $exception) {
-            return '<tool_result name="'.$this->tool->identifier.'" trusted="false">'
-                .json_encode(['error' => $exception->getMessage()], JSON_UNESCAPED_UNICODE)
-                .'</tool_result>';
+            return UntrustedContent::wrapJson(['error' => $exception->getMessage()], $this->tool->identifier);
         }
 
         if ($result->isPendingApproval()) {
-            return '<tool_result name="'.$this->tool->identifier.'" trusted="false">'
-                .json_encode(['status' => 'pending_approval'], JSON_UNESCAPED_UNICODE)
-                .'</tool_result>';
+            return UntrustedContent::wrapJson(['status' => 'pending_approval'], $this->tool->identifier);
         }
 
         return $result->forModel();

@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Ai\Agents\MemoryHypothesisExtractor;
 use App\Events\Assistant\AssistantResponseCompleted;
 use App\Exceptions\SensitiveMemoryRejectedException;
+use App\Jobs\Middleware\WithLogContext;
 use App\Models\ExecutionStatus;
 use App\Models\MemoryCategory;
 use App\Models\MemoryStatus;
@@ -39,6 +40,20 @@ class ExtractMemoryHypotheses implements ShouldQueue
     public int $timeout = 120;
 
     public function __construct(public readonly Message $assistantMessage) {}
+
+    /**
+     * Log lines of this job carry the operator, conversation and message.
+     *
+     * @return list<object>
+     */
+    public function middleware(): array
+    {
+        return [new WithLogContext([
+            'user_id' => $this->assistantMessage->user_id,
+            'conversation_id' => $this->assistantMessage->conversation_id,
+            'message_id' => $this->assistantMessage->id,
+        ])];
+    }
 
     public function handle(): void
     {

@@ -5,11 +5,13 @@ namespace App\Tools;
 use App\Models\Tool;
 use App\Services\McpClient;
 use App\Support\Settings;
+use App\Support\UntrustedContent;
 use RuntimeException;
 
 /**
  * Executes `mcp` catalogue tools (US-9.3, US-8.2): calls the remote tool on
- * its connector through {@see McpClient} with the tool timeout.
+ * its connector through {@see McpClient} with the tool timeout. The remote
+ * output passes through {@see UntrustedContent} before anything else sees it.
  */
 class McpToolHandler
 {
@@ -43,7 +45,9 @@ class McpToolHandler
         $client = McpClient::for($server)->withTimeout((float) $timeoutSeconds);
 
         try {
-            return $client->call($definition->name, $input);
+            // Remote pages/documents are untrusted: system-like markup is
+            // stripped before the output is recorded or reaches the model.
+            return UntrustedContent::neutralizeArray($client->call($definition->name, $input));
         } finally {
             $client->disconnect();
         }

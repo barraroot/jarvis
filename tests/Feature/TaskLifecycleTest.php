@@ -114,11 +114,11 @@ class TaskLifecycleTest extends TestCase
         $this->assertSame(['Buscar clientes', 'Gerar relatório'], $task->steps()->orderBy('position')->pluck('name')->all());
         $this->assertSame(
             [TaskStatus::COMPLETED, TaskStatus::COMPLETED],
-            $task->steps()->orderBy('position')->get()->map(fn ($step): string => $step->status->slug)->all(),
+            $task->steps()->with('status')->orderBy('position')->get()->map(fn ($step): string => $step->status->slug)->all(),
         );
         $this->assertSame(['rows' => 12], $task->steps()->first()->output);
 
-        $logs = $task->logs()->orderBy('id')->get();
+        $logs = $task->logs()->with('level')->orderBy('id')->get();
 
         $this->assertSame(['Consulta iniciada', 'Atenção: dados parciais'], $logs->pluck('message')->all());
         $this->assertSame([LogLevel::INFO, LogLevel::WARNING], $logs->pluck('level.slug')->all());

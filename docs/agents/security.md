@@ -1,0 +1,10 @@
+# Segurança (implementada)
+
+- **Rate limiting** (`AppServiceProvider::configureRateLimiting`): `api` 120/min por usuário (global via `throttleApi()`), `login` 5/min por e-mail+IP, `messages` = `Settings::messagesPerMinute()`, `approvals` 30/min por usuário, `connectors.resync` 6/min por conector. `429` padronizado em `bootstrap/app.php`: `{message, retry_after}` + `Retry-After`. Contadores ficam no Redis com TTL real — em testes use `Cache::flush()`, não `travel()`.
+- **Isolamento entre usuários**: Policies de dono em todo recurso; listagens filtram `user_id`; canais `private-user.{id}`. Coberto por `CrossUserIsolationMatrixTest`.
+- **Dados não confiáveis**: `App\Support\UntrustedContent` — `wrap()`/`wrapJson()` delimitam como `<tool_result trusted="false">` e removem marcações que imitam sistema (`<system>`, `<|im_start|>`, `[INST]`, `<<SYS>>`, delimitadores próprios…); `neutralizeArray()` limpa saídas MCP/HTTP; `withPolicy()` anexa `UntrustedContent::POLICY` às instruções de todo agente e do caminho direto.
+- **Aprovação**: ferramentas `is_write`/`is_sensitive` só executam com aprovação (`ToolAdapter` é `Approvable`).
+- **Segredos**: `api_key`/`credential`/`password` são `#[Hidden]` + `encrypted`; `AuditLogger::sanitize()` remove chaves sensíveis; `SecretsNeverLeakTest` varre todos os `GET /api/v1/*` e payloads de broadcast.
+- **Cabeçalhos** (`App\Http\Middleware\SecurityHeaders`, global): `nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`; CSP só na SPA (rota `spa` e fallback): self + Reverb (`ws(s)://`) + Bunny Fonts (+ Vite dev server quando `hot`). Cookies `Secure` por padrão em produção, `SameSite=Lax`.
+- **Auditoria**: todo slug de `audit_actions` tem um fluxo emissor (`AuditCoverageTest`); relatório CSV `jarvis:audit:report --from --to [--action=] [--output=]`.
+- **Limites de execução**: tool calls (agente ou `Settings::maxToolCalls()`), profundidade/ciclo de delegação, timeout de ferramenta, cancelamento — verificados em `ExecutionLimitsIntegrationTest`.

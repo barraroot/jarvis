@@ -17,6 +17,7 @@ use App\Models\Message;
 use App\Models\User;
 use App\Support\Settings;
 use App\Tools\ToolContext;
+use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Responses\Data\TextUsage;
 use Laravel\Ai\Streaming\Events\TextDelta;
 use Laravel\Ai\Streaming\Events\ToolCall;
@@ -48,6 +49,22 @@ class AgentRunner
 
         $execution = $this->createExecution($agent, $user, $options);
 
+        Log::withContext(['agent_execution_id' => $execution->id]);
+
+        try {
+            return $this->execute($agent, $user, $prompt, $options, $execution);
+        } finally {
+            // Nested (delegated) runs hand the context back to their parent.
+            if ($options->parent !== null) {
+                Log::withContext(['agent_execution_id' => $options->parent->id]);
+            } else {
+                Log::withoutContext(['agent_execution_id']);
+            }
+        }
+    }
+
+    private function execute(Agent $agent, User $user, string $prompt, RunOptions $options, AgentExecution $execution): AgentExecution
+    {
         Started::dispatch($user, $execution);
 
         $startedAt = microtime(true);
@@ -62,7 +79,7 @@ class AgentRunner
         $history = $this->messagesFor($options, $model);
         $runtimeAgent = $this->factory->make($agent, $this->contextFor($user, $execution, $options), $history);
 
-        $limit = $agent->max_tool_calls > 0 ? $agent->max_tool_calls : $this->settings->maxToolCalls();
+        $limit = $this->factory->toolCallLimit($agent);
 
         $content = '';
         $chunkIndex = 0;

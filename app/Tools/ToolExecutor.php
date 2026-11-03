@@ -271,8 +271,9 @@ class ToolExecutor
     }
 
     /**
-     * Write tools are audited (US-12.3); secrets and payloads never enter the
-     * audit trail.
+     * Write tools are audited (US-12.3, US-8.3) with the approval that
+     * authorized the run and who granted it; secrets and payloads never
+     * enter the audit trail.
      */
     private function auditWriteExecution(Tool $tool, ToolContext $context, ToolExecution $execution): void
     {
@@ -280,11 +281,15 @@ class ToolExecutor
             return;
         }
 
+        $approval = $context->approval?->fresh();
+
         $this->audit->log(AuditAction::TOOL_EXECUTED, $context->user, $execution, [
             'tool' => $tool->identifier,
             'execution_id' => $execution->id,
             'duration_ms' => $execution->duration_ms,
             'status' => ExecutionStatus::COMPLETED,
+            'approval_id' => $approval?->id,
+            'approved_by' => $approval?->decided_by_user_id,
         ]);
     }
 
