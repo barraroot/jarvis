@@ -86,6 +86,10 @@ export default defineConfig({
             },
         }),
     ],
+    define: {
+        // vue-i18n 9 compiles messages with `new Function` unless JIT is on; the CSP forbids 'unsafe-eval'.
+        __INTLIFY_JIT_COMPILATION__: true,
+    },
     resolve: {
         alias: {
             '@': fileURLToPath(new URL('./resources/js', import.meta.url)),
