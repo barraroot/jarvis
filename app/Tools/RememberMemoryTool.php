@@ -7,6 +7,7 @@ use App\Models\MemoryStatus;
 use App\Models\Message;
 use App\Models\User;
 use App\Services\MemoryService;
+use App\Support\ToolName;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Validation\Rule;
 use Laravel\Ai\Contracts\Tool;
@@ -29,7 +30,7 @@ class RememberMemoryTool implements Tool
 
     public function name(): string
     {
-        return 'memory.remember';
+        return ToolName::forProvider('memory.remember');
     }
 
     public function description(): string

@@ -8,6 +8,7 @@ use App\Models\Approval;
 use App\Models\Tool;
 use App\Models\User;
 use App\Services\ApprovalService;
+use App\Support\ToolName;
 use App\Tools\ToolAdapter;
 use App\Tools\ToolContext;
 use App\Tools\ToolExecutor;
@@ -51,7 +52,7 @@ class ToolAdapterTest extends TestCase
 
         $this->assertInstanceOf(SdkTool::class, $adapter);
         $this->assertInstanceOf(Approvable::class, $adapter);
-        $this->assertSame($tool->identifier, $adapter->name());
+        $this->assertSame(ToolName::forProvider($tool->identifier), $adapter->name());
         $this->assertSame($tool->description, $adapter->description());
 
         Event::fake([AssistantStateChanged::class, NotificationCreated::class]);

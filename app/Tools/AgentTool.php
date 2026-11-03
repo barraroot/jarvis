@@ -5,6 +5,7 @@ namespace App\Tools;
 use App\Models\Agent;
 use App\Models\Tool;
 use App\Services\DelegationService;
+use App\Support\ToolName;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Ai\Contracts\Tool as SdkTool;
@@ -30,7 +31,7 @@ class AgentTool implements SdkTool
 
     public function name(): string
     {
-        return $this->tool->identifier;
+        return ToolName::forProvider($this->tool->identifier);
     }
 
     public function description(): string

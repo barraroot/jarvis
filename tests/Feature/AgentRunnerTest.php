@@ -114,7 +114,7 @@ class AgentRunnerTest extends TestCase
         $agent->tools()->attach($tool);
 
         // Every step answers with another tool call, forever.
-        Ai::fakeAgent(RuntimeAgent::class, fn (): ToolCall => new ToolCall('call-1', 'time.current', []));
+        Ai::fakeAgent(RuntimeAgent::class, fn (): ToolCall => new ToolCall('call-1', 'time_current', []));
 
         $execution = app(AgentRunner::class)->run($agent, $user, 'Que horas são?', new RunOptions);
 
@@ -204,7 +204,7 @@ class AgentRunnerTest extends TestCase
 
         sort($names);
 
-        $this->assertSame(['internal.read', 'internal.write'], $names);
+        $this->assertSame(['internal_read', 'internal_write'], $names);
 
         // The instructions carry name, objective and the pt-BR agent instructions.
         $this->assertStringContainsString($agent->name, $runtimeAgent->instructions());

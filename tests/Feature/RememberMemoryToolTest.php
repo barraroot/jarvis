@@ -74,7 +74,7 @@ class RememberMemoryToolTest extends TestCase
             $steps++;
 
             if ($steps === 1) {
-                return new ToolCall('call_1', 'memory.remember', [
+                return new ToolCall('call_1', 'memory_remember', [
                     'content' => 'O usuário gosta de café preto',
                     'category' => 'preference',
                 ]);

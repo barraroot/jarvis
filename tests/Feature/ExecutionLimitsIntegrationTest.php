@@ -83,9 +83,9 @@ class ExecutionLimitsIntegrationTest extends TestCase
         $analyst->tools()->attach($this->timeTool());
 
         $this->fakeByPrompt([
-            'nível 2' => [new ToolCall('call-mid', 'delegate.analise', ['task' => 'nível 3']), 'Análise consolidada.'],
-            'nível 3' => [new ToolCall('call-leaf', 'time.current', []), 'Folha concluída.'],
-            '*' => [new ToolCall('call-root', 'delegate.pesquisa', ['task' => 'nível 2']), 'Relatório final.'],
+            'nível 2' => [new ToolCall('call-mid', 'delegate_analise', ['task' => 'nível 3']), 'Análise consolidada.'],
+            'nível 3' => [new ToolCall('call-leaf', 'time_current', []), 'Folha concluída.'],
+            '*' => [new ToolCall('call-root', 'delegate_pesquisa', ['task' => 'nível 2']), 'Relatório final.'],
         ]);
 
         $task = $this->runTask($orchestrator);
@@ -120,7 +120,7 @@ class ExecutionLimitsIntegrationTest extends TestCase
         $this->assertSame(20, app(Settings::class)->maxToolCalls());
 
         // The model never stops asking for tools.
-        Ai::fakeAgent(RuntimeAgent::class, fn (): ToolCall => new ToolCall('call-'.uniqid(), 'time.current', []));
+        Ai::fakeAgent(RuntimeAgent::class, fn (): ToolCall => new ToolCall('call-'.uniqid(), 'time_current', []));
 
         $task = $this->runTask($agent);
 
@@ -152,7 +152,7 @@ class ExecutionLimitsIntegrationTest extends TestCase
         ]));
 
         Ai::fakeAgent(RuntimeAgent::class, [
-            new ToolCall('call-slow', 'ops.slow', []),
+            new ToolCall('call-slow', 'ops_slow', []),
             'A ferramenta expirou; segue o que foi possível.',
         ]);
 
@@ -181,9 +181,9 @@ class ExecutionLimitsIntegrationTest extends TestCase
         $second->tools()->attach($this->tool('delegate.primeiro'));
 
         $this->fakeByPrompt([
-            'volta' => [new ToolCall('call-back', 'delegate.primeiro', ['task' => 'ciclo']), 'Não foi possível voltar.'],
+            'volta' => [new ToolCall('call-back', 'delegate_primeiro', ['task' => 'ciclo']), 'Não foi possível voltar.'],
             'ciclo' => ['Nunca deveria rodar.'],
-            '*' => [new ToolCall('call-go', 'delegate.segundo', ['task' => 'volta']), 'Concluído sem ciclo.'],
+            '*' => [new ToolCall('call-go', 'delegate_segundo', ['task' => 'volta']), 'Concluído sem ciclo.'],
         ]);
 
         $task = $this->runTask($first);
@@ -222,8 +222,8 @@ class ExecutionLimitsIntegrationTest extends TestCase
         ]);
 
         Ai::fakeAgent(RuntimeAgent::class, [
-            new ToolCall('call-cancel', 'ops.cancel_self', []),
-            new ToolCall('call-step', 'task.start_step', ['name' => 'Etapa depois do cancelamento']),
+            new ToolCall('call-cancel', 'ops_cancel_self', []),
+            new ToolCall('call-step', 'task_start_step', ['name' => 'Etapa depois do cancelamento']),
             'Encerrando.',
         ]);
 

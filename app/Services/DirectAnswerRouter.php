@@ -14,7 +14,7 @@ use App\Models\Message;
  */
 class DirectAnswerRouter implements MessageRouter
 {
-    public const string MEMORY_INSTRUCTIONS = 'Quando o usuário pedir explicitamente para você lembrar algo ("lembre que...", "lembrar de...", "guarde que..."), chame a ferramenta memory.remember com o conteúdo exato que o usuário afirmou. Se o pedido for ambíguo ou incompleto, peça esclarecimento antes de chamar a ferramenta. Nunca chame a ferramenta com conteúdo que o usuário não tenha afirmado claramente.';
+    public const string MEMORY_INSTRUCTIONS = 'Quando o usuário pedir explicitamente para você lembrar algo ("lembre que...", "lembrar de...", "guarde que..."), chame a ferramenta memory_remember com o conteúdo exato que o usuário afirmou. Se o pedido for ambíguo ou incompleto, peça esclarecimento antes de chamar a ferramenta. Nunca chame a ferramenta com conteúdo que o usuário não tenha afirmado claramente.';
 
     public function __construct(private readonly ModelSelector $modelSelector) {}
 
@@ -35,7 +35,7 @@ class DirectAnswerRouter implements MessageRouter
     private function instructionsFor(Message $message): string
     {
         if (str_starts_with(trim($message->content), '/lembrar')) {
-            return self::MEMORY_INSTRUCTIONS.' O usuário usou o atalho "/lembrar": chame imediatamente a ferramenta memory.remember com o texto após o prefixo, sem pedir esclarecimento.';
+            return self::MEMORY_INSTRUCTIONS.' O usuário usou o atalho "/lembrar": chame imediatamente a ferramenta memory_remember com o texto após o prefixo, sem pedir esclarecimento.';
         }
 
         return self::MEMORY_INSTRUCTIONS;

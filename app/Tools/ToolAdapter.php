@@ -5,6 +5,7 @@ namespace App\Tools;
 use App\Models\Approval;
 use App\Models\Tool;
 use App\Services\ApprovalService;
+use App\Support\ToolName;
 use App\Support\UntrustedContent;
 use App\Tools\Exceptions\ToolNotAuthorizedException;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -62,7 +63,7 @@ class ToolAdapter implements Approvable, SdkTool
 
     public function name(): string
     {
-        return $this->tool->identifier;
+        return ToolName::forProvider($this->tool->identifier);
     }
 
     public function description(): string
