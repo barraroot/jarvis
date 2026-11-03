@@ -31,7 +31,7 @@ export function bindToolEvents(channel: MessageChannel): void {
         tools.upsert({ id, name, status });
     };
 
-    channel.listen('tool.started', (payload: unknown) => apply(payload, 'active'));
-    channel.listen('tool.completed', (payload: unknown) => apply(payload, 'idle'));
-    channel.listen('tool.failed', (payload: unknown) => apply(payload, 'error'));
+    channel.listen('.tool.started', (payload: unknown) => apply(payload, 'active'));
+    channel.listen('.tool.completed', (payload: unknown) => apply(payload, 'idle'));
+    channel.listen('.tool.failed', (payload: unknown) => apply(payload, 'error'));
 }

@@ -33,7 +33,7 @@ function makeChannel(): FakeChannel {
             return undefined;
         },
         emit(event: string, payload: unknown) {
-            listeners.get(event)?.(payload);
+            listeners.get(`.${event}`)?.(payload);
         },
     };
 }

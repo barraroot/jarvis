@@ -3,7 +3,7 @@ import { bindAgentEvents, type MessageChannel } from '@/composables/useAgentEven
 import { useActivityStore } from '@/stores/activity';
 import { useAgentsStore } from '@/stores/agents';
 
-/** In-memory channel: stores callbacks keyed by event name. */
+/** In-memory channel; like Echo, a `broadcastAs` event only reaches its `.`-prefixed listener. */
 function fakeChannel(): MessageChannel & { emit(event: string, payload: unknown): void; listeners: Map<string, (payload: unknown) => void> } {
     const listeners = new Map<string, (payload: unknown) => void>();
 
@@ -13,7 +13,7 @@ function fakeChannel(): MessageChannel & { emit(event: string, payload: unknown)
             listeners.set(event, callback);
         },
         emit(event, payload) {
-            listeners.get(event)?.(payload);
+            listeners.get(`.${event}`)?.(payload);
         },
     };
 }

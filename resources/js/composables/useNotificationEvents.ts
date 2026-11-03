@@ -19,7 +19,7 @@ export function bindNotificationEvents(channel: MessageChannel): void {
     const preferences = usePreferencesStore();
     const toasts = useToastStore();
 
-    channel.listen('notification.created', (payload: unknown) => {
+    channel.listen('.notification.created', (payload: unknown) => {
         const notification = payload as NotificationSummary | null;
 
         if (typeof notification?.id !== 'string' || typeof notification.title !== 'string') {

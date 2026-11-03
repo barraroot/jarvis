@@ -17,7 +17,7 @@ interface NotificationEventPayload {
 export function bindApprovalEvents(channel: MessageChannel): void {
     const approvals = useApprovalsStore();
 
-    channel.listen('notification.created', (payload: unknown) => {
+    channel.listen('.notification.created', (payload: unknown) => {
         const type = (payload as NotificationEventPayload | null)?.type;
 
         if (type !== 'approval_pending') {

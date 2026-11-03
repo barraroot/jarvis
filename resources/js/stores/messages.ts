@@ -247,10 +247,10 @@ export const useMessagesStore = defineStore('messages', () => {
 
     /** Binds the `private-user.{id}` channel events (called by `useRealtimeConnection`). */
     function bind(channel: MessageChannel): void {
-        channel.listen('conversation.message.created', onMessageCreated);
-        channel.listen('assistant.response.chunk', onChunk);
-        channel.listen('assistant.response.completed', onCompleted);
-        channel.listen('conversation.title.changed', onTitleChanged);
+        channel.listen('.conversation.message.created', onMessageCreated);
+        channel.listen('.assistant.response.chunk', onChunk);
+        channel.listen('.assistant.response.completed', onCompleted);
+        channel.listen('.conversation.title.changed', onTitleChanged);
     }
 
     // Reconnection restore (US-2.4): back from a drop, reload the open conversation

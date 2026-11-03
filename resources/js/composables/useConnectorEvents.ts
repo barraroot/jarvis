@@ -13,7 +13,7 @@ export interface MessageChannel {
 export function bindConnectorEvents(channel: MessageChannel): void {
     const connectors = useConnectorsStore();
 
-    channel.listen('connector.status.changed', (payload: unknown) => {
+    channel.listen('.connector.status.changed', (payload: unknown) => {
         const change = payload as ConnectorStatusChange | null;
 
         if (typeof change?.id !== 'number' || typeof change.status !== 'string') {

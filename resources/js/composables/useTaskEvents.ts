@@ -18,7 +18,7 @@ interface TaskUpdatedPayload {
 export function bindTaskEvents(channel: MessageChannel): void {
     const tasks = useTasksStore();
 
-    channel.listen('task.updated', (payload: unknown) => {
+    channel.listen('.task.updated', (payload: unknown) => {
         const task = (payload as TaskUpdatedPayload | null)?.task;
 
         if (typeof task !== 'object' || task === null || !('id' in task)) {

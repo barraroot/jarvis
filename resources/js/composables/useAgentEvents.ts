@@ -24,18 +24,18 @@ export function bindAgentEvents(channel: MessageChannel): void {
         }
     };
 
-    channel.listen('agent.started', (payload: unknown) => {
+    channel.listen('.agent.started', (payload: unknown) => {
         agents.start(payload);
         log(payload, 'iniciou');
     });
-    channel.listen('agent.progress', (payload: unknown) => {
+    channel.listen('.agent.progress', (payload: unknown) => {
         agents.progress(payload);
     });
-    channel.listen('agent.completed', (payload: unknown) => {
+    channel.listen('.agent.completed', (payload: unknown) => {
         agents.finish(payload);
         log(payload, 'concluído');
     });
-    channel.listen('agent.failed', (payload: unknown) => {
+    channel.listen('.agent.failed', (payload: unknown) => {
         agents.finish(payload);
         log(payload, 'falhou');
     });

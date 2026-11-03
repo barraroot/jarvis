@@ -14,7 +14,7 @@ function fakeChannel(): MessageChannel & { emit(event: string, payload: unknown)
             listeners.set(event, callback);
         },
         emit(event, payload) {
-            listeners.get(event)?.(payload);
+            listeners.get(`.${event}`)?.(payload);
         },
     };
 }

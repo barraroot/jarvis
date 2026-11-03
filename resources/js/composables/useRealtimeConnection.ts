@@ -38,7 +38,7 @@ export function useRealtimeConnection(additionalBinds: Array<(channel: MessageCh
             const echo = getEcho();
             connection.start(createEchoTransport(echo));
             const channel = subscribeToUserChannel(userId);
-            channel.listen('assistant.state.changed', (event: unknown) => {
+            channel.listen('.assistant.state.changed', (event: unknown) => {
                 const payload = (event as { state?: unknown } | null)?.state;
 
                 assistant.applyServerState(payload);

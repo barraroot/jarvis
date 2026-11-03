@@ -12,7 +12,10 @@ interface FakeChannel extends MessageChannel {
     emit(event: string, payload: unknown): void;
 }
 
-/** Echo-like channel capturing listeners; the test emits events like Reverb would. */
+/**
+ * Echo-like channel capturing listeners; the test emits events like Reverb would.
+ * Events use `broadcastAs` names, so Echo only delivers them to `.`-prefixed listeners.
+ */
 function makeChannel(): FakeChannel {
     const listeners = new Map<string, (payload: unknown) => void>();
 
@@ -23,7 +26,7 @@ function makeChannel(): FakeChannel {
             return undefined;
         },
         emit(event: string, payload: unknown) {
-            listeners.get(event)?.(payload);
+            listeners.get(`.${event}`)?.(payload);
         },
     };
 }

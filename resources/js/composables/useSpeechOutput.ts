@@ -178,7 +178,7 @@ export function useSpeechOutput() {
 
     /** Binds the `assistant.response.completed` channel event (called by `useRealtimeConnection`). */
     function bind(channel: MessageChannel): void {
-        channel.listen('assistant.response.completed', onCompleted);
+        channel.listen('.assistant.response.completed', onCompleted);
     }
 
     // Esc cancels the spoken response (US-4.3).
