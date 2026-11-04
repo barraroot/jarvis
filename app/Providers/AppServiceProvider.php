@@ -45,7 +45,8 @@ class AppServiceProvider extends ServiceProvider
      * Every API call is limited per operator (`api`, 120/min); login attempts
      * per e-mail + IP pair (US-1.1); messages per operator (US-3.1), with the
      * limit read from the admin settings; approval decisions per operator and
-     * connector resyncs per connector. Exceeding any of them answers a
+     * connector resyncs per connector; Realtime voice credentials per operator
+     * (CT-01, D6). Exceeding any of them answers a
      * standardized `429` with `Retry-After` (see bootstrap/app.php).
      */
     private function configureRateLimiting(): void
@@ -66,6 +67,10 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('approvals', function (Request $request): Limit {
             return Limit::perMinute(30)->by($request->user()?->getKey() ?? $request->ip());
+        });
+
+        RateLimiter::for('voice-sessions', function (Request $request): Limit {
+            return Limit::perMinute(10)->by($request->user()?->getKey() ?? $request->ip());
         });
 
         RateLimiter::for('connectors.resync', function (Request $request): Limit {

@@ -56,6 +56,15 @@ return [
         ],
     ],
 
+    /*
+    | Origin of the OpenAI Realtime API reached by the browser (SDP exchange
+    | over WebRTC). Allowed in the SPA CSP `connect-src` only when it is an
+    | `https://` origin without wildcards, path or credentials (RNF-08).
+    */
+    'openai_realtime' => [
+        'origin' => env('OPENAI_REALTIME_ORIGIN', 'https://api.openai.com'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

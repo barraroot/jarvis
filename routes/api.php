@@ -16,6 +16,9 @@ use App\Http\Controllers\Api\V1\Memories\MemoryController;
 use App\Http\Controllers\Api\V1\Notifications\NotificationController;
 use App\Http\Controllers\Api\V1\Preferences\PreferencesController;
 use App\Http\Controllers\Api\V1\Tasks\TaskController;
+use App\Http\Controllers\Api\V1\Voice\VoiceSessionController;
+use App\Http\Controllers\Api\V1\Voice\VoiceTurnController;
+use App\Http\Controllers\Api\V1\Voice\VoiceUsageController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -90,6 +93,16 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->name('connectors.resync');
         Route::get('connectors/{connector}/tools', [ConnectorToolController::class, 'index'])->name('connectors.tools.index');
         Route::patch('connectors/{connector}/tools/{tool}', [ConnectorToolController::class, 'update'])->name('connectors.tools.update');
+
+        Route::prefix('voice')->name('voice.')->group(function (): void {
+            Route::post('sessions', [VoiceSessionController::class, 'store'])
+                ->middleware('throttle:voice-sessions')
+                ->name('sessions.store');
+            Route::post('sessions/{voice_session}/usage', [VoiceUsageController::class, 'store'])->name('sessions.usage.store');
+            Route::post('sessions/{voice_session}/turns', [VoiceTurnController::class, 'store'])
+                ->middleware('throttle:messages')
+                ->name('sessions.turns.store');
+        });
 
         Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');

@@ -11,8 +11,9 @@ use Symfony\Component\HttpFoundation\Response;
  * Security headers (project-description §Segurança): every response gets
  * `nosniff` and a strict `Referrer-Policy`; the SPA shell and the backend
  * pages are never framed (`X-Frame-Options: DENY`); the SPA shell also gets
- * a `Content-Security-Policy` allowing only itself, the Reverb WebSocket host
- * and Bunny Fonts (plus the Vite dev server while it runs hot).
+ * a `Content-Security-Policy` allowing only itself, the Reverb WebSocket host,
+ * the OpenAI Realtime API origin (RNF-08) and Bunny Fonts (plus the Vite dev
+ * server while it runs hot).
  */
 class SecurityHeaders
 {
@@ -58,7 +59,7 @@ class SecurityHeaders
             'font-src' => ["'self'", 'data:', self::BUNNY_FONTS, ...$devServer],
             'img-src' => ["'self'", 'data:', 'blob:'],
             'media-src' => ["'self'", 'blob:'],
-            'connect-src' => ["'self'", ...$this->reverbOrigins(), ...$this->devServerSockets($devServer)],
+            'connect-src' => ["'self'", ...$this->reverbOrigins(), ...$this->realtimeOrigins(), ...$this->devServerSockets($devServer)],
             'worker-src' => ["'self'"],
             'manifest-src' => ["'self'"],
         ];
@@ -93,6 +94,35 @@ class SecurityHeaders
         $authority = $port === $defaultPort ? $host : $host.':'.$port;
 
         return [($secure ? 'wss://' : 'ws://').$authority];
+    }
+
+    /**
+     * The OpenAI Realtime API origin (`services.openai_realtime.origin`) used by
+     * the browser for the WebRTC SDP exchange. Only a plain `https://host[:port]`
+     * origin is accepted: wildcards, paths, queries or credentials drop it.
+     *
+     * @return list<string>
+     */
+    private function realtimeOrigins(): array
+    {
+        $origin = trim((string) config('services.openai_realtime.origin'));
+
+        if ($origin === '' || str_contains($origin, '*')) {
+            return [];
+        }
+
+        $parts = parse_url(rtrim($origin, '/'));
+
+        if ($parts === false
+            || ($parts['scheme'] ?? null) !== 'https'
+            || blank($parts['host'] ?? null)
+            || array_intersect(array_keys($parts), ['path', 'query', 'fragment', 'user', 'pass']) !== []) {
+            return [];
+        }
+
+        $port = isset($parts['port']) && $parts['port'] !== 443 ? ':'.$parts['port'] : '';
+
+        return ['https://'.strtolower($parts['host']).$port];
     }
 
     /**

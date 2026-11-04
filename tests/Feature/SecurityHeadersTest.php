@@ -79,6 +79,42 @@ class SecurityHeadersTest extends TestCase
         $this->assertStringNotContainsString('ws://reverb', $csp);
     }
 
+    public function test_spa_csp_allows_realtime_origin_without_wildcards(): void
+    {
+        $csp = (string) $this->get('/')->headers->get('Content-Security-Policy');
+
+        $this->assertMatchesRegularExpression('/connect-src [^;]*https:\/\/api\.openai\.com(;|$| )/', $csp);
+        $this->assertStringNotContainsString('*', $csp);
+    }
+
+    public function test_invalid_realtime_origins_are_never_allowed(): void
+    {
+        foreach ([
+            'https://*.openai.com',
+            'http://api.openai.com',
+            'https://api.openai.com/v1',
+            'https://user:secret@api.openai.com',
+            '*',
+            '',
+        ] as $origin) {
+            config(['services.openai_realtime.origin' => $origin]);
+
+            $csp = (string) $this->get('/')->headers->get('Content-Security-Policy');
+
+            preg_match('/connect-src ([^;]*)/', $csp, $matches);
+
+            $this->assertStringNotContainsString('openai', $matches[1], "Origin [{$origin}] must be rejected.");
+            $this->assertStringNotContainsString('*', $csp);
+        }
+
+        config(['services.openai_realtime.origin' => 'https://realtime.example.com:8443/']);
+
+        $this->assertStringContainsString(
+            'https://realtime.example.com:8443',
+            (string) $this->get('/')->headers->get('Content-Security-Policy'),
+        );
+    }
+
     public function test_api_responses_include_nosniff_without_spa_csp(): void
     {
         $this->actingAs(User::factory()->create());

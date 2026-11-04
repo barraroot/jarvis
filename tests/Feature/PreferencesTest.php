@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\UserPreference;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -187,10 +188,63 @@ class PreferencesTest extends TestCase
             'wake_word_consented_at' => $consentedAt,
         ]);
 
-        // Re-enabling still requires the consent flag on that payload (US-4.4).
+        // A consent valid for the current text allows re-enabling (RF-22).
+        $this->putJson('/api/v1/preferences', ['wake_word_enabled' => true])
+            ->assertOk()
+            ->assertJsonPath('data.wake_word_enabled', true);
+    }
+
+    public function test_legacy_consent_is_invalid_and_wake_word_reported_disabled(): void
+    {
+        UserPreference::factory()->for($this->user)->create([
+            'wake_word_enabled' => true,
+            'wake_word_consented_at' => now()->subMonth(),
+            'wake_word_consent_version' => null,
+        ]);
+
+        $this->getJson('/api/v1/preferences')
+            ->assertOk()
+            ->assertJsonPath('data.wake_word_enabled', false)
+            ->assertJsonPath('data.wake_word_consent_valid', false);
+    }
+
+    public function test_accepting_new_consent_records_current_version(): void
+    {
+        $legacyConsent = now()->subMonth()->startOfSecond();
+        UserPreference::factory()->for($this->user)->create([
+            'wake_word_enabled' => true,
+            'wake_word_consented_at' => $legacyConsent,
+            'wake_word_consent_version' => 1,
+        ]);
+
+        $this->putJson('/api/v1/preferences', [
+            'wake_word_enabled' => true,
+            'wake_word_consent' => true,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.wake_word_enabled', true)
+            ->assertJsonPath('data.wake_word_consent_valid', true)
+            ->assertJsonPath('data.wake_word_consent_version', UserPreference::CURRENT_WAKE_WORD_CONSENT_VERSION);
+
+        $preferences = UserPreference::query()->where('user_id', $this->user->id)->sole();
+        $this->assertSame(UserPreference::CURRENT_WAKE_WORD_CONSENT_VERSION, $preferences->wake_word_consent_version);
+        $this->assertTrue($preferences->wake_word_consented_at->gt($legacyConsent));
+        $this->assertTrue($preferences->hasValidWakeWordConsent());
+    }
+
+    public function test_enabling_wake_word_without_valid_consent_returns_422(): void
+    {
+        UserPreference::factory()->for($this->user)->create([
+            'wake_word_enabled' => false,
+            'wake_word_consented_at' => now()->subMonth(),
+            'wake_word_consent_version' => null,
+        ]);
+
         $this->putJson('/api/v1/preferences', ['wake_word_enabled' => true])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors('wake_word_consent');
+            ->assertJsonValidationErrors(['wake_word_consent' => __('voice.errors.wake_word_consent_required')]);
+
+        $this->assertFalse((bool) UserPreference::query()->where('user_id', $this->user->id)->value('wake_word_enabled'));
     }
 
     public function test_preferences_are_per_user(): void

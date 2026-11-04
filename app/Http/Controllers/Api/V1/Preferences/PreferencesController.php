@@ -34,10 +34,12 @@ class PreferencesController extends Controller
         $acceptedConsent = (bool) ($data['wake_word_consent'] ?? false);
         unset($data['wake_word_consent']);
 
-        // First acceptance of the privacy notice is recorded once (US-4.4);
+        // Acceptance is recorded once per consent text version (US-4.4, RF-22):
+        // a missing or outdated consent is replaced by the current version;
         // turning the wake word off never erases the consent.
-        if ($acceptedConsent && $preferences->wake_word_consented_at === null) {
+        if ($acceptedConsent && ! $preferences->hasValidWakeWordConsent()) {
             $data['wake_word_consented_at'] = now();
+            $data['wake_word_consent_version'] = UserPreference::CURRENT_WAKE_WORD_CONSENT_VERSION;
         }
 
         $preferences->update($data);

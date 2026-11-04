@@ -9,7 +9,7 @@ use Illuminate\Validation\Validator;
 /**
  * PUT /api/v1/preferences — locale and voice settings (US-4.5) plus the wake
  * word opt-in (US-4.4). `wake_word_consent` is a gate on the payload, not a
- * stored column.
+ * stored column: accepting it records the current consent text version (RF-22).
  */
 class UpdatePreferencesRequest extends FormRequest
 {
@@ -39,8 +39,9 @@ class UpdatePreferencesRequest extends FormRequest
     }
 
     /**
-     * Enabling the wake word requires the privacy consent in the same payload
-     * (US-4.4): continuous recognition may send audio to the browser vendor.
+     * Enabling the wake word requires a valid consent for the current text
+     * (RF-22): either already stored or accepted in the same payload. Consents
+     * given for an older text no longer count.
      *
      * @return array<int, Closure(Validator): void>
      */
@@ -52,12 +53,15 @@ class UpdatePreferencesRequest extends FormRequest
                     return;
                 }
 
-                if ($this->boolean('wake_word_enabled') && ! $this->boolean('wake_word_consent')) {
-                    $validator->errors()->add(
-                        'wake_word_consent',
-                        'Enabling the wake word requires accepting the browser speech recognition privacy notice.'
-                    );
+                if (! $this->boolean('wake_word_enabled') || $this->boolean('wake_word_consent')) {
+                    return;
                 }
+
+                if ($this->user()->preference()->first()?->hasValidWakeWordConsent()) {
+                    return;
+                }
+
+                $validator->errors()->add('wake_word_consent', __('voice.errors.wake_word_consent_required'));
             },
         ];
     }
