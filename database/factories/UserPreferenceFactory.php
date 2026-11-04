@@ -25,6 +25,7 @@ class UserPreferenceFactory extends Factory
             'spoken_responses_enabled' => true,
             'wake_word_enabled' => false,
             'wake_word_consented_at' => null,
+            'wake_word_consent_version' => null,
             'silence_timeout_ms' => 1500,
             'extra' => null,
         ];
@@ -38,6 +39,7 @@ class UserPreferenceFactory extends Factory
         return $this->state(fn (array $attributes): array => [
             'wake_word_enabled' => true,
             'wake_word_consented_at' => now(),
+            'wake_word_consent_version' => UserPreference::CURRENT_WAKE_WORD_CONSENT_VERSION,
         ]);
     }
 

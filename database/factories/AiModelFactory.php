@@ -28,6 +28,7 @@ class AiModelFactory extends Factory
             'output_cost_per_million' => fake()->randomFloat(4, 0.1, 30),
             'is_default_text' => false,
             'is_default_embedding' => false,
+            'is_default_realtime' => false,
             'fallback_order' => null,
             'is_active' => true,
         ];
@@ -64,6 +65,20 @@ class AiModelFactory extends Factory
             ->afterCreating(function (AiModel $model): void {
                 $model->capabilities()->sync([AiModelCapability::idFor(AiModelCapability::EMBEDDINGS)]);
             });
+    }
+
+    public function realtime(): static
+    {
+        return $this
+            ->state(fn (array $attributes): array => ['context_window' => 32000])
+            ->afterCreating(function (AiModel $model): void {
+                $model->capabilities()->sync([AiModelCapability::idFor(AiModelCapability::REALTIME)]);
+            });
+    }
+
+    public function defaultRealtime(): static
+    {
+        return $this->realtime()->state(fn (array $attributes): array => ['is_default_realtime' => true]);
     }
 
     public function inactive(): static

@@ -2,9 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\AuditAction;
+use App\Models\AuditLog;
+use App\Models\LookupModel;
 use App\Models\Setting;
 use App\Models\User;
 use App\Support\Settings;
+use Database\Seeders\LookupSeeder;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -88,5 +92,65 @@ class SettingsServiceTest extends TestCase
 
         $this->assertNull($setting->updated_by_user_id);
         $this->assertSame(['accent' => 'cyan'], $this->settings->get('ui.theme'));
+    }
+
+    public function test_voice_listening_window_defaults_to_60(): void
+    {
+        $this->assertSame(60, $this->settings->listeningWindowSeconds());
+        $this->assertSame(200000, $this->settings->sessionTokenCeiling());
+        $this->assertSame('marin', $this->settings->realtimeVoice());
+
+        DB::table('settings')->whereIn('key', ['voice.listening_window_seconds', 'voice.session_token_ceiling', 'voice.realtime_voice'])->delete();
+        Cache::flush();
+
+        $this->assertSame(60, $this->settings->listeningWindowSeconds());
+        $this->assertSame(200000, $this->settings->sessionTokenCeiling());
+        $this->assertSame('marin', $this->settings->realtimeVoice());
+
+        $this->assertSame(['min' => 15, 'max' => 300, 'type' => 'int'], Settings::RANGES['voice.listening_window_seconds']);
+        $this->assertSame(['min' => 10000, 'max' => 2000000, 'type' => 'int'], Settings::RANGES['voice.session_token_ceiling']);
+    }
+
+    public function test_realtime_voice_update_is_audited(): void
+    {
+        $this->seed(LookupSeeder::class);
+        LookupModel::flushCache();
+
+        $admin = User::factory()->create();
+
+        $changed = $this->settings->update(['voice.realtime_voice' => 'cedar', 'voice.listening_window_seconds' => '90'], $admin);
+
+        $this->assertSame(['voice.realtime_voice', 'voice.listening_window_seconds'], $changed);
+        $this->assertSame('cedar', $this->settings->realtimeVoice());
+        $this->assertSame(90, $this->settings->listeningWindowSeconds());
+
+        $log = AuditLog::query()
+            ->where('audit_action_id', AuditAction::idFor(AuditAction::SETTING_UPDATED))
+            ->where('properties->key', 'voice.realtime_voice')
+            ->sole();
+
+        $this->assertSame($admin->id, $log->user_id);
+        $this->assertSame('marin', $log->properties['old']);
+        $this->assertSame('cedar', $log->properties['new']);
+
+        $this->assertSame([], $this->settings->update(['voice.realtime_voice' => 'cedar'], $admin), 'Unchanged values are not audited again.');
+    }
+
+    public function test_realtime_voice_rejects_unknown_value(): void
+    {
+        $this->seed(LookupSeeder::class);
+        LookupModel::flushCache();
+
+        $admin = User::factory()->create();
+
+        $this->assertSame([], $this->settings->update(['voice.realtime_voice' => 'nova'], $admin));
+        $this->assertSame([], $this->settings->update(['voice.realtime_voice' => ['cedar']], $admin));
+
+        $this->assertSame('marin', $this->settings->realtimeVoice());
+        $this->assertSame(0, AuditLog::query()->count());
+
+        $this->settings->set('voice.realtime_voice', 'nova');
+
+        $this->assertSame('marin', $this->settings->realtimeVoice(), 'A value outside the list falls back to the default voice.');
     }
 }

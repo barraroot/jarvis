@@ -27,6 +27,7 @@ class LookupSeeder extends Seeder
             NotificationTypeSeeder::class,
             AuditActionSeeder::class,
             LogLevelSeeder::class,
+            VisualizationStatusSeeder::class,
         ]);
     }
 }

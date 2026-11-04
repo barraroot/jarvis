@@ -26,6 +26,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'queued_at',
     'started_at',
     'completed_at',
+    'visualization_id',
+    'voice_session_id',
+    'ai_model_id',
 ])]
 class Task extends Model
 {
@@ -108,6 +111,28 @@ class Task extends Model
     public function message(): BelongsTo
     {
         return $this->belongsTo(Message::class);
+    }
+
+    /** @return BelongsTo<Visualization, $this> */
+    public function visualization(): BelongsTo
+    {
+        return $this->belongsTo(Visualization::class);
+    }
+
+    /** @return BelongsTo<VoiceSession, $this> */
+    public function voiceSession(): BelongsTo
+    {
+        return $this->belongsTo(VoiceSession::class);
+    }
+
+    /**
+     * Model chosen when the task was created by voice (CT-04); null for older tasks.
+     *
+     * @return BelongsTo<AiModel, $this>
+     */
+    public function model(): BelongsTo
+    {
+        return $this->belongsTo(AiModel::class, 'ai_model_id');
     }
 
     /** @return BelongsTo<TaskStatus, $this> */

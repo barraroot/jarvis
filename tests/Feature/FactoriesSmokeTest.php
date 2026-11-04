@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Agent;
 use App\Models\AgentExecution;
 use App\Models\AiModel;
+use App\Models\AiModelCapability;
 use App\Models\AiProvider;
 use App\Models\Approval;
 use App\Models\AuditLog;
@@ -23,6 +24,9 @@ use App\Models\ToolExecution;
 use App\Models\UsageRecord;
 use App\Models\User;
 use App\Models\UserPreference;
+use App\Models\Visualization;
+use App\Models\VisualizationStatus;
+use App\Models\VoiceSession;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -45,7 +49,7 @@ class FactoriesSmokeTest extends TestCase
             User::class => ['admin', 'inactive', 'withPreference', 'unverified'],
             UserPreference::class => ['wakeWordEnabled', 'silent'],
             AiProvider::class => ['inactive'],
-            AiModel::class => ['defaultText', 'defaultEmbedding', 'embeddings', 'inactive'],
+            AiModel::class => ['defaultText', 'defaultEmbedding', 'embeddings', 'realtime', 'inactive'],
             Agent::class => ['default', 'inactive'],
             Tool::class => ['readOnly', 'write', 'sensitive', 'internal', 'rest', 'webhook', 'mcp', 'inactive'],
             McpServer::class => ['global', 'connected', 'errored', 'disconnected', 'inactive'],
@@ -63,6 +67,8 @@ class FactoriesSmokeTest extends TestCase
             Notification::class => ['read'],
             UsageRecord::class => ['failed'],
             AuditLog::class => ['system'],
+            VoiceSession::class => ['inactive'],
+            Visualization::class => ['updated', 'failed', 'closed'],
         ];
     }
 
@@ -105,6 +111,47 @@ class FactoriesSmokeTest extends TestCase
         $this->assertFalse($inactive->isAdmin());
         $this->assertTrue($admin->preference->user->is($admin));
         $this->assertSame('1.00', $admin->preference->speech_rate);
+    }
+
+    public function test_voice_session_and_visualization_factories(): void
+    {
+        $session = VoiceSession::factory()->create();
+        $inactive = VoiceSession::factory()->inactive()->create();
+        $visualization = Visualization::factory()->create();
+
+        $this->assertSame($session->user_id, $session->conversation->user_id);
+        $this->assertSame(0, $session->total_tokens);
+        $this->assertTrue($session->model->hasCapability(AiModelCapability::REALTIME));
+        $this->assertTrue(AiModel::query()->realtime()->whereKey($session->ai_model_id)->exists());
+        $this->assertTrue($inactive->last_activity_at->lte(now()->subMinutes(31)));
+
+        $this->travel(5)->minutes();
+        $inactive->touchActivity();
+        $this->assertTrue($inactive->fresh()->last_activity_at->gte(now()->subSecond()));
+
+        $this->assertSame($visualization->user_id, $visualization->task->user_id);
+        $this->assertSame(VisualizationStatus::SYNCING, $visualization->status->slug);
+        $this->assertTrue($visualization->isOpen());
+        $this->assertSame(1, $visualization->sections[0]['position']);
+        $this->assertSame(1, Visualization::query()->open()->count());
+
+        Visualization::factory()->closed()->create();
+        $this->assertSame(1, Visualization::query()->open()->count());
+    }
+
+    public function test_wake_word_consent_requires_current_version(): void
+    {
+        $this->assertTrue(UserPreference::factory()->wakeWordEnabled()->create()->hasValidWakeWordConsent());
+        $this->assertFalse(UserPreference::factory()->create()->hasValidWakeWordConsent());
+
+        $legacy = UserPreference::factory()->wakeWordEnabled()->create(['wake_word_consent_version' => null]);
+        $this->assertFalse($legacy->hasValidWakeWordConsent(), 'Consent without a version predates the current text.');
+
+        $outdated = UserPreference::factory()->wakeWordEnabled()->create(['wake_word_consent_version' => 1]);
+        $this->assertFalse($outdated->hasValidWakeWordConsent());
+
+        $versionOnly = UserPreference::factory()->create(['wake_word_consent_version' => UserPreference::CURRENT_WAKE_WORD_CONSENT_VERSION]);
+        $this->assertFalse($versionOnly->hasValidWakeWordConsent());
     }
 
     public function test_memory_embedding_factory_builds_1536_dimension_vector(): void

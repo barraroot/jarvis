@@ -10,4 +10,6 @@ class AiModelCapability extends LookupModel
     public const string TEXT = 'text';
 
     public const string EMBEDDINGS = 'embeddings';
+
+    public const string REALTIME = 'realtime';
 }

@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\AiModelCapability;
+use App\Models\LookupModel;
+use App\Models\VisualizationStatus;
 use Database\Seeders\LookupSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -26,10 +29,11 @@ class LookupSeederTest extends TestCase
         'tool_types' => 4,
         'connector_statuses' => 4,
         'ai_provider_drivers' => 13,
-        'ai_model_capabilities' => 2,
+        'ai_model_capabilities' => 3,
         'notification_types' => 5,
         'audit_actions' => 29,
         'log_levels' => 4,
+        'visualization_statuses' => 3,
     ];
 
     public function test_seeders_are_idempotent_and_seed_expected_slugs(): void
@@ -45,6 +49,19 @@ class LookupSeederTest extends TestCase
         $this->assertDatabaseHas('memory_statuses', ['slug' => 'hypothesis']);
         $this->assertDatabaseHas('execution_statuses', ['slug' => 'rate_limited']);
         $this->assertDatabaseHas('notification_types', ['slug' => 'approval_pending']);
+    }
+
+    public function test_voice_lookups_are_seeded(): void
+    {
+        $this->seed(LookupSeeder::class);
+        LookupModel::flushCache();
+
+        $this->assertDatabaseHas('ai_model_capabilities', ['slug' => AiModelCapability::REALTIME, 'name' => 'Realtime', 'is_active' => true]);
+
+        foreach ([VisualizationStatus::SYNCING, VisualizationStatus::UPDATED, VisualizationStatus::FAILED] as $slug) {
+            $this->assertDatabaseHas('visualization_statuses', ['slug' => $slug, 'is_active' => true]);
+            $this->assertIsInt(VisualizationStatus::idFor($slug));
+        }
     }
 
     public function test_seeded_rows_are_active_and_named(): void

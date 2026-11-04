@@ -123,6 +123,18 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(AuditLog::class);
     }
 
+    /** @return HasMany<VoiceSession, $this> */
+    public function voiceSessions(): HasMany
+    {
+        return $this->hasMany(VoiceSession::class);
+    }
+
+    /** @return HasMany<Visualization, $this> */
+    public function visualizations(): HasMany
+    {
+        return $this->hasMany(Visualization::class);
+    }
+
     /** @return HasMany<McpServer, $this> */
     public function mcpServers(): HasMany
     {

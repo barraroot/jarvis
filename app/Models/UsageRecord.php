@@ -19,6 +19,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'output_tokens',
     'estimated_cost',
     'latency_ms',
+    'voice_session_id',
+    'provider_response_id',
     'created_at',
 ])]
 class UsageRecord extends Model
@@ -76,5 +78,11 @@ class UsageRecord extends Model
     public function message(): BelongsTo
     {
         return $this->belongsTo(Message::class);
+    }
+
+    /** @return BelongsTo<VoiceSession, $this> */
+    public function voiceSession(): BelongsTo
+    {
+        return $this->belongsTo(VoiceSession::class);
     }
 }

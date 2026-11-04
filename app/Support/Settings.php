@@ -36,6 +36,17 @@ class Settings
         'retention.task_logs_days' => ['min' => 1, 'max' => null, 'type' => 'int'],
         'retention.usage_records_months' => ['min' => 1, 'max' => null, 'type' => 'int'],
         'retention.read_notifications_days' => ['min' => 1, 'max' => null, 'type' => 'int'],
+        'voice.listening_window_seconds' => ['min' => 15, 'max' => 300, 'type' => 'int'],
+        'voice.session_token_ceiling' => ['min' => 10000, 'max' => 2000000, 'type' => 'int'],
+    ];
+
+    /**
+     * Editable keys restricted to a closed list of string values (CT-12).
+     *
+     * @var array<string, list<string>>
+     */
+    public const array OPTIONS = [
+        'voice.realtime_voice' => ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse', 'marin', 'cedar'],
     ];
 
     /**
@@ -69,8 +80,9 @@ class Settings
     }
 
     /**
-     * Persist every changed value (cast per `RANGES`), auditing each change as
-     * `setting_updated` with old/new values. Unknown or unchanged keys are skipped.
+     * Persist every changed value (cast per `RANGES`, or checked against `OPTIONS`),
+     * auditing each change as `setting_updated` with old/new values. Unknown keys,
+     * values outside `OPTIONS` and unchanged keys are skipped.
      *
      * @param  array<string, mixed>  $values
      * @return list<string> keys that actually changed
@@ -80,11 +92,12 @@ class Settings
         $changed = [];
 
         foreach ($values as $key => $value) {
-            if (! array_key_exists($key, self::RANGES)) {
+            $new = $this->normalize($key, $value);
+
+            if ($new === null) {
                 continue;
             }
 
-            $new = self::RANGES[$key]['type'] === 'float' ? (float) $value : (int) $value;
             $old = $this->get($key);
 
             if ($old !== null && $old == $new) {
@@ -103,6 +116,23 @@ class Settings
         }
 
         return $changed;
+    }
+
+    /**
+     * Cast a submitted value to its stored form, or null when the key is not
+     * editable or the value is not one of its accepted options.
+     */
+    private function normalize(string $key, mixed $value): int|float|string|null
+    {
+        if (array_key_exists($key, self::RANGES)) {
+            return self::RANGES[$key]['type'] === 'float' ? (float) $value : (int) $value;
+        }
+
+        if (array_key_exists($key, self::OPTIONS)) {
+            return is_string($value) && in_array($value, self::OPTIONS[$key], true) ? $value : null;
+        }
+
+        return null;
     }
 
     /**
@@ -192,5 +222,22 @@ class Settings
     public function readNotificationsRetentionDays(): int
     {
         return (int) $this->get('retention.read_notifications_days', 30);
+    }
+
+    public function listeningWindowSeconds(): int
+    {
+        return (int) $this->get('voice.listening_window_seconds', 60);
+    }
+
+    public function sessionTokenCeiling(): int
+    {
+        return (int) $this->get('voice.session_token_ceiling', 200000);
+    }
+
+    public function realtimeVoice(): string
+    {
+        $voice = $this->get('voice.realtime_voice');
+
+        return is_string($voice) && in_array($voice, self::OPTIONS['voice.realtime_voice'], true) ? $voice : 'marin';
     }
 }

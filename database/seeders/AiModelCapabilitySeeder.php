@@ -17,6 +17,7 @@ class AiModelCapabilitySeeder extends LookupTableSeeder
         return [
             'text' => ['name' => 'Text'],
             'embeddings' => ['name' => 'Embeddings'],
+            'realtime' => ['name' => 'Realtime'],
         ];
     }
 }

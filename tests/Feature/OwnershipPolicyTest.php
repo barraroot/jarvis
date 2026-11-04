@@ -11,6 +11,8 @@ use App\Models\Notification;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\UserPreference;
+use App\Models\Visualization;
+use App\Models\VoiceSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\SeedsLookups;
 use Tests\TestCase;
@@ -32,6 +34,8 @@ class OwnershipPolicyTest extends TestCase
             'approval' => Approval::factory()->for($owner)->pending()->create(),
             'notification' => Notification::factory()->for($owner)->create(),
             'personal connector' => McpServer::factory()->for($owner)->create(),
+            'voice session' => VoiceSession::factory()->for($owner)->create(),
+            'visualization' => Visualization::factory()->for($owner)->create(),
         ];
 
         foreach ($records as $label => $record) {
@@ -53,6 +57,22 @@ class OwnershipPolicyTest extends TestCase
 
         $this->assertTrue($owner->can('resync', $records['personal connector']));
         $this->assertFalse($intruder->can('resync', $records['personal connector']));
+
+        $this->assertTrue($owner->can('close', $records['visualization']));
+        $this->assertFalse($intruder->can('close', $records['visualization']));
+    }
+
+    public function test_voice_records_belong_to_their_owner(): void
+    {
+        $owner = User::factory()->create();
+
+        $session = VoiceSession::factory()->for($owner)->create();
+        $visualization = Visualization::factory()->for($owner)->create();
+
+        $this->assertTrue($session->conversation->user->is($owner));
+        $this->assertTrue($visualization->task->user->is($owner));
+        $this->assertTrue($owner->voiceSessions()->whereKey($session->id)->exists());
+        $this->assertTrue($owner->visualizations()->whereKey($visualization->id)->exists());
     }
 
     public function test_messages_and_preferences_are_authorized_through_their_owner(): void

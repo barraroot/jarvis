@@ -15,7 +15,7 @@ class SettingsSeederTest extends TestCase
     {
         $this->seed(SettingsSeeder::class);
 
-        $this->assertSame(15, DB::table('settings')->count());
+        $this->assertSame(18, DB::table('settings')->count());
 
         foreach (SettingsSeeder::defaults() as $key => $setting) {
             $stored = DB::table('settings')->where('key', $key)->value('value');
@@ -25,6 +25,15 @@ class SettingsSeederTest extends TestCase
         }
 
         $this->assertSame(0.75, json_decode(DB::table('settings')->where('key', 'memory.similarity_threshold')->value('value')));
+    }
+
+    public function test_seeder_inserts_voice_defaults(): void
+    {
+        $this->seed(SettingsSeeder::class);
+
+        $this->assertSame(60, json_decode(DB::table('settings')->where('key', 'voice.listening_window_seconds')->value('value')));
+        $this->assertSame(200000, json_decode(DB::table('settings')->where('key', 'voice.session_token_ceiling')->value('value')));
+        $this->assertSame('marin', json_decode(DB::table('settings')->where('key', 'voice.realtime_voice')->value('value')));
     }
 
     public function test_seeder_does_not_overwrite_changed_values(): void
@@ -38,6 +47,6 @@ class SettingsSeederTest extends TestCase
 
         $this->assertSame(10, json_decode(DB::table('settings')->where('key', 'memory.top_n')->value('value')));
         $this->assertSame(24, json_decode(DB::table('settings')->where('key', 'brain.approval_ttl_hours')->value('value')));
-        $this->assertSame(15, DB::table('settings')->count());
+        $this->assertSame(18, DB::table('settings')->count());
     }
 }

@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'output_cost_per_million',
     'is_default_text',
     'is_default_embedding',
+    'is_default_realtime',
     'fallback_order',
     'is_active',
 ])]
@@ -41,6 +42,7 @@ class AiModel extends Model
             'output_cost_per_million' => 'decimal:4',
             'is_default_text' => 'boolean',
             'is_default_embedding' => 'boolean',
+            'is_default_realtime' => 'boolean',
             'fallback_order' => 'integer',
             'is_active' => 'boolean',
         ];
@@ -87,6 +89,15 @@ class AiModel extends Model
     }
 
     /**
+     * Models capable of OpenAI Realtime voice sessions (RF-09a).
+     */
+    #[Scope]
+    protected function realtime(Builder $query): void
+    {
+        $query->whereHas('capabilities', fn (Builder $capabilities) => $capabilities->where('slug', AiModelCapability::REALTIME));
+    }
+
+    /**
      * Models that take part in the fallback chain, ordered by priority.
      */
     #[Scope]
@@ -129,6 +140,12 @@ class AiModel extends Model
     public function usageRecords(): HasMany
     {
         return $this->hasMany(UsageRecord::class, 'ai_model_id');
+    }
+
+    /** @return HasMany<VoiceSession, $this> */
+    public function voiceSessions(): HasMany
+    {
+        return $this->hasMany(VoiceSession::class, 'ai_model_id');
     }
 
     /** @return HasMany<MemoryEmbedding, $this> */

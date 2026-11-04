@@ -10,7 +10,7 @@ class SettingsSeeder extends Seeder
     /**
      * Default global settings (US-12.2). Existing keys are never overwritten.
      *
-     * @return array<string, array{value: int|float, description: string}>
+     * @return array<string, array{value: int|float|string, description: string}>
      */
     public static function defaults(): array
     {
@@ -30,6 +30,9 @@ class SettingsSeeder extends Seeder
             'retention.task_logs_days' => ['value' => 90, 'description' => 'Days to keep task logs.'],
             'retention.usage_records_months' => ['value' => 24, 'description' => 'Months to keep usage records.'],
             'retention.read_notifications_days' => ['value' => 30, 'description' => 'Days to keep notifications after they are read.'],
+            'voice.listening_window_seconds' => ['value' => 60, 'description' => 'Seconds the voice listening window stays open after the wake word.'],
+            'voice.session_token_ceiling' => ['value' => 200000, 'description' => 'Maximum tokens reported by a single Realtime voice session.'],
+            'voice.realtime_voice' => ['value' => 'marin', 'description' => 'Voice used by the OpenAI Realtime session.'],
         ];
     }
 
