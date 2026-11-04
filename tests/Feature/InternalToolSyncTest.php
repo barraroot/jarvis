@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\Agent;
 use App\Models\Tool;
 use App\Models\ToolType;
 use App\Tools\Internal\CurrentTimeTool;
+use App\Tools\Internal\UpdateVisualizationSectionTool;
 use App\Tools\InternalToolRegistry;
+use Database\Seeders\VisualizationToolSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\SeedsLookups;
 use Tests\TestCase;
@@ -59,5 +62,44 @@ class InternalToolSyncTest extends TestCase
 
         $this->assertSame('Hora atual', $tool->name);
         $this->assertSame(CurrentTimeTool::class, $tool->handler_class);
+    }
+
+    public function test_sync_registers_visualization_tool_without_approval(): void
+    {
+        $this->artisan('jarvis:tools:sync-internal')->assertSuccessful();
+
+        $this->assertDatabaseHas('tools', [
+            'identifier' => 'visualization.update_section',
+            'tool_type_id' => ToolType::idFor(ToolType::INTERNAL),
+            'handler_class' => UpdateVisualizationSectionTool::class,
+            'is_write' => false,
+            'is_sensitive' => false,
+            'is_active' => true,
+        ]);
+
+        $tool = Tool::query()->where('identifier', 'visualization.update_section')->firstOrFail();
+        $this->assertFalse($tool->requiresApproval());
+        $this->assertFalse($tool->input_schema['additionalProperties']);
+        $this->assertFalse($tool->input_schema['properties']['section']['additionalProperties']);
+    }
+
+    public function test_visualization_tool_seeder_links_every_agent_without_detaching(): void
+    {
+        $agents = Agent::factory()->count(2)->create();
+        $existing = Tool::factory()->internal()->create(['identifier' => 'custom.read']);
+        $agents[0]->tools()->attach($existing->id);
+
+        $this->seed(VisualizationToolSeeder::class);
+        $this->seed(VisualizationToolSeeder::class);
+
+        $tool = Tool::query()->where('identifier', 'visualization.update_section')->firstOrFail();
+
+        foreach ($agents as $agent) {
+            $this->assertTrue($agent->tools()->whereKey($tool->id)->exists());
+        }
+
+        // Links configured in the admin are preserved and nothing is duplicated.
+        $this->assertTrue($agents[0]->tools()->whereKey($existing->id)->exists());
+        $this->assertSame(1, $agents[1]->tools()->whereKey($tool->id)->count());
     }
 }

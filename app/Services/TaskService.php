@@ -51,7 +51,10 @@ class TaskService
         .'(marque o melhor com o badge "best") e use seções de texto para links ou respostas complementares. '
         .'Ao final, responda com um resumo curto do resultado, adequado para ser narrado por voz.';
 
-    public function __construct(private readonly Settings $settings) {}
+    public function __construct(
+        private readonly Settings $settings,
+        private readonly VisualizationService $visualizations,
+    ) {}
 
     /**
      * Turns a user message into a queued task owned by the message author,
@@ -149,6 +152,7 @@ class TaskService
             ]);
 
         $this->broadcastUpdated($task);
+        $this->finishVisualization($task);
 
         return $task;
     }
@@ -219,6 +223,7 @@ class TaskService
         ]);
 
         $this->broadcastUpdated($task);
+        $this->finishVisualization($task);
 
         return $task;
     }
@@ -235,6 +240,7 @@ class TaskService
         ]);
 
         $this->broadcastUpdated($task);
+        $this->finishVisualization($task);
 
         return $task;
     }
@@ -251,6 +257,7 @@ class TaskService
             ]);
 
             $this->broadcastUpdated($task);
+            $this->finishVisualization($task);
         }
 
         Cache::forget(self::cancellationKey($task->id));
@@ -307,6 +314,17 @@ class TaskService
     public function broadcastUpdated(Task $task): void
     {
         TaskUpdated::dispatch($task);
+    }
+
+    /**
+     * The visualization the task last updated follows its end (RF-18):
+     * `completed` → `updated`, `failed`/`cancelled` → `failed`.
+     */
+    private function finishVisualization(Task $task): void
+    {
+        if ($task->visualization_id !== null) {
+            $this->visualizations->finishForTask($task);
+        }
     }
 
     /**

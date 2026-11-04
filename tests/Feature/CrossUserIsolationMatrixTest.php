@@ -18,6 +18,8 @@ use App\Models\TaskStatus;
 use App\Models\Tool;
 use App\Models\ToolExecution;
 use App\Models\User;
+use App\Models\Visualization;
+use App\Models\VoiceSession;
 use App\Services\MemoryRetriever;
 use App\Services\NotificationService;
 use Database\Factories\MemoryEmbeddingFactory;
@@ -111,6 +113,72 @@ class CrossUserIsolationMatrixTest extends TestCase
 
         Queue::assertNothingPushed();
         $this->assertNoBroadcastReached($this->intruder);
+    }
+
+    /**
+     * Voice and visualization endpoints (RNF-03): another user's resource is
+     * 403, except CT-02's `voice_session_id`, resolved scoped to the caller
+     * (404, no existence revealed). Placeholders in the payload resolve to
+     * fixture ids.
+     *
+     * @return array<string, array{0: string, 1: string, 2: array<string, mixed>, 3: int}>
+     */
+    public static function voiceEndpoints(): array
+    {
+        return [
+            'voice sessions renewal POST' => ['POST', 'voice/sessions', ['voice_session_id' => '{voiceSession}'], 403],
+            'voice usage POST' => ['POST', 'voice/sessions/{voiceSession}/usage', [
+                'response_id' => 'resp_intruder',
+                'usage' => ['input_tokens' => 10, 'output_tokens' => 5],
+            ], 403],
+            'voice turns POST' => ['POST', 'voice/sessions/{voiceSession}/turns', [
+                'turns' => [['role' => 'user', 'content' => 'Invadido', 'spoken_at' => '2026-11-04T12:00:00Z']],
+            ], 403],
+            'voice tasks foreign visualization POST' => ['POST', 'voice/tasks', [
+                'voice_session_id' => '{intruderVoiceSession}',
+                'request' => 'Invadido',
+                'visualization_id' => '{visualization}',
+            ], 403],
+            'voice tasks foreign session POST' => ['POST', 'voice/tasks', [
+                'voice_session_id' => '{voiceSession}',
+                'request' => 'Invadido',
+            ], 404],
+            'visualizations close POST' => ['POST', 'visualizations/{visualization}/close', [], 403],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    #[DataProvider('voiceEndpoints')]
+    public function test_intruder_is_denied_on_owner_voice_resources(string $method, string $uri, array $payload, int $expectedStatus): void
+    {
+        $this->actingAs($this->intruder);
+
+        $payload = array_map(fn (mixed $value): mixed => is_string($value) && preg_match('/^\{(\w+)\}$/', $value, $match) === 1
+            ? $this->records[$match[1]]->getKey()
+            : $value, $payload);
+
+        $this->json($method, '/api/v1/'.$this->resolve($uri), $payload)->assertStatus($expectedStatus);
+
+        $this->assertOwnerDataIsIntact();
+        $this->assertSame(0, Task::query()->where('user_id', $this->intruder->id)->count());
+
+        Queue::assertNothingPushed();
+        $this->assertNoBroadcastReached($this->intruder);
+    }
+
+    public function test_current_visualization_is_never_another_users(): void
+    {
+        $this->actingAs($this->intruder);
+
+        $this->getJson('/api/v1/visualizations/current')->assertOk()->assertExactJson(['data' => null]);
+
+        $this->actingAs($this->owner);
+
+        $this->getJson('/api/v1/visualizations/current')
+            ->assertOk()
+            ->assertJsonPath('data.id', $this->records['visualization']->id);
     }
 
     /**
@@ -215,6 +283,7 @@ class CrossUserIsolationMatrixTest extends TestCase
             ->assertAccepted();
         $this->postJson('/api/v1/'.$this->resolve('tasks/{task}/cancel'))->assertSuccessful();
         $this->postJson('/api/v1/'.$this->resolve('approvals/{approval}/deny'), ['reason' => 'não'])->assertOk();
+        $this->postJson('/api/v1/'.$this->resolve('visualizations/{visualization}/close'))->assertOk();
 
         app(NotificationService::class)->notify($this->owner, NotificationType::TASK_COMPLETED, 'Concluída');
 
@@ -240,6 +309,9 @@ class CrossUserIsolationMatrixTest extends TestCase
         $task = Task::factory()->for($this->owner)->running()->create();
         $agentExecution = AgentExecution::factory()->for($this->owner)->completed()->create();
 
+        $voiceSession = VoiceSession::factory()->for($this->owner)->create();
+        $visualization = Visualization::factory()->for($this->owner)->create(['task_id' => $task->id]);
+
         return [
             'conversation' => $conversation,
             'memory' => Memory::factory()->for($this->owner)->confirmed()->create(),
@@ -251,6 +323,9 @@ class CrossUserIsolationMatrixTest extends TestCase
             'connector' => $connector,
             'connectorTool' => $connectorTool,
             'agentExecution' => $agentExecution,
+            'voiceSession' => $voiceSession,
+            'intruderVoiceSession' => VoiceSession::factory()->for($this->intruder)->create(),
+            'visualization' => $visualization,
             'toolExecution' => ToolExecution::factory()->create([
                 'user_id' => $this->owner->id,
                 'agent_execution_id' => $agentExecution->id,
@@ -277,6 +352,9 @@ class CrossUserIsolationMatrixTest extends TestCase
         $this->assertNotSame('Invadido', $this->records['connector']->fresh()->name);
         $this->assertFalse($this->records['connectorTool']->fresh()->is_active);
         $this->assertSame(1, Task::query()->where('user_id', $this->owner->id)->where('id', '!=', $this->records['task']->id)->count());
+        $this->assertNull($this->records['visualization']->fresh()->closed_at);
+        $this->assertSame(0, $this->records['voiceSession']->fresh()->total_tokens);
+        $this->assertSame(0, Message::query()->where('conversation_id', $this->records['voiceSession']->conversation_id)->count());
     }
 
     private function assertNoBroadcastReached(User $user): void

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Events\Task\TaskUpdated;
+use App\Events\Visualization\VisualizationUpdated;
 use App\Exceptions\TaskNotCancellableException;
 use App\Jobs\RunTask;
 use App\Models\Agent;
@@ -13,6 +14,9 @@ use App\Models\ExecutionStatus;
 use App\Models\Task;
 use App\Models\TaskStatus;
 use App\Models\User;
+use App\Models\Visualization;
+use App\Models\VisualizationStatus;
+use App\Models\VoiceSession;
 use App\Services\AgentRunner;
 use App\Services\AgentRuntimeFactory;
 use App\Services\ProviderRegistry;
@@ -111,6 +115,41 @@ class TaskCancelTest extends TestCase
         $this->assertSame(ApprovalStatus::APPROVED, $decided->fresh()->status->slug);
 
         $this->assertTrue(Cache::get(TaskService::cancellationKey($task->id)));
+    }
+
+    public function test_cancel_marks_linked_visualization_failed_and_keeps_it_open(): void
+    {
+        Event::fake([TaskUpdated::class, VisualizationUpdated::class]);
+
+        $session = VoiceSession::factory()->for($this->user)->create();
+        $task = Task::factory()->running()->for($this->user)->for($this->agent)->create([
+            'voice_session_id' => $session->id,
+            'conversation_id' => $session->conversation_id,
+        ]);
+        $visualization = Visualization::factory()->for($this->user)->create(['task_id' => $task->id]);
+        $task->update(['visualization_id' => $visualization->id]);
+
+        app(TaskService::class)->cancel($task, $this->user);
+
+        $visualization->refresh();
+        $this->assertSame(VisualizationStatus::FAILED, $visualization->status->slug);
+        $this->assertNull($visualization->closed_at);
+        Event::assertDispatched(
+            VisualizationUpdated::class,
+            fn (VisualizationUpdated $event): bool => $event->broadcastWith()['visualization']['status'] === VisualizationStatus::FAILED,
+        );
+    }
+
+    public function test_cancel_without_visualization_broadcasts_no_visualization_event(): void
+    {
+        Event::fake([TaskUpdated::class, VisualizationUpdated::class]);
+
+        $task = Task::factory()->running()->for($this->user)->for($this->agent)->create();
+
+        app(TaskService::class)->cancel($task, $this->user);
+
+        $this->assertDatabaseCount('visualizations', 0);
+        Event::assertNotDispatched(VisualizationUpdated::class);
     }
 
     public function test_cancel_rejects_terminal_tasks(): void

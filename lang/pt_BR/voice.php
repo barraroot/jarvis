@@ -20,6 +20,8 @@ return [
 
     'task_cancelled_summary' => 'A tarefa foi cancelada antes de terminar.',
 
+    'visualization_requires_voice_task' => 'A visualização só pode ser atualizada por uma tarefa iniciada por voz.',
+
     'session_inactive' => 'A sessão de voz expirou. Diga "Jarvis" novamente para iniciar uma nova sessão.',
 
     'instructions' => <<<'TEXT'

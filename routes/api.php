@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\Memories\MemoryController;
 use App\Http\Controllers\Api\V1\Notifications\NotificationController;
 use App\Http\Controllers\Api\V1\Preferences\PreferencesController;
 use App\Http\Controllers\Api\V1\Tasks\TaskController;
+use App\Http\Controllers\Api\V1\Visualizations\VisualizationController;
 use App\Http\Controllers\Api\V1\Voice\VoiceSessionController;
 use App\Http\Controllers\Api\V1\Voice\VoiceTaskController;
 use App\Http\Controllers\Api\V1\Voice\VoiceTurnController;
@@ -107,6 +108,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 ->middleware('throttle:messages')
                 ->name('tasks.store');
         });
+
+        Route::get('visualizations/current', [VisualizationController::class, 'current'])->name('visualizations.current');
+        Route::post('visualizations/{visualization}/close', [VisualizationController::class, 'close'])->name('visualizations.close');
 
         Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');

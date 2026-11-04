@@ -13,11 +13,13 @@ use App\Models\Task;
 use App\Models\TaskStep;
 use App\Models\ToolExecution;
 use App\Models\User;
+use App\Models\Visualization;
 use App\Models\VoiceSession;
 use Database\Factories\MemoryEmbeddingFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use Pgvector\Laravel\Vector;
 use Tests\Concerns\CountsQueries;
 use Tests\Concerns\SeedsLookups;
@@ -79,6 +81,50 @@ class QueryBudgetTest extends TestCase
                 "GET /api/v1/{$endpoint} runs more queries with more rows (N+1).",
             );
         }
+    }
+
+    public function test_current_visualization_query_count_is_constant(): void
+    {
+        $visualization = Visualization::factory()->for($this->user)->create(['sections' => $this->sections(1, 1)]);
+
+        $one = $this->assertQueryCountLessThan(
+            self::BUDGET,
+            fn () => $this->getJson('/api/v1/visualizations/current')->assertOk()->assertJsonCount(1, 'data.sections'),
+            'GET /api/v1/visualizations/current exceeded the query budget.',
+        );
+
+        $visualization->update(['sections' => $this->sections(10, 10)]);
+
+        $many = $this->countQueries(
+            fn () => $this->getJson('/api/v1/visualizations/current')->assertOk()->assertJsonCount(10, 'data.sections'),
+        );
+
+        $this->assertSame($one, $many, 'GET /api/v1/visualizations/current grows with sections/items.');
+    }
+
+    public function test_voice_turns_query_count_is_constant(): void
+    {
+        Queue::fake();
+
+        $session = VoiceSession::factory()->for($this->user)->create();
+        $send = fn (int $count) => $this->postJson("/api/v1/voice/sessions/{$session->id}/turns", [
+            'turns' => array_map(fn (int $index): array => [
+                'role' => $index % 2 === 0 ? 'user' : 'assistant',
+                'content' => "Turno {$index}",
+                'spoken_at' => now()->toIso8601String(),
+            ], range(0, $count - 1)),
+        ])->assertCreated();
+
+        // Warm the lookup and settings caches so both measurements start equal.
+        $send(2);
+
+        $this->travel(1)->seconds();
+        $two = $this->assertQueryCountLessThan(self::BUDGET, fn () => $send(2), 'CT-10 exceeded the query budget.');
+
+        $this->travel(1)->seconds();
+        $twenty = $this->countQueries(fn () => $send(20));
+
+        $this->assertSame($two, $twenty, 'CT-10 grows with the batch size.');
     }
 
     public function test_memory_vector_search_uses_the_hnsw_index(): void
@@ -150,6 +196,21 @@ class QueryBudgetTest extends TestCase
                 'source_conversation_id' => Conversation::query()->where('user_id', $this->user->id)->value('id'),
             ]);
         }
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function sections(int $count, int $items): array
+    {
+        return array_map(fn (int $position): array => [
+            'key' => 'section_'.chr(96 + $position),
+            'position' => $position,
+            'label' => 'SEÇÃO',
+            'type' => 'results',
+            'status' => 'syncing',
+            'items' => array_fill(0, $items, ['title' => 'Item', 'subtitle' => 'sub', 'badges' => ['best']]),
+        ], range(1, $count));
     }
 
     /**
