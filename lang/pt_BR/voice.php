@@ -16,8 +16,11 @@ return [
         'provider_failed' => 'Não foi possível iniciar a sessão de voz agora: o provedor de voz não respondeu. Tente novamente em instantes.',
         'session_token_ceiling_exceeded' => 'O limite de uso desta sessão de voz foi atingido. Diga "Jarvis" novamente para iniciar uma nova sessão.',
         'wake_word_consent_required' => 'Para ativar a palavra de ativação, aceite o novo termo de consentimento: a detecção de "Jarvis" ocorre no navegador e, durante a janela de escuta, o áudio é enviado à OpenAI.',
-        'session_inactive' => 'A sessão de voz expirou. Diga "Jarvis" novamente para iniciar uma nova sessão.',
     ],
+
+    'task_cancelled_summary' => 'A tarefa foi cancelada antes de terminar.',
+
+    'session_inactive' => 'A sessão de voz expirou. Diga "Jarvis" novamente para iniciar uma nova sessão.',
 
     'instructions' => <<<'TEXT'
         Você é o J.A.R.V.I.S., assistente pessoal do operador. Fale sempre em português do Brasil, com respostas curtas, naturais e objetivas.

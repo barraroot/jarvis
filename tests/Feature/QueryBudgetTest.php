@@ -13,6 +13,7 @@ use App\Models\Task;
 use App\Models\TaskStep;
 use App\Models\ToolExecution;
 use App\Models\User;
+use App\Models\VoiceSession;
 use Database\Factories\MemoryEmbeddingFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -133,7 +134,12 @@ class QueryBudgetTest extends TestCase
         foreach (range(1, $count) as $index) {
             Conversation::factory()->for($this->user)->create();
 
-            $task = Task::factory()->for($this->user)->for($agent)->completed()->create();
+            // Voice tasks: the model and `voice_summary` are part of every row (CT-04).
+            $task = Task::factory()->for($this->user)->for($agent)->completed()->create([
+                'ai_model_id' => AiModel::factory(),
+                'voice_session_id' => VoiceSession::factory()->for($this->user),
+                'visualization_id' => null,
+            ]);
             TaskStep::factory()->for($task)->completed()->count(2)->sequence(['position' => 1], ['position' => 2])->create();
 
             $execution = AgentExecution::factory()->for($this->user)->for($agent)->completed()->create();

@@ -2,6 +2,7 @@
 
 namespace App\Events\Tool;
 
+use App\Events\Tool\Concerns\BuildsToolPayload;
 use App\Models\Tool;
 use App\Models\ToolExecution;
 use App\Models\User;
@@ -16,7 +17,7 @@ use Illuminate\Foundation\Events\Dispatchable;
  */
 class ToolFailed implements ShouldBroadcastNow
 {
-    use Dispatchable, InteractsWithSockets;
+    use BuildsToolPayload, Dispatchable, InteractsWithSockets;
 
     public function __construct(
         public readonly User $user,
@@ -35,14 +36,10 @@ class ToolFailed implements ShouldBroadcastNow
     }
 
     /**
-     * @return array{tool: string, execution_id: int, status: string}
+     * @return array<string, mixed>
      */
     public function broadcastWith(): array
     {
-        return [
-            'tool' => $this->tool->identifier,
-            'execution_id' => $this->execution->id,
-            'status' => $this->execution->status->slug,
-        ];
+        return $this->toolPayload($this->execution->status->slug);
     }
 }

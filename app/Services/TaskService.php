@@ -9,6 +9,7 @@ use App\Exceptions\TaskNotRetryableException;
 use App\Jobs\RunTask;
 use App\Models\Agent;
 use App\Models\AgentExecution;
+use App\Models\AiModel;
 use App\Models\ApprovalStatus;
 use App\Models\ExecutionStatus;
 use App\Models\Message;
@@ -16,8 +17,11 @@ use App\Models\ResultType;
 use App\Models\Task;
 use App\Models\TaskStatus;
 use App\Models\User;
+use App\Models\Visualization;
+use App\Models\VoiceSession;
 use App\Support\Settings;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -36,6 +40,16 @@ class TaskService
     {
         return "task:{$taskId}:cancel_requested";
     }
+
+    /**
+     * Fixed pt-BR guidance appended to the prompt of voice tasks: the result is
+     * shown in the HUD visualization panel through the internal tool.
+     */
+    public const string VOICE_PROMPT_SUFFIX = 'Esta tarefa foi pedida por voz no HUD. '
+        .'Use a ferramenta visualization.update_section para exibir o andamento no painel de visualização: '
+        .'comece pela seção "question" com a pergunta, publique os resultados encontrados na seção "results" '
+        .'(marque o melhor com o badge "best") e use seções de texto para links ou respostas complementares. '
+        .'Ao final, responda com um resumo curto do resultado, adequado para ser narrado por voz.';
 
     public function __construct(private readonly Settings $settings) {}
 
@@ -62,6 +76,32 @@ class TaskService
     }
 
     /**
+     * Turns a voice request into a queued task (RF-11, CT-02): it lives in the
+     * conversation of the given voice session — never "the most recent" — and
+     * keeps the session, the open visualization being followed up (RF-19) and
+     * the chosen model (D10). `pending` → `queued`, then `RunTask` is dispatched.
+     */
+    public function createFromVoice(User $user, VoiceSession $session, Agent $agent, string $request, ?Visualization $visualization, AiModel $model): Task
+    {
+        $task = Task::query()->create([
+            'user_id' => $user->id,
+            'agent_id' => $agent->id,
+            'conversation_id' => $session->conversation_id,
+            'message_id' => null,
+            'voice_session_id' => $session->id,
+            'visualization_id' => $visualization !== null && $visualization->closed_at === null ? $visualization->id : null,
+            'ai_model_id' => $model->id,
+            'task_status_id' => TaskStatus::idFor(TaskStatus::PENDING),
+            'title' => Str::limit($request, 79, '…'),
+            'request' => $request,
+            'progress' => 0,
+            'timeout_seconds' => $this->settings->taskTimeoutSeconds(),
+        ]);
+
+        return $this->queue($task);
+    }
+
+    /**
      * Park a task on the `tasks` queue: `pending` → `queued` with `queued_at`,
      * then the job is dispatched and the transition broadcast.
      */
@@ -72,7 +112,7 @@ class TaskService
             'queued_at' => $task->queued_at ?? now(),
         ]);
 
-        RunTask::dispatch($task)->onQueue(RunTask::QUEUE);
+        RunTask::dispatch($task)->onQueue(RunTask::QUEUE)->afterCommit();
 
         $this->broadcastUpdated($task);
 
@@ -238,11 +278,14 @@ class TaskService
     /**
      * The prompt of a resumed run: the original request prefixed with the
      * steps already concluded, so the agent continues instead of repeating.
+     * Voice tasks also get the visualization guidance suffix.
      */
     public function resumePrompt(Task $task, int $resumeFromStep): string
     {
+        $suffix = $task->voice_session_id !== null ? "\n\n".self::VOICE_PROMPT_SUFFIX : '';
+
         if ($resumeFromStep <= 0) {
-            return $task->request;
+            return $task->request.$suffix;
         }
 
         $finished = $task->steps()
@@ -255,7 +298,7 @@ class TaskService
             .'Etapas já concluídas: '.implode('; ', $finished).'. '
             .'Continue da próxima etapa, sem repetir etapas concluídas.';
 
-        return $prefix."\n\nSolicitação original:\n".$task->request;
+        return $prefix."\n\nSolicitação original:\n".$task->request.$suffix;
     }
 
     /**

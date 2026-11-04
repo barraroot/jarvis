@@ -124,6 +124,32 @@ class IntentRouterTest extends TestCase
         ], $message->fresh()->meta['routing']);
     }
 
+    public function test_select_agent_uses_prefix_heuristics_and_default(): void
+    {
+        IntentClassifier::fake(function (string $prompt): array {
+            return match (true) {
+                str_contains($prompt, 'classificador') => ['intent' => 'delegate_agent', 'agent_slug' => 'research', 'confidence' => 0.9],
+                str_contains($prompt, 'conversa') => ['intent' => 'direct_answer', 'agent_slug' => null, 'confidence' => 0.9],
+                default => ['intent' => 'invalido', 'agent_slug' => null, 'confidence' => 0.1],
+            };
+        });
+
+        $router = app(IntentRouter::class);
+
+        $this->assertTrue($router->selectAgent('@research Busque a aula de inglês.')->is($this->researchAgent));
+        $this->assertTrue($router->selectAgent('@inexistente Faça algo útil.')->is($this->defaultAgent));
+        $this->assertTrue($router->selectAgent('Use o classificador para isso.')->is($this->researchAgent));
+
+        // direct_answer still becomes a task: the Realtime session already decided it needs tools.
+        $this->assertTrue($router->selectAgent('Só uma conversa rápida.')->is($this->defaultAgent));
+
+        // Invalid classifier output falls back to the keyword heuristics.
+        $this->assertTrue($router->selectAgent('Pesquise o preço do dólar.')->is($this->researchAgent));
+        $this->assertTrue($router->selectAgent('Conta uma piada.')->is($this->defaultAgent));
+
+        $this->assertDatabaseCount('messages', 0);
+    }
+
     private function userMessage(string $content): Message
     {
         $conversation = Conversation::factory()->for($this->user)->create();

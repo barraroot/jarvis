@@ -6,6 +6,7 @@ use App\Ai\Agents\IntentClassifier;
 use App\Models\Agent;
 use App\Models\Conversation;
 use App\Models\Message;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Throwable;
 
 /**
@@ -81,7 +82,7 @@ class IntentRouter implements MessageRouter
             return $this->routeExplicitAgent($conversation, $message, $prefix['slug'], $prefix['prompt']);
         }
 
-        $decision = $this->classify($message);
+        $decision = $this->classify($message->content);
 
         $intent = $decision['intent'];
         $agentSlug = $decision['agent'];
@@ -114,6 +115,25 @@ class IntentRouter implements MessageRouter
     }
 
     /**
+     * Agent for a request that is already known to be a task (voice, CT-02):
+     * same `@slug` prefix, classifier, heuristics and default-agent rules as
+     * `route()`, except that `direct_answer` also lands on the default agent —
+     * the Realtime session has already decided the request needs tools.
+     *
+     * @throws ModelNotFoundException<Agent>
+     */
+    public function selectAgent(string $content): Agent
+    {
+        $prefix = $this->explicitAgentPrefix($content);
+
+        $agent = $prefix !== null
+            ? $this->explicitAgent($prefix['slug'])
+            : $this->resolveAgent($this->classify($content)['agent']) ?? $this->fallbackAgent();
+
+        return $agent ?? throw (new ModelNotFoundException)->setModel(Agent::class);
+    }
+
+    /**
      * An explicit `@slug` prefix at the start of the message forces the agent
      * (validated against active agents); the prefix is stripped from the
      * prompt the model sees. Unknown slugs fall back to the default agent.
@@ -134,9 +154,7 @@ class IntentRouter implements MessageRouter
 
     private function routeExplicitAgent(Conversation $conversation, Message $message, string $slug, string $prompt): RoutedMessage
     {
-        $agent = Agent::query()->active()->where('slug', $slug)->first() ?? $this->defaultAgent();
-
-        $agent ??= $this->fallbackAgent();
+        $agent = $this->explicitAgent($slug);
 
         $this->recordRouting($message, [
             'intent' => self::DELEGATE_AGENT,
@@ -161,12 +179,23 @@ class IntentRouter implements MessageRouter
     }
 
     /**
+     * The agent named by an `@slug` prefix when active, else the default
+     * agent, else the `personal-assistant` fallback.
+     */
+    private function explicitAgent(string $slug): ?Agent
+    {
+        return Agent::query()->active()->where('slug', $slug)->first()
+            ?? $this->defaultAgent()
+            ?? $this->fallbackAgent();
+    }
+
+    /**
      * Structured classification by the default model; any failure — provider
      * error, no default model, invalid intent — falls back to keywords.
      *
      * @return array{intent: string, agent: string|null, confidence: float, model: string|null}
      */
-    private function classify(Message $message): array
+    private function classify(string $content): array
     {
         try {
             $this->providerRegistry->register();
@@ -178,7 +207,7 @@ class IntentRouter implements MessageRouter
             }
 
             $response = (new IntentClassifier)->prompt(
-                $message->content,
+                $content,
                 provider: $model->provider->slug,
                 model: $model->model_identifier,
             );
@@ -203,7 +232,7 @@ class IntentRouter implements MessageRouter
                 'model' => $model->model_identifier,
             ];
         } catch (Throwable) {
-            return [...$this->heuristics($message->content), 'model' => null];
+            return [...$this->heuristics($content), 'model' => null];
         }
     }
 

@@ -7,6 +7,7 @@ use App\Events\Task\TaskUpdated;
 use App\Jobs\RunTask;
 use App\Models\Agent;
 use App\Models\AgentExecution;
+use App\Models\AiModel;
 use App\Models\Conversation;
 use App\Models\ExecutionStatus;
 use App\Models\LogLevel;
@@ -14,6 +15,8 @@ use App\Models\Message;
 use App\Models\Task;
 use App\Models\TaskStatus;
 use App\Models\User;
+use App\Models\Visualization;
+use App\Models\VoiceSession;
 use App\Services\AgentRunner;
 use App\Services\AgentRuntimeFactory;
 use App\Services\ProviderRegistry;
@@ -175,6 +178,73 @@ class TaskLifecycleTest extends TestCase
         $this->assertSame('O ERP recusou a conexão.', $task->error);
         $this->assertNotNull($task->completed_at);
         $this->assertNull($task->result);
+    }
+
+    public function test_create_from_voice_queues_on_tasks_queue(): void
+    {
+        Queue::fake();
+        Event::fake([TaskUpdated::class]);
+
+        $session = VoiceSession::factory()->for($this->user)->create();
+        $model = AiModel::factory()->create();
+        $visualization = Visualization::factory()->for($this->user)->create();
+
+        $task = app(TaskService::class)->createFromVoice(
+            $this->user,
+            $session,
+            $this->agent,
+            'Busque no blog a aula de inglês sobre phrasal verbs',
+            $visualization,
+            $model,
+        );
+
+        $this->assertSame(TaskStatus::QUEUED, $task->status->slug);
+        $this->assertNotNull($task->queued_at);
+        $this->assertSame($this->user->id, $task->user_id);
+        $this->assertSame($this->agent->id, $task->agent_id);
+        $this->assertSame($session->id, $task->voice_session_id);
+        $this->assertSame($visualization->id, $task->visualization_id);
+        $this->assertSame($model->id, $task->ai_model_id);
+        $this->assertNull($task->message_id);
+        $this->assertSame(1, Task::query()->where('voice_session_id', $session->id)->count());
+
+        Queue::assertPushedOn(RunTask::QUEUE, RunTask::class, fn (RunTask $job): bool => $job->task->is($task));
+        Event::assertDispatched(TaskUpdated::class);
+
+        $prompt = app(TaskService::class)->resumePrompt($task, 0);
+        $this->assertStringStartsWith('Busque no blog a aula de inglês sobre phrasal verbs', $prompt);
+        $this->assertStringContainsString('visualization.update_section', $prompt);
+    }
+
+    public function test_create_from_voice_uses_given_session_conversation_even_with_newer_session(): void
+    {
+        Queue::fake();
+
+        $given = VoiceSession::factory()->for($this->user)->create(['created_at' => now()->subMinutes(5)]);
+        $newer = VoiceSession::factory()->for($this->user)->create();
+        $closedVisualization = Visualization::factory()->for($this->user)->closed()->create();
+
+        $task = app(TaskService::class)->createFromVoice(
+            $this->user,
+            $given,
+            $this->agent,
+            str_repeat('pedido longo ', 20),
+            $closedVisualization,
+            AiModel::factory()->create(),
+        );
+
+        $this->assertSame($given->conversation_id, $task->conversation_id);
+        $this->assertNotSame($newer->conversation_id, $task->conversation_id);
+        $this->assertSame($given->id, $task->voice_session_id);
+        $this->assertNull($task->visualization_id);
+        $this->assertLessThanOrEqual(80, mb_strlen($task->title));
+    }
+
+    public function test_text_task_prompt_has_no_voice_suffix(): void
+    {
+        $task = Task::factory()->for($this->user)->create(['request' => 'Pedido comum']);
+
+        $this->assertSame('Pedido comum', app(TaskService::class)->resumePrompt($task, 0));
     }
 
     /**

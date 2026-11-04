@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\Notifications\NotificationController;
 use App\Http\Controllers\Api\V1\Preferences\PreferencesController;
 use App\Http\Controllers\Api\V1\Tasks\TaskController;
 use App\Http\Controllers\Api\V1\Voice\VoiceSessionController;
+use App\Http\Controllers\Api\V1\Voice\VoiceTaskController;
 use App\Http\Controllers\Api\V1\Voice\VoiceTurnController;
 use App\Http\Controllers\Api\V1\Voice\VoiceUsageController;
 use Illuminate\Support\Facades\Route;
@@ -102,6 +103,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::post('sessions/{voice_session}/turns', [VoiceTurnController::class, 'store'])
                 ->middleware('throttle:messages')
                 ->name('sessions.turns.store');
+            Route::post('tasks', [VoiceTaskController::class, 'store'])
+                ->middleware('throttle:messages')
+                ->name('tasks.store');
         });
 
         Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');

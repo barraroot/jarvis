@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Settings;
 use Database\Factories\VoiceSessionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -27,6 +28,13 @@ class VoiceSession extends Model
     use HasFactory;
 
     /**
+     * Minutes without activity after which the session no longer accepts voice
+     * tasks (D11): above the 960 s `RunTask` timeout plus the 300 s maximum
+     * listening window, so a window kept open by RF-04a is never rejected.
+     */
+    public const int ACTIVE_TTL_MINUTES = 30;
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -46,6 +54,23 @@ class VoiceSession extends Model
         $this->last_activity_at = now();
 
         $this->save();
+    }
+
+    /**
+     * Active ⇔ activity within the TTL and the reported tokens still below the
+     * per-session ceiling (D11, CT-02).
+     */
+    public function isActive(Settings $settings): bool
+    {
+        if ($this->last_activity_at === null) {
+            return false;
+        }
+
+        if ($this->last_activity_at->lt(now()->subMinutes(self::ACTIVE_TTL_MINUTES))) {
+            return false;
+        }
+
+        return $this->total_tokens < $settings->sessionTokenCeiling();
     }
 
     /** @return BelongsTo<User, $this> */

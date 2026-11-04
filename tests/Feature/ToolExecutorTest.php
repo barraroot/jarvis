@@ -81,7 +81,7 @@ class ToolExecutorTest extends TestCase
         $this->assertSame(ExecutionStatus::TIMED_OUT, $result->execution->status->slug);
         $this->assertNotNull($result->execution->finished_at);
 
-        Event::assertDispatched(ToolFailed::class, fn (ToolFailed $event): bool => $event->broadcastWith() === [
+        Event::assertDispatched(ToolFailed::class, fn (ToolFailed $event): bool => array_intersect_key($event->broadcastWith(), array_flip(['tool', 'execution_id', 'status'])) === [
             'tool' => 'test.slow',
             'execution_id' => $result->execution->id,
             'status' => 'timed_out',
@@ -137,13 +137,13 @@ class ToolExecutorTest extends TestCase
             'execution_status_id' => ExecutionStatus::idFor(ExecutionStatus::COMPLETED),
         ]);
 
-        Event::assertDispatched(ToolStarted::class, fn (ToolStarted $event): bool => $event->broadcastWith() === [
+        Event::assertDispatched(ToolStarted::class, fn (ToolStarted $event): bool => array_intersect_key($event->broadcastWith(), array_flip(['tool', 'execution_id', 'status'])) === [
             'tool' => 'test.echo',
             'execution_id' => $result->execution->id,
             'status' => 'running',
         ]);
 
-        Event::assertDispatched(ToolCompleted::class, fn (ToolCompleted $event): bool => $event->broadcastWith() === [
+        Event::assertDispatched(ToolCompleted::class, fn (ToolCompleted $event): bool => array_intersect_key($event->broadcastWith(), array_flip(['tool', 'execution_id', 'status'])) === [
             'tool' => 'test.echo',
             'execution_id' => $result->execution->id,
             'status' => 'completed',

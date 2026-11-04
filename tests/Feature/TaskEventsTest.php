@@ -4,11 +4,14 @@ namespace Tests\Feature;
 
 use App\Events\Task\TaskUpdated;
 use App\Models\Agent;
+use App\Models\AiModel;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Task;
 use App\Models\TaskStatus;
 use App\Models\User;
+use App\Models\Visualization;
+use App\Models\VoiceSession;
 use App\Services\TaskService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
@@ -95,5 +98,41 @@ class TaskEventsTest extends TestCase
 
             return $step['position'] === 1 && $step['name'] === 'Enviar lembretes' && $step['status'] === 'running';
         });
+    }
+
+    public function test_task_updated_includes_model_visualization_and_voice_summary(): void
+    {
+        Event::fake([TaskUpdated::class]);
+
+        $model = AiModel::factory()->create(['name' => 'GPT Tarefas']);
+        $task = Task::factory()->running()->for($this->user)->create([
+            'ai_model_id' => $model->id,
+            'voice_session_id' => VoiceSession::factory()->for($this->user),
+        ]);
+        $visualization = Visualization::factory()->for($this->user)->create(['task_id' => $task->id]);
+        $task->update(['visualization_id' => $visualization->id]);
+
+        app(TaskService::class)->broadcastUpdated($task->fresh());
+
+        Event::assertDispatched(TaskUpdated::class, function (TaskUpdated $event) use ($visualization): bool {
+            $payload = $event->broadcastWith()['task'];
+
+            return $payload['model'] === ['name' => 'GPT Tarefas']
+                && $payload['visualization_id'] === $visualization->id
+                && array_key_exists('voice_summary', $payload)
+                && $payload['voice_summary'] === null;
+        });
+
+        $task->fresh()->update([
+            'task_status_id' => TaskStatus::idFor(TaskStatus::COMPLETED),
+            'result' => ['type' => 'text', 'text' => 'Aula encontrada'],
+        ]);
+
+        app(TaskService::class)->broadcastUpdated($task->fresh());
+
+        Event::assertDispatched(TaskUpdated::class, fn (TaskUpdated $event): bool => str_starts_with(
+            (string) $event->broadcastWith()['task']['voice_summary'],
+            '<tool_result name="task" trusted="false">Aula encontrada',
+        ));
     }
 }

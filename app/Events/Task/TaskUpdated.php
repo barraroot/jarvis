@@ -36,7 +36,7 @@ class TaskUpdated implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         return [
-            'task' => TaskResource::make($this->task->load(['agent', 'status', 'steps']))->resolve(),
+            'task' => TaskResource::make($this->task->load(['agent', 'status', 'steps', 'model']))->resolve(),
         ];
     }
 }

@@ -75,6 +75,10 @@ class ToolExecutor
             'started_at' => now(),
         ]);
 
+        // The enriched `tool.*` payload (CT-03) reads these relations.
+        $tool->loadMissing(['mcpToolDefinition.server']);
+        $execution->loadMissing(['agentExecution', 'taskStep']);
+
         ToolStarted::dispatch($context->user, $tool, $execution);
 
         $startedAt = microtime(true);
