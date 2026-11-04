@@ -7,6 +7,7 @@ import {
     RealtimeTransportError,
     WebRtcTransport,
 } from '@/lib/voice/RealtimeTransport';
+import { CaptionSync } from '@/lib/voice/captions';
 import { RealtimeVoiceSession } from '@/lib/voice/RealtimeVoiceSession';
 import { TurnBuffer } from '@/lib/voice/TurnBuffer';
 import { acquireVoiceTabLock, type VoiceTabLock } from '@/lib/voice/voiceTabLock';
@@ -56,6 +57,8 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
     let countdownTimer: ReturnType<typeof setInterval> | null = null;
     let levelTimer: ReturnType<typeof setInterval> | null = null;
     let connecting = false;
+    /** Reveals the JARVIS caption word by word while the audio plays (UI-07). */
+    const captionSync = new CaptionSync();
 
     if (!(options.isSupported ?? isWebRtcSupported)()) {
         voice.markUnavailable('unsupported');
@@ -126,6 +129,10 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
             if (session !== null) {
                 voice.setLevels(session.levels());
             }
+
+            if (voice.phase === 'speaking') {
+                voice.setSpokenWordCount(captionSync.spokenCount());
+            }
         }, LEVEL_POLL_MS);
     }
 
@@ -134,13 +141,24 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
             onPhase: (phase) => {
                 voice.setPhase(phase);
 
-                if (phase === 'listening') {
+                if (phase === 'speaking') {
+                    captionSync.start();
+                } else if (phase === 'listening') {
+                    captionSync.finish();
                     voice.setSpokenWordCount(voice.assistantWords.length);
                 }
             },
             onUserCaption: (text) => voice.setUserCaption(text),
-            onAssistantStart: () => voice.setAssistantText(''),
-            onAssistantDelta: (delta) => voice.appendAssistantText(delta),
+            onAssistantStart: () => {
+                captionSync.reset();
+                voice.setAssistantText('');
+            },
+            onAssistantDelta: (delta) => {
+                const before = voice.assistantWords.length;
+
+                voice.appendAssistantText(delta);
+                captionSync.addWords(Math.max(0, voice.assistantWords.length - before));
+            },
             onTurn: (turn) => turns?.push(turn),
             onUsage: (responseId, usage) => void voice.reportUsage(responseId, usage),
             onStartTask: (call) => voice.startTask(call.request, call.followUp ? (visualizations.current?.id ?? null) : null),

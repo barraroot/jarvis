@@ -1,3 +1,4 @@
+import { useTaskTimelineStore } from '@/stores/taskTimeline';
 import { useToolsStore } from '@/stores/tools';
 import type { ToolEventPayload, ToolState } from '@/types/models';
 
@@ -10,10 +11,11 @@ export interface MessageChannel {
  * Feeds the side panel "Ferramentas" section with real `tool.*` events
  * (US-8.2): started → active, completed → idle, failed → error. The
  * enriched CT-03 payload (task, display name, input summary, output size)
- * is kept on the row for the AGENTES timeline.
+ * is kept on the row and feeds the AGENTES timeline (UI-11).
  */
 export function bindToolEvents(channel: MessageChannel): void {
     const tools = useToolsStore();
+    const timeline = useTaskTimelineStore();
 
     const apply = (payload: unknown, status: ToolState['status']): void => {
         const event = payload as Partial<ToolEventPayload> | null;
@@ -29,7 +31,16 @@ export function bindToolEvents(channel: MessageChannel): void {
         tools.upsert(enriched === undefined ? { id, name, status } : { id, name, status, event: enriched });
     };
 
-    channel.listen('.tool.started', (payload: unknown) => apply(payload, 'active'));
-    channel.listen('.tool.completed', (payload: unknown) => apply(payload, 'idle'));
-    channel.listen('.tool.failed', (payload: unknown) => apply(payload, 'error'));
+    channel.listen('.tool.started', (payload: unknown) => {
+        apply(payload, 'active');
+        timeline.applyToolEvent('started', payload);
+    });
+    channel.listen('.tool.completed', (payload: unknown) => {
+        apply(payload, 'idle');
+        timeline.applyToolEvent('completed', payload);
+    });
+    channel.listen('.tool.failed', (payload: unknown) => {
+        apply(payload, 'error');
+        timeline.applyToolEvent('failed', payload);
+    });
 }

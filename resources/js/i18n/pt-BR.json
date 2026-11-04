@@ -104,7 +104,17 @@
     "label": "Progresso"
   },
   "core": {
-    "label": "Núcleo JARVIS"
+    "label": "Núcleo JARVIS",
+    "voice": {
+      "listening": "OUVINDO",
+      "user_speaking": "OUVINDO VOCÊ",
+      "speaking": "FALANDO",
+      "sleeping": "Aguardando \"Jarvis\""
+    },
+    "mic": "MIC",
+    "output": "VOZ",
+    "micMeter": "Nível do microfone",
+    "outputMeter": "Nível da voz"
   },
   "header": {
     "sleep": "Dormir",
@@ -120,7 +130,31 @@
     "voiceDenied": "Permissão de microfone negada — libere nas configurações do navegador",
     "wakeWordActive": "Escuta contínua ativa",
     "approvals": "Aprovações pendentes",
-    "connectorsSummary": "{connected} conectados / {errors} com erro"
+    "connectorsSummary": "{connected} conectados / {errors} com erro",
+    "mute": "Mutar microfone",
+    "unmute": "Desmutar microfone",
+    "agents": "Agentes",
+    "menu": "Menu",
+    "activity": "Atividade",
+    "memories": "Memórias",
+    "shortcut": "Alt {key}",
+    "connectorsAttention": "{n} conector precisa de atenção | {n} conectores precisam de atenção",
+    "clock": "Relógio",
+    "statusLine": {
+      "listening": "Ouvindo",
+      "speaking": "Falando",
+      "user_speaking": "Você está falando…",
+      "sleeping": "Aguardando \"Jarvis\"",
+      "unavailable": "Voz indisponível",
+      "seconds": "{n}s",
+      "tasks": "{n} tarefa | {n} tarefas"
+    },
+    "unavailableReason": {
+      "no_realtime": "Nenhum modelo de voz em tempo real configurado",
+      "unsupported": "Navegador sem suporte a voz em tempo real",
+      "other_tab": "Voz ativa em outra aba",
+      "mic_denied": "Permissão de microfone negada"
+    }
   },
   "panel": {
     "core": "Núcleo",
@@ -423,6 +457,45 @@
     "iosStepConfirm": "Confirme em \"Adicionar\"."
   },
   "visualizations": {
-    "closeError": "Não foi possível fechar a visualização no servidor."
+    "closeError": "Não foi possível fechar a visualização no servidor.",
+    "label": "VISUALIZAÇÃO {time}",
+    "syncing": "SINCRONIZANDO · {source}",
+    "syncingNoSource": "SINCRONIZANDO",
+    "updated": "ATUALIZADO {time}",
+    "failed": "FALHOU",
+    "close": "Fechar visualização",
+    "best": "MELHOR RESULTADO",
+    "loading": "Carregando resultados",
+    "noResults": "Nenhum resultado",
+    "scanning": "Analisando"
+  },
+  "captions": {
+    "label": "Legendas",
+    "user": "VOCÊ",
+    "assistant": "JARVIS"
+  },
+  "agentsPanel": {
+    "title": "AGENTES",
+    "active": "{n} ATIVO",
+    "completed": "CONCLUÍDO",
+    "failed": "FALHOU",
+    "cancelled": "CANCELADO",
+    "task": "TAREFA",
+    "stop": "PARAR",
+    "stopping": "PARANDO…",
+    "empty": "Nenhuma tarefa em andamento",
+    "elapsed": "Tempo decorrido",
+    "currentItem": "Item atual",
+    "timeline": "Linha do tempo",
+    "cancelConflict": "A tarefa já terminou e não pode mais ser parada.",
+    "cancelFailed": "Não foi possível parar a tarefa. Tente novamente.",
+    "failedFallback": "A tarefa falhou."
+  },
+  "timeline": {
+    "resultReceived": "Resultado recebido {size}",
+    "toolFailed": "Falha em {tool}",
+    "bytes": "{n} B",
+    "kilobytes": "{n} KB",
+    "megabytes": "{n} MB"
   }
 }

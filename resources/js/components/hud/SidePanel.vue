@@ -15,6 +15,7 @@ import { useMemoriesStore } from '@/stores/memories';
 import { useModelsStore } from '@/stores/models';
 import { useTasksStore } from '@/stores/tasks';
 import { useToolsStore } from '@/stores/tools';
+import { useVoiceStore } from '@/stores/voice';
 
 const props = withDefaults(
     defineProps<{
@@ -29,6 +30,7 @@ const props = withDefaults(
 
 const { t, locale } = useI18n();
 const assistant = useAssistantStore();
+const voice = useVoiceStore();
 const agents = useAgentsStore();
 const tasks = useTasksStore();
 const activity = useActivityStore();
@@ -86,7 +88,15 @@ function formatDuration(durationMs: number): string {
         <!-- Section sheets (mobile agents/tasks) skip the core: it already sits on top of the screen. -->
         <HudPanel v-if="expandedSection === null" :title="t('panel.core')">
             <div class="flex items-center justify-center py-2">
-                <JarvisCore :state="assistant.state" :level="assistant.audioLevel" size="compact" />
+                <JarvisCore
+                    :state="assistant.state"
+                    :level="assistant.audioLevel"
+                    :voice-phase="voice.available ? voice.phase : null"
+                    :mic-level="voice.micLevel"
+                    :output-level="voice.outputLevel"
+                    :muted="voice.muted"
+                    size="compact"
+                />
             </div>
             <div class="mt-2 flex items-center justify-center gap-2" data-testid="panel-core-activity">
                 <span

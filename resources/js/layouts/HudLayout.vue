@@ -11,6 +11,7 @@ import JarvisCore from '@/components/hud/JarvisCore.vue';
 import SidePanel from '@/components/hud/SidePanel.vue';
 import { useAssistantStore } from '@/stores/assistant';
 import { useConnectionStore } from '@/stores/connection';
+import { useVoiceStore } from '@/stores/voice';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { usePersistentFlag } from '@/composables/usePersistentFlag';
 import { SIDEBAR_COLLAPSED_STORAGE_KEY } from '@/layouts/constants';
@@ -21,14 +22,14 @@ const props = withDefaults(
         voiceUnavailable?: boolean;
         /** The microphone is muted (RF-06). */
         muted?: boolean;
-        /** Local wake word detection is running (RF-01). */
-        wakeWordActive?: boolean;
     }>(),
-    { voiceUnavailable: false, muted: false, wakeWordActive: false },
+    { voiceUnavailable: false, muted: false },
 );
 
-/** `microphone` toggles the mute (RF-06); there is no push-to-talk anymore. */
+/** `microphone` toggles the mute (RF-06); `sleep`/`wake` drive the voice window (RF-05). */
 const emit = defineEmits<{
+    sleep: [];
+    wake: [];
     microphone: [];
     send: [payload: { content: string; source: 'text' | 'voice' }];
 }>();
@@ -38,6 +39,7 @@ const route = useRoute();
 const router = useRouter();
 const connection = useConnectionStore();
 const assistant = useAssistantStore();
+const voice = useVoiceStore();
 const { mode } = useLayoutMode();
 
 /** Sending (text, voice) is blocked while the realtime link is down. */
@@ -150,9 +152,10 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
             </button>
             <slot name="header">
                 <AppHeader
-                    :voice-unavailable="props.voiceUnavailable"
-                    :wake-word-active="props.wakeWordActive"
+                    @sleep="emit('sleep')"
+                    @wake="emit('wake')"
                     @microphone="emit('microphone')"
+                    @agents="openSection('agents')"
                     @conversations="conversationsOpen = true"
                 />
             </slot>
@@ -211,7 +214,15 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
                 data-testid="mobile-core"
             >
                 <div class="w-24">
-                    <JarvisCore :state="assistant.state" :level="assistant.audioLevel" size="compact" />
+                    <JarvisCore
+                        :state="assistant.state"
+                        :level="assistant.audioLevel"
+                        :voice-phase="voice.available ? voice.phase : null"
+                        :mic-level="voice.micLevel"
+                        :output-level="voice.outputLevel"
+                        :muted="voice.muted"
+                        size="compact"
+                    />
                 </div>
             </div>
 

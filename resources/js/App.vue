@@ -36,7 +36,6 @@ const auth = useAuthStore();
  */
 const realtimeVoice = useRealtimeVoice();
 const voice = realtimeVoice.voice;
-const wakeWordActive = realtimeVoice.wakeWord.listening;
 
 useRealtimeConnection([
     (channel) => realtimeVoice.bind(channel),
@@ -99,8 +98,9 @@ function onMicrophone(): void {
         v-if="route.meta.requiresAuth"
         :voice-unavailable="!voice.available"
         :muted="voice.muted"
-        :wake-word-active="wakeWordActive"
         @send="onSend"
+        @sleep="realtimeVoice.sleep()"
+        @wake="realtimeVoice.wake()"
         @microphone="onMicrophone"
     >
         <template #main>

@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import JarvisCore from '@/components/hud/JarvisCore.vue';
-import { MAX_PARTICLES_COMPACT, MAX_PARTICLES_FULL } from '@/components/hud/constants';
+import { CORE_BAR_MAX_LENGTH, CORE_BAR_MIN_LENGTH, MAX_PARTICLES_COMPACT, MAX_PARTICLES_FULL } from '@/components/hud/constants';
 
 const STATES = ['IDLE', 'LISTENING', 'THINKING', 'SPEAKING', 'EXECUTING', 'SLEEPING', 'ERROR', 'DISCONNECTED'] as const;
 
@@ -137,5 +137,128 @@ describe('JarvisCore', () => {
         expect(wrapper.get('[data-testid="core-scale"]').attributes('style')).toContain('scale(1.045)');
 
         wrapper.unmount();
+    });
+
+    describe('voice phases (UI-05, UI-06)', () => {
+        const VOICE = [
+            ['listening', 'core--voice-listening', 'OUVINDO'],
+            ['user_speaking', 'core--voice-user-speaking', 'OUVINDO VOCÊ'],
+            ['speaking', 'core--voice-speaking', 'FALANDO'],
+            ['sleeping', 'core--voice-sleeping', 'Aguardando "Jarvis"'],
+        ] as const;
+
+        it.each(VOICE)('applies a distinct class and the exact label for %s', (voicePhase, className, label) => {
+            const wrapper = mount(JarvisCore, { props: { state: 'IDLE', voicePhase } });
+
+            expect(wrapper.classes()).toContain(className);
+            expect(wrapper.get('[data-testid="core-label"]').text()).toBe(label);
+
+            for (const [, other] of VOICE.filter(([phase]) => phase !== voicePhase)) {
+                expect(wrapper.classes()).not.toContain(other);
+            }
+
+            wrapper.unmount();
+        });
+
+        it('keeps the status labels of faults over the voice phase', () => {
+            const wrapper = mount(JarvisCore, { props: { state: 'ERROR', voicePhase: 'listening' } });
+
+            expect(wrapper.get('[data-testid="core-label"]').text()).toBe('Erro');
+            expect(wrapper.classes()).not.toContain('core--voice-listening');
+
+            wrapper.unmount();
+        });
+
+        it('draws dotted rings while listening and radial bars only while someone speaks', async () => {
+            const wrapper = mount(JarvisCore, { props: { state: 'IDLE', voicePhase: 'listening' } });
+
+            expect(wrapper.find('[data-testid="core-dots"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="core-bars"]').exists()).toBe(false);
+
+            await wrapper.setProps({ voicePhase: 'user_speaking' });
+            expect(wrapper.find('[data-testid="core-dots"]').exists()).toBe(false);
+            expect(wrapper.find('[data-testid="core-bars"]').exists()).toBe(true);
+
+            wrapper.unmount();
+        });
+
+        it('sizes the user-speaking bars by the microphone level, minimum at 0 and maximum at 1', async () => {
+            const wrapper = mount(JarvisCore, { props: { state: 'IDLE', voicePhase: 'user_speaking', micLevel: 0, outputLevel: 1 } });
+            const lengths = () => wrapper.findAll('[data-testid="core-bar"]').map((bar) => Number(bar.attributes('data-length')));
+
+            expect(lengths().length).toBeGreaterThan(0);
+            expect(new Set(lengths())).toEqual(new Set([CORE_BAR_MIN_LENGTH]));
+
+            await wrapper.setProps({ micLevel: 1 });
+            expect(new Set(lengths())).toEqual(new Set([CORE_BAR_MAX_LENGTH]));
+
+            wrapper.unmount();
+        });
+
+        it('sizes the speaking bars by the output level', async () => {
+            const wrapper = mount(JarvisCore, { props: { state: 'IDLE', voicePhase: 'speaking', micLevel: 1, outputLevel: 0 } });
+            const first = () => Number(wrapper.get('[data-testid="core-bar"]').attributes('data-length'));
+
+            expect(first()).toBe(CORE_BAR_MIN_LENGTH);
+
+            await wrapper.setProps({ outputLevel: 1 });
+            expect(first()).toBe(CORE_BAR_MAX_LENGTH);
+
+            wrapper.unmount();
+        });
+
+        it('reflects MIC and VOZ levels 0–1 on the side meters and reads MIC as 0 when muted', async () => {
+            const wrapper = mount(JarvisCore, {
+                props: { state: 'IDLE', voicePhase: 'listening', micLevel: 0.5, outputLevel: 1.7 },
+            });
+
+            expect(wrapper.get('[data-testid="core-meter-mic"]').attributes('aria-valuenow')).toBe('0.5');
+            expect(wrapper.get('[data-testid="core-meter-mic-fill"]').attributes('style')).toContain('height: 50%');
+            expect(wrapper.get('[data-testid="core-meter-output"]').attributes('aria-valuenow')).toBe('1');
+            expect(wrapper.get('[data-testid="core-meter-output"]').text()).toContain('VOZ');
+            expect(wrapper.get('[data-testid="core-meter-mic"]').text()).toContain('MIC');
+
+            await wrapper.setProps({ muted: true, voicePhase: 'user_speaking' });
+            expect(wrapper.get('[data-testid="core-meter-mic"]').attributes('aria-valuenow')).toBe('0');
+            expect(Number(wrapper.get('[data-testid="core-bar"]').attributes('data-length'))).toBe(CORE_BAR_MIN_LENGTH);
+
+            wrapper.unmount();
+        });
+
+        it('has no meters without a voice phase', () => {
+            const wrapper = mount(JarvisCore, { props: { state: 'IDLE' } });
+
+            expect(wrapper.find('[data-testid="core-meter-mic"]').exists()).toBe(false);
+
+            wrapper.unmount();
+        });
+
+        it('applies no animation class with prefers-reduced-motion in any voice phase', async () => {
+            matchMediaStub(true);
+            const wrapper = mount(JarvisCore, { props: { state: 'IDLE', voicePhase: 'listening', micLevel: 1 } });
+
+            expect(wrapper.html()).not.toMatch(/core--animate|core__bars--animated/);
+
+            for (const voicePhase of ['user_speaking', 'speaking', 'sleeping'] as const) {
+                await wrapper.setProps({ voicePhase });
+                expect(wrapper.html(), voicePhase).not.toMatch(/core--animate|core__bars--animated/);
+            }
+
+            wrapper.unmount();
+            vi.restoreAllMocks();
+        });
+
+        it('animates the dotted rings and bars when motion is allowed', async () => {
+            matchMediaStub(false);
+            const wrapper = mount(JarvisCore, { props: { state: 'IDLE', voicePhase: 'listening' } });
+
+            expect(wrapper.get('[data-testid="core-dots"]').classes()).toContain('core--animate-dots');
+
+            await wrapper.setProps({ voicePhase: 'speaking' });
+            expect(wrapper.get('[data-testid="core-bars"]').classes()).toContain('core__bars--animated');
+
+            wrapper.unmount();
+            vi.restoreAllMocks();
+        });
     });
 });

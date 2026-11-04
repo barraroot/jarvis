@@ -1,3 +1,4 @@
+import { useTaskTimelineStore } from '@/stores/taskTimeline';
 import { useTasksStore } from '@/stores/tasks';
 import type { TaskSummary } from '@/types/models';
 
@@ -17,6 +18,7 @@ interface TaskUpdatedPayload {
  */
 export function bindTaskEvents(channel: MessageChannel): void {
     const tasks = useTasksStore();
+    const timeline = useTaskTimelineStore();
 
     channel.listen('.task.updated', (payload: unknown) => {
         const task = (payload as TaskUpdatedPayload | null)?.task;
@@ -26,5 +28,6 @@ export function bindTaskEvents(channel: MessageChannel): void {
         }
 
         tasks.applyEvent(task as TaskSummary);
+        timeline.applyTask(task);
     });
 }

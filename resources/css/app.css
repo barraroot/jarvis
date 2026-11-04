@@ -22,6 +22,7 @@
     --color-purple: #a78bfa;
     --color-amber: #fbbf24;
     --color-danger: #f87171;
+    --color-success: #34d399;
     --color-text: #cffafe;
     --color-muted: #64748b;
 
@@ -176,6 +177,58 @@
     --core-ring-dim: #334155;
     --core-nucleus: #94a3b8;
     --core-glow: rgba(71, 85, 105, 0.4);
+}
+
+/* Realtime voice variants (UI-05): blue listening, amber user speech, cyan speech. */
+.core--voice-listening {
+    --core-ring: var(--color-blue);
+    --core-nucleus: #93c5fd;
+    --core-glow: rgba(59, 130, 246, 0.6);
+}
+
+.core--voice-user-speaking {
+    --core-ring: var(--color-amber);
+    --core-nucleus: #fde68a;
+    --core-glow: rgba(251, 191, 36, 0.65);
+}
+
+.core--voice-speaking {
+    --core-ring: var(--color-cyan-bright);
+    --core-nucleus: var(--color-cyan-bright);
+    --core-glow: rgba(103, 232, 249, 0.8);
+}
+
+.core--voice-sleeping .core__stage {
+    opacity: 0.45;
+}
+
+.core__dots {
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
+.core__bars--animated .core__bar {
+    transition: y2 90ms ease-out;
+}
+
+.core__meter-fill--mic {
+    background-color: var(--color-amber);
+}
+
+.core__meter-fill--output {
+    background-color: var(--color-cyan-bright);
+}
+
+.core__meter-fill {
+    transition: height 90ms ease-out;
+}
+
+.core--reduced-motion .core__meter-fill {
+    transition: none;
+}
+
+.core--animate-dots {
+    animation: core-spin 24s linear infinite;
 }
 
 /* SLEEPING: everything drops to ~30% intensity, no particles. */

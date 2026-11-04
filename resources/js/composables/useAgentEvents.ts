@@ -1,5 +1,6 @@
 import { useActivityStore } from '@/stores/activity';
 import { useAgentsStore } from '@/stores/agents';
+import { useTaskTimelineStore } from '@/stores/taskTimeline';
 
 /** Echo-compatible channel; the real one comes from `useRealtimeConnection`. */
 export interface MessageChannel {
@@ -10,11 +11,13 @@ export interface MessageChannel {
  * Feeds the side panel with real `agent.*` events (US-7.4): started moves the
  * run into "Agentes ativos", progress updates its note, and completed/failed
  * settle it into the history with the measured duration. The terminal feed
- * also gets one line per event. No polling.
+ * also gets one line per event. Progress notes also reach the AGENTES
+ * timeline of their task (UI-11). No polling.
  */
 export function bindAgentEvents(channel: MessageChannel): void {
     const agents = useAgentsStore();
     const activity = useActivityStore();
+    const timeline = useTaskTimelineStore();
 
     const log = (payload: unknown, verb: string): void => {
         const line = entry(payload, verb);
@@ -26,10 +29,12 @@ export function bindAgentEvents(channel: MessageChannel): void {
 
     channel.listen('.agent.started', (payload: unknown) => {
         agents.start(payload);
+        timeline.linkAgent(payload);
         log(payload, 'iniciou');
     });
     channel.listen('.agent.progress', (payload: unknown) => {
         agents.progress(payload);
+        timeline.applyProgressNote(payload);
     });
     channel.listen('.agent.completed', (payload: unknown) => {
         agents.finish(payload);

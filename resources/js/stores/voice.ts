@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { translate } from '@/i18n';
 import { API_PREFIX, HttpError, http } from '@/lib/http';
+import { splitWords } from '@/lib/voice/captions';
 import { useTasksStore } from '@/stores/tasks';
 import { useToastStore } from '@/stores/toast';
 import type { RealtimeUsage, TaskStatus, TaskSummary, VoiceSessionGrant, VoiceTurn, VoiceUsageTotals } from '@/types/models';
@@ -64,6 +65,8 @@ export const useVoiceStore = defineStore('voice', () => {
     const micLevel = ref(0);
     const outputLevel = ref(0);
     const userCaption = ref('');
+    /** Raw JARVIS transcript; deltas may split a word, so words are derived from it (UI-07). */
+    const assistantText = ref('');
     const assistantWords = ref<string[]>([]);
     const spokenWordCount = ref(0);
     const voiceSessionId = ref<number | null>(null);
@@ -118,12 +121,14 @@ export const useVoiceStore = defineStore('voice', () => {
 
     /** Replaces the JARVIS caption; no word is spoken yet (UI-07). */
     function setAssistantText(text: string): void {
-        assistantWords.value = text.split(/\s+/).filter((word) => word !== '');
+        assistantText.value = text;
+        assistantWords.value = splitWords(text);
         spokenWordCount.value = 0;
     }
 
     function appendAssistantText(delta: string): void {
-        assistantWords.value = [...assistantWords.value, ...delta.split(/\s+/).filter((word) => word !== '')];
+        assistantText.value += delta;
+        assistantWords.value = splitWords(assistantText.value);
     }
 
     function setSpokenWordCount(count: number): void {
@@ -132,6 +137,7 @@ export const useVoiceStore = defineStore('voice', () => {
 
     function clearCaptions(): void {
         userCaption.value = '';
+        assistantText.value = '';
         assistantWords.value = [];
         spokenWordCount.value = 0;
     }
@@ -326,6 +332,7 @@ export const useVoiceStore = defineStore('voice', () => {
         micLevel,
         outputLevel,
         userCaption,
+        assistantText,
         assistantWords,
         spokenWordCount,
         voiceSessionId,
