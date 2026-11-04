@@ -9,12 +9,14 @@ import HudModal from '@/components/ui/HudModal.vue';
 import { LAYOUT_MEDIA_QUERIES, useLayoutMode } from '@/composables/useLayoutMode';
 import { SIDEBAR_COLLAPSED_STORAGE_KEY } from '@/layouts/constants';
 import HudLayout from '@/layouts/HudLayout.vue';
-import type { ApprovalSummary, Message } from '@/types/models';
+import { useVisualizationsStore } from '@/stores/visualizations';
+import type { ApprovalSummary, Message, Visualization } from '@/types/models';
 import { mockViewport } from '../helpers/matchMedia';
 
 const Blank = { render: () => null };
 
-async function mountLayout() {
+/** Side panel behaviour is checked on `/settings`; the `hud` route renders the stage. */
+async function mountLayout(path = '/settings') {
     const router = createRouter({
         history: createMemoryHistory(),
         routes: [
@@ -24,7 +26,7 @@ async function mountLayout() {
             { path: '/approvals', name: 'approvals', component: Blank },
         ],
     });
-    await router.push('/');
+    await router.push(path);
 
     return mount(HudLayout, { global: { plugins: [router] }, attachTo: document.body });
 }
@@ -190,6 +192,79 @@ describe('HudLayout — desktop (1280px / 1920px)', () => {
         expect(wrapper.get('[data-testid="layout-footer"]').classes()).toContain('md:pl-80');
         expect(wrapper.get('[data-testid="bottom-nav"]').classes()).toContain('md:hidden');
         expect(wrapper.find('[data-testid="mobile-core"]').exists()).toBe(false);
+
+        wrapper.unmount();
+    });
+});
+
+function makeVisualization(): Visualization {
+    return {
+        id: 4,
+        task_id: 8,
+        title: 'Pesquisa',
+        source: null,
+        status: 'updated',
+        created_at: '2026-11-04T10:00:00Z',
+        updated_at: '2026-11-04T10:00:00Z',
+        closed_at: null,
+        sections: [{ key: 'question', position: 1, label: 'PERGUNTA', type: 'question', headline: 'Pergunta' }],
+    };
+}
+
+/** Test ids of the stage children, in DOM order. */
+function stageOrder(wrapper: Awaited<ReturnType<typeof mountLayout>>): string[] {
+    return wrapper
+        .get('[data-testid="hud-stage"]')
+        .findAll('[data-testid^="hud-stage-"]')
+        .map((child) => child.attributes('data-testid') ?? '');
+}
+
+describe('HUD stage stacked on tablet/mobile (UI-09)', () => {
+    it.each([360, 768, 1024])('stacks compact core, AGENTES and VISUALIZAÇÃO at %ipx', async (width) => {
+        mockViewport(width);
+        const wrapper = await mountLayout('/');
+        const stage = () => wrapper.get('[data-testid="hud-stage"]');
+
+        expect(stage().attributes('data-stage')).toBe('stacked');
+        expect(stage().classes()).toEqual(expect.arrayContaining(['flex', 'flex-col']));
+        expect(wrapper.find('[data-testid="mobile-core"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="hud-stage-core"] [data-testid="jarvis-core"]').classes()).toContain('core--compact');
+        expect(stageOrder(wrapper)).toEqual(['hud-stage-core', 'hud-stage-agents', 'hud-stage-content']);
+
+        useVisualizationsStore().apply(makeVisualization());
+        await nextTick();
+
+        expect(stage().attributes('data-stage')).toBe('stacked');
+        expect(stageOrder(wrapper)).toEqual(['hud-stage-core', 'hud-stage-agents', 'hud-stage-visualization', 'hud-stage-content']);
+        expect(wrapper.get('[data-testid="hud-stage-visualization"]').classes()).toContain('w-full');
+
+        wrapper.unmount();
+    });
+
+    it('hides the side panel on tablet but keeps the mobile bottom sheet on the HUD', async () => {
+        const viewport = mockViewport(1024);
+        const wrapper = await mountLayout('/');
+
+        expect(wrapper.find('[data-testid="layout-sidebar"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="sidebar-toggle"]').exists()).toBe(false);
+
+        viewport.resize(360);
+        await nextTick();
+
+        await wrapper.get('[data-testid="bottom-nav-tasks"]').trigger('click');
+        expect(wrapper.get('[data-testid="layout-sidebar"]').attributes('data-sheet')).toBe('half');
+
+        wrapper.unmount();
+    });
+
+    it('switches from the stacked stage to the centered core when growing to desktop', async () => {
+        const viewport = mockViewport(1024);
+        const wrapper = await mountLayout('/');
+
+        viewport.resize(1280);
+        await nextTick();
+
+        expect(wrapper.get('[data-testid="hud-stage"]').attributes('data-stage')).toBe('center');
 
         wrapper.unmount();
     });

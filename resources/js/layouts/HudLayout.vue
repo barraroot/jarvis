@@ -4,8 +4,10 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import AppHeader from '@/components/hud/AppHeader.vue';
 import BottomNav from '@/components/hud/BottomNav.vue';
+import CaptionsBar from '@/components/hud/CaptionsBar.vue';
 import ConversationDrawer from '@/components/hud/ConversationDrawer.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
+import HudStage from '@/components/hud/HudStage.vue';
 import InteractionFooter from '@/components/hud/InteractionFooter.vue';
 import JarvisCore from '@/components/hud/JarvisCore.vue';
 import SidePanel from '@/components/hud/SidePanel.vue';
@@ -58,12 +60,21 @@ const sheetExpanded = ref(false);
 const conversationsOpen = ref(false);
 
 const isMobile = computed(() => mode.value === 'mobile');
+/**
+ * The `hud` route renders the stage (UI-09): no side panel on tablet/desktop,
+ * the core and the AGENTES/VISUALIZAÇÃO panels live in the main area. Every
+ * other route keeps the side panel layout.
+ */
+const isHudRoute = computed(() => route.name === 'hud');
+/** AGENTES drawer of the stage (`Alt+1`) while the core is centered. */
+const stageAgentsOpen = ref(false);
 const isSheet = computed(() => isMobile.value && drawerOpen.value && drawerSection.value !== null);
 
 watch(
     () => route.fullPath,
     () => {
         drawerOpen.value = false;
+        stageAgentsOpen.value = false;
     },
 );
 
@@ -85,7 +96,13 @@ const sidebarClasses = computed(() => [
         : 'z-30 bottom-0 left-0 top-14 w-[min(20rem,85vw)] border-r md:w-80',
 ]);
 
-const offsetClasses = computed(() => (sidebarCollapsed.value ? 'xl:pl-80' : 'md:pl-80'));
+const offsetClasses = computed(() => {
+    if (isHudRoute.value) {
+        return '';
+    }
+
+    return sidebarCollapsed.value ? 'xl:pl-80' : 'md:pl-80';
+});
 
 function toggleSidebar(): void {
     sidebarCollapsed.value = !sidebarCollapsed.value;
@@ -94,6 +111,17 @@ function toggleSidebar(): void {
 function toggleDrawer(): void {
     drawerOpen.value = !drawerOpen.value;
     drawerSection.value = null;
+}
+
+/** Header agents (`Alt+1`): the stage drawer on the HUD (tablet/desktop), the side panel elsewhere. */
+function onAgents(): void {
+    if (isHudRoute.value && !isMobile.value) {
+        stageAgentsOpen.value = !stageAgentsOpen.value;
+
+        return;
+    }
+
+    openSection('agents');
 }
 
 function openSection(section: 'agents' | 'tasks'): void {
@@ -141,6 +169,7 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
                 </span>
             </button>
             <button
+                v-if="!isHudRoute"
                 type="button"
                 class="hidden size-11 shrink-0 items-center justify-center rounded-sm border border-line text-cyan md:inline-flex xl:hidden"
                 :aria-label="t('nav.toggleSidebar')"
@@ -155,7 +184,7 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
                     @sleep="emit('sleep')"
                     @wake="emit('wake')"
                     @microphone="emit('microphone')"
-                    @agents="openSection('agents')"
+                    @agents="onAgents"
                     @conversations="conversationsOpen = true"
                 />
             </slot>
@@ -169,6 +198,7 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
         ></div>
 
         <aside
+            v-if="!isHudRoute || isMobile"
             class="hud-glass fixed flex-col gap-4 overflow-y-auto border-line p-4"
             :class="sidebarClasses"
             :aria-label="t('layout.sidebar')"
@@ -209,7 +239,7 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
 
             <!-- Mobile: the core moves out of the hidden side panel into a compact strip on top. -->
             <div
-                v-if="isMobile"
+                v-if="isMobile && !isHudRoute"
                 class="flex items-center justify-center border-b border-line/60 py-1"
                 data-testid="mobile-core"
             >
@@ -231,7 +261,12 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
                 :aria-label="t('layout.main')"
                 data-testid="layout-main"
             >
-                <slot name="main">
+                <HudStage v-if="isHudRoute" v-model:agents-drawer-open="stageAgentsOpen">
+                    <slot name="main">
+                        <EmptyState />
+                    </slot>
+                </HudStage>
+                <slot v-else name="main">
                     <EmptyState />
                 </slot>
             </main>
@@ -243,6 +278,9 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
             :aria-label="t('layout.footer')"
             data-testid="layout-footer"
         >
+            <!-- Live captions sit right above the text input (UI-07). -->
+            <CaptionsBar class="hud-glass border-t border-line" />
+
             <fieldset
                 class="hud-glass min-w-0 border-t border-line px-3 py-3 disabled:opacity-60 sm:px-5"
                 :disabled="sendingDisabled"

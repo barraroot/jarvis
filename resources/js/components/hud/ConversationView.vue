@@ -15,8 +15,10 @@ const props = withDefaults(
         messages?: Message[];
         /** True when the server still has older messages behind the cursor. */
         hasOlder?: boolean;
+        /** The greeting core; off on the HUD stage, which renders its own core (UI-09). */
+        showCore?: boolean;
     }>(),
-    { messages: () => [], hasOlder: false },
+    { messages: () => [], hasOlder: false, showCore: true },
 );
 
 const emit = defineEmits<{
@@ -79,7 +81,7 @@ watch(
                 <p class="max-w-md text-center font-mono text-xs text-muted">
                     {{ t('conversation.greetingHint') }}
                 </p>
-                <JarvisCore :state="assistant.state" :level="assistant.audioLevel" size="full" class="hidden lg:block" />
+                <JarvisCore v-if="props.showCore" :state="assistant.state" :level="assistant.audioLevel" size="full" class="hidden lg:block" />
             </div>
 
             <div v-else class="flex min-w-0 flex-col gap-3" data-testid="conversation-messages">

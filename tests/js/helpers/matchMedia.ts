@@ -9,7 +9,11 @@ interface MockMediaQueryList {
 }
 
 /** Evaluates the `min-width`/`max-width` clauses used by the layout queries. */
-function evaluate(query: string, width: number): boolean {
+function evaluate(query: string, width: number, reducedMotion: boolean): boolean {
+    if (query.includes('prefers-reduced-motion')) {
+        return reducedMotion;
+    }
+
     const min = /min-width:\s*([\d.]+)px/.exec(query);
     const max = /max-width:\s*([\d.]+)px/.exec(query);
 
@@ -18,9 +22,10 @@ function evaluate(query: string, width: number): boolean {
 
 /**
  * Stubs `window.matchMedia` for a viewport width; `resize()` fires `change` on every
- * query whose result flips, like a real rotation/resize.
+ * query whose result flips, like a real rotation/resize. `prefers-reduced-motion`
+ * matches only when `reducedMotion` is set.
  */
-export function mockViewport(initialWidth: number) {
+export function mockViewport(initialWidth: number, { reducedMotion = false }: { reducedMotion?: boolean } = {}) {
     let width = initialWidth;
     const lists: MockMediaQueryList[] = [];
 
@@ -31,7 +36,7 @@ export function mockViewport(initialWidth: number) {
                 media,
                 listeners: new Set<Listener>(),
                 get matches() {
-                    return evaluate(media, width);
+                    return evaluate(media, width, reducedMotion);
                 },
                 onchange: null,
                 addEventListener: (_type: string, listener: Listener) => list.listeners.add(listener),

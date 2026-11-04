@@ -21,3 +21,6 @@ export const VISUALIZATION_SCAN_MS = 700;
 /** Typing effect of the text sections (UI-12): per character, capped in total. */
 export const VISUALIZATION_TYPING_MS_PER_CHAR = 12;
 export const VISUALIZATION_TYPING_MAX_MS = 1200;
+
+/** Core move between the stage center and the top-left corner (UI-09). */
+export const HUD_STAGE_TRANSITION_MS = 600;

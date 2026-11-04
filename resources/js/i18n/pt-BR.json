@@ -38,6 +38,11 @@
     "sheetExpand": "Expandir painel",
     "sheetCollapse": "Recolher painel"
   },
+  "stage": {
+    "label": "Palco do HUD",
+    "agentsDrawer": "Painel de agentes",
+    "closeAgents": "Fechar painel de agentes"
+  },
   "pages": {
     "hud": "Painel principal",
     "conversation": "Conversa",
