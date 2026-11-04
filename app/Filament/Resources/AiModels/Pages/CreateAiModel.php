@@ -34,6 +34,7 @@ class CreateAiModel extends CreateRecord
             'provider' => $model->provider->slug,
             'is_default_text' => $model->is_default_text,
             'is_default_embedding' => $model->is_default_embedding,
+            'is_default_realtime' => $model->is_default_realtime,
             'fallback_order' => $model->fallback_order,
             'is_active' => $model->is_active,
         ]);
@@ -52,6 +53,10 @@ class CreateAiModel extends CreateRecord
 
         if (($data['is_default_embedding'] ?? false) === true) {
             AiModel::query()->where('is_default_embedding', true)->update(['is_default_embedding' => false]);
+        }
+
+        if (($data['is_default_realtime'] ?? false) === true) {
+            AiModel::query()->where('is_default_realtime', true)->update(['is_default_realtime' => false]);
         }
     }
 }

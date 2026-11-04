@@ -119,4 +119,50 @@ class SettingsPageTest extends TestCase
         // The rate limiter reads the setting dynamically: no deploy needed.
         $this->assertSame(120, Cache::get(Settings::CACHE_PREFIX.'brain.messages_per_minute')['value']);
     }
+
+    public function test_listening_window_out_of_range_is_rejected(): void
+    {
+        $this->get('/admin/settings')->assertOk()->assertSee('Janela de escuta (s)');
+
+        foreach ([10 => 'min', 301 => 'max'] as $value => $rule) {
+            Livewire::test(SettingsPage::class)
+                ->fillForm(['voice.listening_window_seconds' => $value])
+                ->call('save')
+                ->assertHasFormErrors(['voice.listening_window_seconds' => $rule]);
+        }
+
+        $this->assertSame(60, app(Settings::class)->listeningWindowSeconds());
+
+        Livewire::test(SettingsPage::class)
+            ->fillForm(['voice.listening_window_seconds' => 30])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(30, app(Settings::class)->listeningWindowSeconds());
+    }
+
+    public function test_realtime_voice_can_be_saved_and_is_audited(): void
+    {
+        Livewire::test(SettingsPage::class)
+            ->assertSchemaStateSet(['voice.realtime_voice' => 'marin'])
+            ->fillForm(['voice.realtime_voice' => 'not-a-voice'])
+            ->call('save')
+            ->assertHasFormErrors(['voice.realtime_voice']);
+
+        Livewire::test(SettingsPage::class)
+            ->fillForm(['voice.realtime_voice' => 'cedar'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('cedar', app(Settings::class)->realtimeVoice());
+
+        $log = AuditLog::query()
+            ->where('audit_action_id', AuditAction::idFor(AuditAction::SETTING_UPDATED))
+            ->where('properties->key', 'voice.realtime_voice')
+            ->sole();
+
+        $this->assertSame($this->admin->id, $log->user_id);
+        $this->assertSame('marin', $log->properties['old']);
+        $this->assertSame('cedar', $log->properties['new']);
+    }
 }

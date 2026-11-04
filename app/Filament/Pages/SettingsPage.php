@@ -6,6 +6,8 @@ use App\Filament\NavigationGroup;
 use App\Support\Settings;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Field;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -20,7 +22,8 @@ use UnitEnum;
 
 /**
  * Global limits and AI Brain parameters (US-12.2). Every key of
- * `Settings::RANGES` is editable with its range enforced; saving goes through
+ * `Settings::RANGES` is editable with its range enforced and every key of
+ * `Settings::OPTIONS` is a select of its closed list; saving goes through
  * `Settings::update()` (cache busted, `setting_updated` audited) so the new
  * values apply immediately, without deploy.
  *
@@ -68,6 +71,9 @@ class SettingsPage extends Page
         'retention.task_logs_days' => 'Retenção de logs de tarefas (dias)',
         'retention.usage_records_months' => 'Retenção de registros de consumo (meses)',
         'retention.read_notifications_days' => 'Retenção de notificações lidas (dias)',
+        'voice.listening_window_seconds' => 'Janela de escuta (s)',
+        'voice.session_token_ceiling' => 'Teto de tokens por sessão de voz',
+        'voice.realtime_voice' => 'Voz do assistente (Realtime)',
     ];
 
     /**
@@ -80,6 +86,7 @@ class SettingsPage extends Page
         'memory' => 'Memória',
         'connector' => 'Conectores',
         'retention' => 'Retenção de dados',
+        'voice' => 'Voz (Realtime)',
     ];
 
     public function mount(): void
@@ -87,7 +94,7 @@ class SettingsPage extends Page
         $settings = app(Settings::class);
         $values = [];
 
-        foreach (array_keys(Settings::RANGES) as $key) {
+        foreach (self::settingKeys() as $key) {
             $values[$key] = $settings->get($key);
         }
 
@@ -101,9 +108,11 @@ class SettingsPage extends Page
             ->components(collect(self::SECTIONS)
                 ->map(fn (string $title, string $prefix): Section => Section::make($title)
                     ->columns(2)
-                    ->schema(collect(Settings::RANGES)
-                        ->filter(fn (array $range, string $key): bool => str_starts_with($key, $prefix.'.'))
-                        ->map(fn (array $range, string $key): TextInput => $this->field($key, $range))
+                    ->schema(collect(self::settingKeys())
+                        ->filter(fn (string $key): bool => str_starts_with($key, $prefix.'.'))
+                        ->map(fn (string $key): Field => array_key_exists($key, Settings::OPTIONS)
+                            ? $this->optionField($key, Settings::OPTIONS[$key])
+                            : $this->field($key, Settings::RANGES[$key]))
                         ->values()
                         ->all()))
                 ->values()
@@ -133,7 +142,7 @@ class SettingsPage extends Page
         $values = Arr::dot($this->form->getState());
 
         $changed = app(Settings::class)->update(
-            Arr::only($values, array_keys(Settings::RANGES)),
+            Arr::only($values, self::settingKeys()),
             auth()->user(),
         );
 
@@ -141,6 +150,29 @@ class SettingsPage extends Page
             ->success()
             ->title($changed === [] ? 'Nenhuma alteração' : 'Configurações salvas')
             ->send();
+    }
+
+    /**
+     * Every editable setting key: numeric ranges followed by closed option lists.
+     *
+     * @return list<string>
+     */
+    private static function settingKeys(): array
+    {
+        return [...array_keys(Settings::RANGES), ...array_keys(Settings::OPTIONS)];
+    }
+
+    /**
+     * @param  list<string>  $options
+     */
+    private function optionField(string $key, array $options): Select
+    {
+        return Select::make($key)
+            ->label(self::LABELS[$key] ?? $key)
+            ->required()
+            ->native(false)
+            ->options(array_combine($options, $options))
+            ->in($options);
     }
 
     /**

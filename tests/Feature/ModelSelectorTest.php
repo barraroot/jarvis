@@ -6,6 +6,7 @@ use App\Exceptions\NoModelAvailableException;
 use App\Models\Agent;
 use App\Models\AiModel;
 use App\Models\AiProvider;
+use App\Models\AiProviderDriver;
 use App\Models\Conversation;
 use App\Services\ModelSelector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -80,5 +81,39 @@ class ModelSelectorTest extends TestCase
         $selected = app(ModelSelector::class)->embeddingModel();
 
         $this->assertTrue($selected->is($embedding));
+    }
+
+    public function test_default_realtime_model_ignores_inactive_provider(): void
+    {
+        $realtime = AiModel::factory()->defaultRealtime()->for($this->provider, 'provider')->create();
+
+        $selected = app(ModelSelector::class)->defaultRealtimeModel();
+
+        $this->assertNotNull($selected);
+        $this->assertTrue($selected->is($realtime));
+        $this->assertTrue($selected->relationLoaded('provider'));
+        $this->assertTrue($selected->provider->relationLoaded('driver'));
+
+        $this->provider->update(['is_active' => false]);
+
+        $this->assertNull(app(ModelSelector::class)->defaultRealtimeModel());
+    }
+
+    public function test_default_realtime_model_requires_openai_driver_active_model_and_capability(): void
+    {
+        $anthropic = AiProvider::factory()->driver(AiProviderDriver::ANTHROPIC)->create();
+        AiModel::factory()->defaultRealtime()->for($anthropic, 'provider')->create();
+
+        $this->assertNull(app(ModelSelector::class)->defaultRealtimeModel());
+
+        AiModel::query()->update(['is_default_realtime' => false]);
+        AiModel::factory()->defaultRealtime()->inactive()->for($this->provider, 'provider')->create();
+
+        $this->assertNull(app(ModelSelector::class)->defaultRealtimeModel());
+
+        AiModel::query()->update(['is_default_realtime' => false]);
+        AiModel::factory()->defaultText()->for($this->provider, 'provider')->create(['is_default_realtime' => true]);
+
+        $this->assertNull(app(ModelSelector::class)->defaultRealtimeModel());
     }
 }

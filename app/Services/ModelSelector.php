@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\NoModelAvailableException;
 use App\Models\Agent;
 use App\Models\AiModel;
+use App\Models\AiProviderDriver;
 use App\Models\Conversation;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -65,6 +66,23 @@ class ModelSelector
             ->text()
             ->where('is_default_text', true)
             ->whereHas('provider', fn (Builder $query) => $query->active())
+            ->first();
+    }
+
+    /**
+     * Default model for OpenAI Realtime voice sessions (RF-09a): active, with the
+     * `realtime` capability and served by an active provider using the OpenAI driver.
+     */
+    public function defaultRealtimeModel(): ?AiModel
+    {
+        return AiModel::query()
+            ->with('provider.driver')
+            ->active()
+            ->realtime()
+            ->where('is_default_realtime', true)
+            ->whereHas('provider', fn (Builder $query) => $query
+                ->active()
+                ->whereHas('driver', fn (Builder $driver) => $driver->where('slug', AiProviderDriver::OPENAI)))
             ->first();
     }
 }

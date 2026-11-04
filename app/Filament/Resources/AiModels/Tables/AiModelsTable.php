@@ -41,6 +41,9 @@ class AiModelsTable
                 IconColumn::make('is_default_embedding')
                     ->label('Padrão embeddings')
                     ->boolean(),
+                IconColumn::make('is_default_realtime')
+                    ->label('Padrão voz')
+                    ->boolean(),
                 TextColumn::make('fallback_order')
                     ->label('Fallback')
                     ->placeholder('—')
@@ -54,6 +57,8 @@ class AiModelsTable
                     ->label('Ativo'),
                 TernaryFilter::make('is_default_text')
                     ->label('Padrão de texto'),
+                TernaryFilter::make('is_default_realtime')
+                    ->label('Padrão de voz (Realtime)'),
                 TrashedFilter::make(),
             ])
             ->recordActions([

@@ -71,5 +71,9 @@ class EditAiModel extends EditRecord
         if (($data['is_default_embedding'] ?? false) === true) {
             AiModel::query()->whereKeyNot($record->getKey())->where('is_default_embedding', true)->update(['is_default_embedding' => false]);
         }
+
+        if (($data['is_default_realtime'] ?? false) === true) {
+            AiModel::query()->whereKeyNot($record->getKey())->where('is_default_realtime', true)->update(['is_default_realtime' => false]);
+        }
     }
 }

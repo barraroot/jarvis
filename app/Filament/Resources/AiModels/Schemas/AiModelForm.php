@@ -91,6 +91,11 @@ class AiModelForm
                             ->helperText('Ao marcar, o padrão anterior é desmarcado automaticamente.')
                             ->default(false)
                             ->rule(self::requiresCapabilityRule(AiModelCapability::EMBEDDINGS, 'embeddings')),
+                        Toggle::make('is_default_realtime')
+                            ->label('Padrão de voz (Realtime)')
+                            ->helperText('Ao marcar, o padrão anterior é desmarcado automaticamente.')
+                            ->default(false)
+                            ->rule(self::requiresCapabilityRule(AiModelCapability::REALTIME, 'realtime')),
                         Toggle::make('is_active')
                             ->label('Ativo')
                             ->default(true),
