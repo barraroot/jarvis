@@ -3,37 +3,28 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import HudButton from '@/components/ui/HudButton.vue';
 import HudTextarea from '@/components/ui/HudTextarea.vue';
-import Waveform from '@/components/ui/Waveform.vue';
 import { MESSAGE_COUNTER_THRESHOLD, MESSAGE_MAX_CHARS, MESSAGE_MAX_LINES } from '@/components/hud/constants';
-import { useAssistantStore } from '@/stores/assistant';
 import { useConnectionStore } from '@/stores/connection';
 
 const props = withDefaults(
     defineProps<{
         /** True when the layout blocks sending (e.g. realtime link down). */
         disabled?: boolean;
-        /** Live transcription shown while the core is LISTENING (US-4.1). */
-        voicePartial?: string;
-        /** Microphone permission denied; the voice button gets a tooltip. */
-        voiceBlocked?: boolean;
-        /** The core is SPEAKING; renders the speech controls (US-4.2). */
-        speaking?: boolean;
+        /** The microphone is muted for the voice session and the wake word (RF-06). */
+        muted?: boolean;
+        /** Voice runs text-only (RF-08a); the mute button is disabled. */
+        voiceUnavailable?: boolean;
     }>(),
-    { disabled: false, voicePartial: '', voiceBlocked: false, speaking: false },
+    { disabled: false, muted: false, voiceUnavailable: false },
 );
 
 const emit = defineEmits<{
     send: [payload: { content: string; source: 'text' | 'voice' }];
-    voice: [];
-    interrupt: [];
-    pauseSpeech: [];
-    resumeSpeech: [];
-    stopSpeech: [];
+    mute: [];
     command: [payload: { type: 'new' | 'remember' | 'tasks' | 'memories' }];
 }>();
 
 const { t } = useI18n();
-const assistant = useAssistantStore();
 const connection = useConnectionStore();
 
 const text = ref('');
@@ -43,19 +34,6 @@ const rootRef = ref<HTMLDivElement | null>(null);
 function focusComposer(): void {
     rootRef.value?.querySelector<HTMLTextAreaElement>('textarea')?.focus();
 }
-
-const voiceSupported =
-    typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
-
-const capturing = computed(() => assistant.state === 'LISTENING' || assistant.state === 'SPEAKING');
-
-const voiceTooltip = computed(() => {
-    if (props.voiceBlocked) {
-        return t('footer.voiceDenied');
-    }
-
-    return voiceSupported ? undefined : t('footer.voiceUnsupported');
-});
 
 const blocked = computed(() => props.disabled || connection.isDisconnected);
 
@@ -84,28 +62,13 @@ function submit(): void {
     commandsOpen.value = false;
 }
 
-/** True when the event target is an editable field where Tab keeps its native behaviour (US-4.1). */
-function isEditableTarget(target: EventTarget | null): boolean {
-    const element = target as HTMLElement | null;
+const muteLabel = computed(() => (props.muted ? t('footer.unmute') : t('footer.mute')));
 
-    if (element === null) {
-        return false;
-    }
-
-    return element.isContentEditable || element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.tagName === 'SELECT';
-}
+const muteTooltip = computed(() => (props.voiceUnavailable ? t('footer.voiceUnavailable') : undefined));
 
 function onKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Tab' && !isEditableTarget(event.target)) {
-        event.preventDefault();
-        emit('voice');
-
-        return;
-    }
-
     if (event.key === 'Escape') {
         commandsOpen.value = false;
-        emit('interrupt');
 
         return;
     }
@@ -157,28 +120,6 @@ const commands = computed(() => [
             {{ t('footer.offline') }}
         </p>
 
-        <div v-if="capturing" class="mx-auto flex w-full max-w-md flex-col items-center gap-1" data-testid="footer-capture">
-            <Waveform :level="assistant.audioLevel" />
-            <p
-                v-if="assistant.state === 'LISTENING' && voicePartial.trim() !== ''"
-                class="hud-label w-full truncate text-center font-mono text-[0.65rem] text-cyan-bright"
-                data-testid="footer-partial"
-            >
-                {{ voicePartial }}
-            </p>
-            <div v-if="props.speaking" class="flex items-center gap-1" data-testid="footer-speech-controls">
-                <HudButton variant="ghost" :aria-label="t('footer.speechPause')" data-testid="footer-speech-pause" @click="emit('pauseSpeech')">
-                    {{ t('footer.speechPause') }}
-                </HudButton>
-                <HudButton variant="ghost" :aria-label="t('footer.speechResume')" data-testid="footer-speech-resume" @click="emit('resumeSpeech')">
-                    {{ t('footer.speechResume') }}
-                </HudButton>
-                <HudButton variant="danger" :aria-label="t('footer.speechStop')" data-testid="footer-speech-stop" @click="emit('stopSpeech')">
-                    {{ t('footer.speechStop') }}
-                </HudButton>
-            </div>
-        </div>
-
         <div class="flex min-w-0 items-end gap-2">
             <div class="min-w-0 flex-1">
                 <HudTextarea
@@ -205,17 +146,18 @@ const commands = computed(() => [
 
             <HudButton
                 variant="ghost"
-                :disabled="!voiceSupported || props.voiceBlocked || blocked"
-                :title="voiceTooltip"
-                :aria-label="t('footer.voice')"
-                :aria-pressed="capturing"
-                data-testid="footer-voice"
-                @click="emit('voice')"
+                :disabled="props.voiceUnavailable"
+                :title="muteTooltip"
+                :aria-label="muteLabel"
+                :aria-pressed="props.muted"
+                data-testid="footer-mute"
+                @click="emit('mute')"
             >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4" aria-hidden="true">
                     <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
                     <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                     <line x1="12" x2="12" y1="19" y2="22" />
+                    <line v-if="props.muted" x1="3" x2="21" y1="3" y2="21" />
                 </svg>
             </HudButton>
         </div>
@@ -232,14 +174,6 @@ const commands = computed(() => [
 
             <div class="hidden items-center gap-3 font-mono text-[0.6rem] text-muted sm:flex" data-testid="footer-shortcuts">
                 <span class="hud-label">{{ t('footer.shortcuts') }}</span>
-                <span class="flex items-center gap-1">
-                    <kbd class="rounded-sm border border-line px-1">{{ t('footer.keyVoice') }}</kbd>
-                    {{ t('footer.shortcutVoice') }}
-                </span>
-                <span class="flex items-center gap-1">
-                    <kbd class="rounded-sm border border-line px-1">{{ t('footer.keyInterrupt') }}</kbd>
-                    {{ t('footer.shortcutInterrupt') }}
-                </span>
                 <span class="flex items-center gap-1">
                     <kbd class="rounded-sm border border-line px-1">{{ t('footer.keyCommands') }}</kbd>
                     {{ t('footer.shortcutCommands') }}

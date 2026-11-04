@@ -14,18 +14,15 @@ const props = withDefaults(
     defineProps<{
         /** Microphone permission denied; the mic buttons get a tooltip. */
         voiceUnavailable?: boolean;
-        /** Continuous wake word recognition is running (US-4.4). */
+        /** Local wake word detection is running (RF-01). */
         wakeWordActive?: boolean;
-        /** "Resposta falada" is enabled (US-4.2). */
-        spokenResponsesEnabled?: boolean;
     }>(),
-    { voiceUnavailable: false, wakeWordActive: false, spokenResponsesEnabled: true },
+    { voiceUnavailable: false, wakeWordActive: false },
 );
 
 const emit = defineEmits<{
     microphone: [];
     conversations: [];
-    toggleSpoken: [];
 }>();
 
 const { t } = useI18n();
@@ -46,10 +43,6 @@ const micTooltip = computed(() => {
 
     return voiceSupported ? undefined : t('header.voiceUnsupported');
 });
-
-const spokenLabel = computed(() =>
-    props.spokenResponsesEnabled ? t('header.spokenResponsesOn') : t('header.spokenResponsesOff'),
-);
 
 const hasConnectors = computed(() => connectors.connectedCount > 0 || connectors.errorCount > 0);
 /** "n conectados / m com erro" (US-9.4). */
@@ -170,21 +163,6 @@ onBeforeUnmount(() => {
                 </svg>
             </button>
 
-            <button
-                type="button"
-                class="inline-flex size-11 items-center xl:size-9 justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
-                :class="props.spokenResponsesEnabled ? 'text-cyan-bright' : 'opacity-50'"
-                :aria-label="spokenLabel"
-                :aria-pressed="props.spokenResponsesEnabled"
-                data-testid="header-spoken"
-                @click="emit('toggleSpoken')"
-            >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4" aria-hidden="true">
-                    <path d="M11 5 6 9H2v6h4l5 4V5z" />
-                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-                </svg>
-            </button>
 
             <button
                 type="button"
@@ -338,14 +316,6 @@ onBeforeUnmount(() => {
                     @click="toggleSleep"
                 >
                     {{ isSleeping ? t('header.wake') : t('header.sleep') }}
-                </button>
-                <button
-                    type="button"
-                    class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
-                    data-testid="header-more-spoken"
-                    @click="emit('toggleSpoken'); closeMenus()"
-                >
-                    {{ t('header.spokenResponses') }}
                 </button>
                 <button
                     type="button"

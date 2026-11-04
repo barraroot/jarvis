@@ -1,15 +1,11 @@
 import { mount } from '@vue/test-utils';
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import InteractionFooter from '@/components/hud/InteractionFooter.vue';
 import { MESSAGE_COUNTER_THRESHOLD } from '@/components/hud/constants';
 import { useConnectionStore } from '@/stores/connection';
 
-afterEach(() => {
-    delete (window as unknown as Record<string, unknown>).SpeechRecognition;
-});
-
-function mountFooter() {
-    return mount(InteractionFooter);
+function mountFooter(props: Record<string, unknown> = {}) {
+    return mount(InteractionFooter, { props });
 }
 
 async function typeText(wrapper: ReturnType<typeof mountFooter>, text: string) {
@@ -21,7 +17,7 @@ describe('InteractionFooter', () => {
     it('renders the translated placeholder and sends on Enter', async () => {
         const wrapper = mountFooter();
 
-        expect(wrapper.find('textarea').attributes('placeholder')).toBe('Digite, ou pressione Tab para falar…');
+        expect(wrapper.find('textarea').attributes('placeholder')).toBe('Digite sua mensagem…');
 
         await typeText(wrapper, '  olá  ');
         await wrapper.trigger('keydown', { key: 'Enter' });
@@ -57,38 +53,47 @@ describe('InteractionFooter', () => {
         wrapper.unmount();
     });
 
-    it('disables the voice button without speech recognition support', () => {
+    it('the microphone button mutes instead of starting push-to-talk', async () => {
         const wrapper = mountFooter();
+        const button = wrapper.get('[data-testid="footer-mute"]');
 
-        expect(wrapper.get('[data-testid="footer-voice"]').attributes('disabled')).toBeDefined();
-        expect(wrapper.get('[data-testid="footer-voice"]').attributes('title')).toContain('não suportada');
+        expect(button.attributes('aria-label')).toBe('Mutar microfone');
+        expect(button.attributes('aria-pressed')).toBe('false');
+
+        await button.trigger('click');
+        expect(wrapper.emitted('mute')).toHaveLength(1);
+
+        await wrapper.setProps({ muted: true });
+        expect(wrapper.get('[data-testid="footer-mute"]').attributes('aria-label')).toBe('Desmutar microfone');
+        expect(wrapper.get('[data-testid="footer-mute"]').attributes('aria-pressed')).toBe('true');
 
         wrapper.unmount();
     });
 
-    it('maps Tab to voice and Escape to interrupt', async () => {
-        Object.defineProperty(window, 'SpeechRecognition', { configurable: true, value: class {} });
-        const wrapper = mountFooter();
+    it('disables the microphone button while voice is unavailable, keeping text chat', async () => {
+        const wrapper = mountFooter({ voiceUnavailable: true });
 
-        await wrapper.trigger('keydown', { key: 'Tab' });
-        expect(wrapper.emitted('voice')).toHaveLength(1);
+        expect(wrapper.get('[data-testid="footer-mute"]').attributes('disabled')).toBeDefined();
+        expect(wrapper.get('[data-testid="footer-mute"]').attributes('title')).toBe('Voz indisponível');
 
-        await wrapper.trigger('keydown', { key: 'Escape' });
-        expect(wrapper.emitted('interrupt')).toHaveLength(1);
+        await typeText(wrapper, 'oi');
+        await wrapper.trigger('keydown', { key: 'Enter' });
+        expect(wrapper.emitted('send')).toEqual([[{ content: 'oi', source: 'text' }]]);
 
         wrapper.unmount();
     });
 
-    it('keeps native Tab behaviour inside the composer instead of triggering voice', async () => {
-        Object.defineProperty(window, 'SpeechRecognition', { configurable: true, value: class {} });
+    it('has no push-to-talk: Tab keeps its native behaviour and no capture or speech controls render', async () => {
         const wrapper = mountFooter();
 
         const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
-        wrapper.find('textarea').element.dispatchEvent(event);
+        wrapper.element.dispatchEvent(event);
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.emitted('voice')).toBeUndefined();
         expect(event.defaultPrevented).toBe(false);
+        expect(wrapper.emitted('voice')).toBeUndefined();
+        expect(wrapper.find('[data-testid="footer-capture"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="footer-speech-controls"]').exists()).toBe(false);
 
         wrapper.unmount();
     });
@@ -107,19 +112,6 @@ describe('InteractionFooter', () => {
         await wrapper.get('[data-testid="footer-commands-toggle"]').trigger('click');
         await wrapper.get('[data-testid="footer-command-new"]').trigger('click');
         expect(wrapper.emitted('command')).toEqual([[{ type: 'new' }]]);
-
-        wrapper.unmount();
-    });
-
-    it('shows the capture waveform while LISTENING or SPEAKING', async () => {
-        const wrapper = mountFooter();
-
-        expect(wrapper.find('[data-testid="footer-capture"]').exists()).toBe(false);
-
-        const { useAssistantStore } = await import('@/stores/assistant');
-        useAssistantStore().setState('LISTENING');
-        await wrapper.vm.$nextTick();
-        expect(wrapper.find('[data-testid="footer-capture"]').exists()).toBe(true);
 
         wrapper.unmount();
     });

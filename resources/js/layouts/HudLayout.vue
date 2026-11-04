@@ -17,29 +17,20 @@ import { SIDEBAR_COLLAPSED_STORAGE_KEY } from '@/layouts/constants';
 
 const props = withDefaults(
     defineProps<{
-        /** Live voice transcription shown in the footer (US-4.1). */
-        voicePartial?: string;
-        /** Microphone permission denied; voice controls get a tooltip. */
-        voiceBlocked?: boolean;
-        /** The core is SPEAKING; renders the footer speech controls (US-4.2). */
-        speaking?: boolean;
-        /** Continuous wake word recognition is running (US-4.4). */
+        /** Voice runs text-only (RF-08a); the microphone controls are disabled. */
+        voiceUnavailable?: boolean;
+        /** The microphone is muted (RF-06). */
+        muted?: boolean;
+        /** Local wake word detection is running (RF-01). */
         wakeWordActive?: boolean;
-        /** "Resposta falada" is enabled (US-4.2). */
-        spokenResponsesEnabled?: boolean;
     }>(),
-    { voicePartial: '', voiceBlocked: false, speaking: false, wakeWordActive: false, spokenResponsesEnabled: true },
+    { voiceUnavailable: false, muted: false, wakeWordActive: false },
 );
 
+/** `microphone` toggles the mute (RF-06); there is no push-to-talk anymore. */
 const emit = defineEmits<{
     microphone: [];
     send: [payload: { content: string; source: 'text' | 'voice' }];
-    voice: [];
-    interrupt: [];
-    toggleSpoken: [];
-    pauseSpeech: [];
-    resumeSpeech: [];
-    stopSpeech: [];
 }>();
 
 const { t } = useI18n();
@@ -159,12 +150,10 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
             </button>
             <slot name="header">
                 <AppHeader
-                    :voice-unavailable="props.voiceBlocked"
+                    :voice-unavailable="props.voiceUnavailable"
                     :wake-word-active="props.wakeWordActive"
-                    :spoken-responses-enabled="props.spokenResponsesEnabled"
                     @microphone="emit('microphone')"
                     @conversations="conversationsOpen = true"
-                    @toggle-spoken="emit('toggleSpoken')"
                 />
             </slot>
         </header>
@@ -251,15 +240,10 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
                 <slot name="footer" :sending-disabled="sendingDisabled">
                     <InteractionFooter
                         :disabled="sendingDisabled"
-                        :voice-partial="props.voicePartial"
-                        :voice-blocked="props.voiceBlocked"
-                        :speaking="props.speaking"
+                        :muted="props.muted"
+                        :voice-unavailable="props.voiceUnavailable"
                         @send="emit('send', $event)"
-                        @voice="emit('voice')"
-                        @interrupt="emit('interrupt')"
-                        @pause-speech="emit('pauseSpeech')"
-                        @resume-speech="emit('resumeSpeech')"
-                        @stop-speech="emit('stopSpeech')"
+                        @mute="emit('microphone')"
                         @command="onCommand"
                     />
                 </slot>

@@ -1,11 +1,5 @@
 import { useToolsStore } from '@/stores/tools';
-import type { ToolState } from '@/types/models';
-
-interface ToolEventPayload {
-    tool?: unknown;
-    execution_id?: unknown;
-    status?: unknown;
-}
+import type { ToolEventPayload, ToolState } from '@/types/models';
 
 /** Echo-compatible channel; the real one comes from `useRealtimeConnection`. */
 export interface MessageChannel {
@@ -14,13 +8,15 @@ export interface MessageChannel {
 
 /**
  * Feeds the side panel "Ferramentas" section with real `tool.*` events
- * (US-8.2): started → active, completed → idle, failed → error.
+ * (US-8.2): started → active, completed → idle, failed → error. The
+ * enriched CT-03 payload (task, display name, input summary, output size)
+ * is kept on the row for the AGENTES timeline.
  */
 export function bindToolEvents(channel: MessageChannel): void {
     const tools = useToolsStore();
 
     const apply = (payload: unknown, status: ToolState['status']): void => {
-        const event = payload as ToolEventPayload | null;
+        const event = payload as Partial<ToolEventPayload> | null;
         const id = String(event?.execution_id ?? '');
         const name = typeof event?.tool === 'string' ? event.tool : '';
 
@@ -28,7 +24,9 @@ export function bindToolEvents(channel: MessageChannel): void {
             return;
         }
 
-        tools.upsert({ id, name, status });
+        const enriched = typeof event?.display_name === 'string' ? (event as ToolEventPayload) : undefined;
+
+        tools.upsert(enriched === undefined ? { id, name, status } : { id, name, status, event: enriched });
     };
 
     channel.listen('.tool.started', (payload: unknown) => apply(payload, 'active'));

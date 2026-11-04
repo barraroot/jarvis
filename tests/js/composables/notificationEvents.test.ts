@@ -71,6 +71,7 @@ describe('bindNotificationEvents', () => {
             spoken_responses_enabled: true,
             wake_word_enabled: false,
             wake_word_consented_at: null,
+            wake_word_consent_valid: false,
             silence_timeout_ms: 1500,
             extra: { toasts: false },
         };

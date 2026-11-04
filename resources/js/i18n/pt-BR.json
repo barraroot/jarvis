@@ -118,9 +118,6 @@
     "userMenu": "Menu do usuário",
     "voiceUnsupported": "Reconhecimento de voz não suportado neste navegador",
     "voiceDenied": "Permissão de microfone negada — libere nas configurações do navegador",
-    "spokenResponses": "Resposta falada",
-    "spokenResponsesOn": "Desativar resposta falada",
-    "spokenResponsesOff": "Ativar resposta falada",
     "wakeWordActive": "Escuta contínua ativa",
     "approvals": "Aprovações pendentes",
     "connectorsSummary": "{connected} conectados / {errors} com erro"
@@ -186,31 +183,23 @@
     "chooseError": "Modelo indisponível — ele pode ter sido desativado. Escolha outro."
   },
   "footer": {
-    "placeholder": "Digite, ou pressione Tab para falar…",
+    "placeholder": "Digite sua mensagem…",
     "send": "Enviar",
-    "voice": "Falar",
-    "stop": "Interromper",
-    "voiceUnsupported": "Voz não suportada neste navegador",
-    "voiceDenied": "Permissão de microfone negada",
-    "speechPause": "Pausar fala",
-    "speechResume": "Retomar fala",
-    "speechStop": "Parar fala",
     "characterCount": "{count}/{limit}",
     "limitReached": "Limite de 8.000 caracteres",
     "offline": "Sem conexão — envio desativado",
     "shortcuts": "Atalhos",
-    "shortcutVoice": "falar",
-    "shortcutInterrupt": "interromper",
     "shortcutCommands": "comandos",
-    "keyVoice": "Tab",
-    "keyInterrupt": "Esc",
     "keyCommands": "/",
     "commands": "Comandos rápidos",
     "commandsOpen": "Abrir comandos rápidos",
     "commandNew": "nova",
     "commandRemember": "lembrar",
     "commandTasks": "tarefas",
-    "commandMemories": "memorias"
+    "commandMemories": "memorias",
+    "mute": "Mutar microfone",
+    "unmute": "Desmutar microfone",
+    "voiceUnavailable": "Voz indisponível"
   },
   "memories": {
     "title": "Memórias",
@@ -276,34 +265,45 @@
   },
   "voice": {
     "permissionDenied": "Permissão de microfone negada — a voz foi desativada.",
-    "captureError": "Não foi possível capturar o áudio.",
-    "testPhrase": "Saudações, sou o J.A.R.V.I.S., seu sistema pessoal de inteligência."
+    "errors": {
+      "sessionFailed": "Não foi possível iniciar a sessão de voz.",
+      "realtimeUnavailable": "A voz está indisponível: nenhum modelo Realtime está configurado. Use o chat por texto.",
+      "costLimit": "Limite mensal de custo atingido: a voz está pausada.",
+      "tooManyRequests": "Muitas sessões de voz em pouco tempo. Aguarde {seconds} s.",
+      "providerFailed": "O provedor de voz não respondeu. Tente novamente em instantes.",
+      "sessionInactive": "A sessão de voz expirou. Diga \"Jarvis\" novamente para iniciar uma nova sessão.",
+      "taskFailed": "Não foi possível iniciar a tarefa por voz.",
+      "usageCeiling": "O limite de uso desta sessão de voz foi atingido.",
+      "unsupported": "Este navegador não suporta voz em tempo real. Use o chat por texto.",
+      "connectionFailed": "Não foi possível conectar a voz. Tente novamente."
+    },
+    "greeting": "Pode falar.",
+    "approvalPending": "A tarefa \"{title}\" está aguardando sua aprovação.",
+    "taskStatus": {
+      "completed": "Tarefa concluída: {title}",
+      "failed": "A tarefa falhou: {title}",
+      "cancelled": "Tarefa cancelada: {title}"
+    }
   },
   "settings": {
     "title": "Voz e idioma",
     "locale": "Idioma da interface",
     "localeHint": "Aplicado imediatamente.",
     "speechLocale": "Idioma de voz",
-    "voice": "Voz",
-    "voiceNone": "Nenhuma voz encontrada para este idioma",
-    "speechRate": "Velocidade da fala",
-    "silenceTimeout": "Tempo de silêncio",
-    "silenceTimeoutHint": "Encerra a captura após este período sem fala.",
-    "spokenResponses": "Resposta falada",
-    "spokenResponsesHint": "Ler as respostas em voz alta.",
-    "wakeWord": "Wake word \"Hey JARVIS\"",
-    "wakeWordHint": "Escuta contínua enquanto a aba estiver aberta.",
+    "wakeWord": "Palavra de ativação \"Jarvis\"",
+    "wakeWordHint": "Diga \"Jarvis\", \"Hey Jarvis\" ou \"Ei Jarvis\" para abrir a janela de escuta.",
     "wakeWordUnsupported": "Este navegador não suporta reconhecimento de fala.",
-    "wakeWordConsentTitle": "Privacidade do wake word",
-    "wakeWordConsentBody": "O reconhecimento contínuo usa a API de fala do navegador e pode enviar áudio para os servidores do fornecedor do navegador. O JARVIS não recebe nenhum áudio — apenas o texto transcrito.",
+    "wakeWordConsentTitle": "Privacidade da voz",
+    "wakeWordConsentBody": "A palavra de ativação \"Jarvis\" é detectada localmente, no navegador, pela API de fala do navegador. Somente depois da detecção — e apenas durante a janela de escuta — o áudio do microfone é enviado à OpenAI para a conversa por voz. Fora da janela, nenhum áudio é enviado à OpenAI.",
     "wakeWordConsentConfirm": "Aceito e ativar",
     "wakeWordConsentCancel": "Cancelar",
-    "wakeWordConsentRequired": "Ativar o wake word exige aceitar o aviso de privacidade.",
-    "testVoice": "Testar voz",
+    "wakeWordConsentRequired": "Ativar a palavra de ativação exige aceitar o termo de privacidade da voz.",
     "save": "Salvar preferências",
     "saved": "Preferências salvas.",
     "saveFailed": "Não foi possível salvar as preferências.",
-    "silenceTimeoutValue": "{ms} ms"
+    "wakeWordReconsentTitle": "Novo termo de privacidade da voz",
+    "wakeWordReconsentBody": "O termo de privacidade da voz mudou: aceite o novo texto para reativar a palavra de ativação.",
+    "wakeWordReconsentAction": "Revisar termo"
   },
   "approval": {
     "title": "Aprovação necessária",
@@ -421,5 +421,8 @@
     "iosStepShare": "Toque no botão Compartilhar.",
     "iosStepAdd": "Escolha \"Adicionar à Tela de Início\".",
     "iosStepConfirm": "Confirme em \"Adicionar\"."
+  },
+  "visualizations": {
+    "closeError": "Não foi possível fechar a visualização no servidor."
   }
 }

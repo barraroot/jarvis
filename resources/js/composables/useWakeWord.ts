@@ -1,29 +1,32 @@
 import { getCurrentInstance, onBeforeUnmount, ref, watch } from 'vue';
 import { isSpeechRecognitionSupported, WebSpeechRecognizer } from '@/lib/voice/SpeechRecognizer';
-import { useAssistantStore } from '@/stores/assistant';
 import { usePreferencesStore } from '@/stores/preferences';
 
-/** "Hey JARVIS" with the accepted variants (US-4.4). */
-export const WAKE_WORD_PATTERN = /\b(hey|ei|e aí)\s+jarvis\b/i;
+/** "Jarvis", "Hey Jarvis" or "Ei Jarvis", case-insensitive, punctuation allowed around it (RF-01). */
+export const WAKE_WORD_PATTERN = /\b((hey|ei)\s+)?jarvis\b/i;
 
 export const WAKE_WORD_RESTART_BASE_MS = 1000;
 export const WAKE_WORD_RESTART_MAX_MS = 10000;
 
 export interface UseWakeWordOptions {
-    /** Runs after a detection; the host starts push-to-talk here. */
+    /**
+     * Extra gate from the voice orchestration: not muted, waiting in
+     * `sleeping`, voice available and this tab holding the voice lock.
+     */
+    active?: () => boolean;
+    /** Runs after a detection; the host opens the listening window here. */
     onWake?: () => void;
 }
 
 /**
- * Continuous wake word recognition (US-4.4): active only when
- * `wake_word_enabled` and the Web Speech API exists. Uses its own
- * recognition session (`continuous=true`) that restarts itself on
- * `onend`/`onerror` with 1 s backoff doubling up to 10 s while the tab is
- * visible. Listening pauses during push-to-talk and SPEAKING so the assistant
- * never triggers itself.
+ * Local wake word detection (RF-01, RNF-01a): a continuous Web Speech
+ * session that only runs with the wake word enabled, a consent valid for the
+ * current consent text (RF-22), a visible tab and the host gate open. No
+ * audio reaches OpenAI here — the Realtime session is opened by the host only
+ * after a detection. Restarts itself on `onend` with 1 s backoff doubling up
+ * to 10 s; it never speaks.
  */
 export function useWakeWord(options: UseWakeWordOptions = {}) {
-    const assistant = useAssistantStore();
     const preferences = usePreferencesStore();
 
     const supported = isSpeechRecognitionSupported();
@@ -37,10 +40,10 @@ export function useWakeWord(options: UseWakeWordOptions = {}) {
     function shouldRun(): boolean {
         return (
             preferences.wakeWordEnabled &&
+            preferences.wakeWordConsentValid &&
             supported &&
             document.visibilityState !== 'hidden' &&
-            assistant.state !== 'LISTENING' &&
-            assistant.state !== 'SPEAKING'
+            (options.active?.() ?? true)
         );
     }
 
@@ -97,7 +100,7 @@ export function useWakeWord(options: UseWakeWordOptions = {}) {
         instance.start({ lang: preferences.speechLocale, continuous: true, interimResults: true });
     }
 
-    /** Exponential backoff: 1 s, 2 s, 4 s, ... capped at 10 s (US-4.4). */
+    /** Exponential backoff: 1 s, 2 s, 4 s, ... capped at 10 s. */
     function scheduleRestart(): void {
         restartTimer = window.setTimeout(() => {
             restartTimer = null;
@@ -108,18 +111,12 @@ export function useWakeWord(options: UseWakeWordOptions = {}) {
     }
 
     function detect(text: string): void {
-        if (!WAKE_WORD_PATTERN.test(text) || assistant.state === 'LISTENING') {
+        if (!running || !shouldRun() || !WAKE_WORD_PATTERN.test(text)) {
             return;
         }
 
-        // Stop the continuous session so its own stream cannot re-trigger.
+        // Stop the continuous session so the microphone is free for the window.
         stopRecognition();
-
-        window.speechSynthesis?.cancel?.();
-
-        if (assistant.state === 'SLEEPING') {
-            assistant.wake();
-        }
 
         options.onWake?.();
     }
@@ -134,7 +131,7 @@ export function useWakeWord(options: UseWakeWordOptions = {}) {
     }
 
     watch(
-        [() => preferences.wakeWordEnabled, () => assistant.state],
+        [() => preferences.wakeWordEnabled, () => preferences.wakeWordConsentValid, () => options.active?.() ?? true],
         () => {
             sync();
         },

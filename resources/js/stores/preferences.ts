@@ -32,6 +32,7 @@ export const DEFAULT_PREFERENCES: UserPreference = {
     spoken_responses_enabled: true,
     wake_word_enabled: false,
     wake_word_consented_at: null,
+    wake_word_consent_valid: false,
     silence_timeout_ms: 1500,
     extra: null,
 };
@@ -53,6 +54,8 @@ export const usePreferencesStore = defineStore('preferences', () => {
     const speechRate = computed(() => preference.value?.speech_rate ?? DEFAULT_PREFERENCES.speech_rate);
     const spokenResponsesEnabled = computed(() => preference.value?.spoken_responses_enabled ?? DEFAULT_PREFERENCES.spoken_responses_enabled);
     const wakeWordEnabled = computed(() => preference.value?.wake_word_enabled ?? DEFAULT_PREFERENCES.wake_word_enabled);
+    /** A consent given for an older consent text is invalid and must be accepted again (RF-22). */
+    const wakeWordConsentValid = computed(() => preference.value?.wake_word_consent_valid ?? DEFAULT_PREFERENCES.wake_word_consent_valid);
     const silenceTimeoutMs = computed(() => preference.value?.silence_timeout_ms ?? DEFAULT_PREFERENCES.silence_timeout_ms);
 
     async function fetchPreferences(): Promise<UserPreference> {
@@ -125,6 +128,7 @@ export const usePreferencesStore = defineStore('preferences', () => {
         speechRate,
         spokenResponsesEnabled,
         wakeWordEnabled,
+        wakeWordConsentValid,
         silenceTimeoutMs,
         ensureLoaded,
         update,

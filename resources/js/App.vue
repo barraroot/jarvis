@@ -11,10 +11,9 @@ import { bindNotificationEvents } from '@/composables/useNotificationEvents';
 import { bindTaskEvents } from '@/composables/useTaskEvents';
 import { useOfflineShell } from '@/composables/useOfflineShell';
 import { useRealtimeConnection } from '@/composables/useRealtimeConnection';
-import { useSpeechOutput } from '@/composables/useSpeechOutput';
+import { useRealtimeVoice } from '@/composables/useRealtimeVoice';
 import { bindToolEvents } from '@/composables/useToolEvents';
-import { useVoiceInput } from '@/composables/useVoiceInput';
-import { useWakeWord } from '@/composables/useWakeWord';
+import { bindVisualizationEvents } from '@/composables/useVisualizationEvents';
 import HudLayout from '@/layouts/HudLayout.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useConnectorsStore } from '@/stores/connectors';
@@ -30,18 +29,18 @@ const preferences = usePreferencesStore();
 const connectors = useConnectorsStore();
 const auth = useAuthStore();
 
-const voice = useVoiceInput();
-const speech = useSpeechOutput();
-const voicePartial = voice.partialText;
-const voiceBlocked = voice.permissionDenied;
-const speaking = speech.speaking;
-
-/** "Hey JARVIS" starts push-to-talk without a click (US-4.4). */
-const wakeWord = useWakeWord({ onWake: () => void voice.start() });
-const wakeWordActive = wakeWord.listening;
+/**
+ * Continuous voice over OpenAI Realtime (RF-01..RF-15): the wake word is
+ * detected locally and audio only reaches the provider inside the listening
+ * window. Without Realtime the HUD is text-only (RF-08a).
+ */
+const realtimeVoice = useRealtimeVoice();
+const voice = realtimeVoice.voice;
+const wakeWordActive = realtimeVoice.wakeWord.listening;
 
 useRealtimeConnection([
-    (channel) => speech.bind(channel),
+    (channel) => realtimeVoice.bind(channel),
+    bindVisualizationEvents,
     bindToolEvents,
     bindAgentEvents,
     bindApprovalEvents,
@@ -76,8 +75,6 @@ watch(
 
 /** Footer send: from the HUD a fresh conversation is created first, then navigated to. */
 async function onSend(payload: { content: string; source: 'text' | 'voice' }): Promise<void> {
-    speech.stop();
-
     try {
         if (conversations.activeId === null) {
             const conversation = await conversations.create();
@@ -91,48 +88,20 @@ async function onSend(payload: { content: string; source: 'text' | 'voice' }): P
     }
 }
 
-/** Push-to-talk: the voice button, Tab or the header mic toggles capture (US-4.1). */
-function onVoice(): void {
-    void voice.toggle();
-}
-
-/** Stop button / Esc: cancel the spoken response and finalize the capture (US-4.3). */
-function onInterrupt(): void {
-    speech.stop();
-
-    if (voice.listening.value) {
-        void voice.finish();
-    }
-}
-
-/** Header toggle "resposta falada" (US-4.2): persists and stops the current speech when off. */
-function onToggleSpoken(): void {
-    const next = !preferences.spokenResponsesEnabled;
-
-    preferences.update({ spoken_responses_enabled: next }).catch(() => undefined);
-
-    if (!next) {
-        speech.stop();
-    }
+/** Header/footer microphone: mutes the voice session and the wake word (RF-06). */
+function onMicrophone(): void {
+    realtimeVoice.toggleMute();
 }
 </script>
 
 <template>
     <HudLayout
         v-if="route.meta.requiresAuth"
-        :voice-partial="voicePartial"
-        :voice-blocked="voiceBlocked"
-        :speaking="speaking"
-        :spoken-responses-enabled="preferences.spokenResponsesEnabled"
+        :voice-unavailable="!voice.available"
+        :muted="voice.muted"
         :wake-word-active="wakeWordActive"
         @send="onSend"
-        @voice="onVoice"
-        @microphone="onVoice"
-        @interrupt="onInterrupt"
-        @toggle-spoken="onToggleSpoken"
-        @pause-speech="speech.pause"
-        @resume-speech="speech.resume"
-        @stop-speech="speech.stop"
+        @microphone="onMicrophone"
     >
         <template #main>
             <RouterView />

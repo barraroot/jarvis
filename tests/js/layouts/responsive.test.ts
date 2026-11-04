@@ -123,7 +123,7 @@ describe('HudLayout — mobile (360px)', () => {
             '[data-testid="header-more"]',
             '[data-testid="header-notifications"]',
             '[data-testid="footer-send"]',
-            '[data-testid="footer-voice"]',
+            '[data-testid="footer-mute"]',
         ];
 
         for (const selector of controls) {
