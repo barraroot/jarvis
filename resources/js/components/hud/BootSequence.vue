@@ -93,7 +93,7 @@ const valueClasses: Record<BootItem['status'], string> = {
                     :data-status="item.status"
                     :data-testid="`boot-item-${item.key}`"
                 >
-                    <span class="size-2.5 rounded-full border-[1.5px]" :class="dotClasses[item.status]" aria-hidden="true"></span>
+                    <span class="size-2.5 rounded-full border-[1.5px]" data-dot :class="dotClasses[item.status]" aria-hidden="true"></span>
                     <span class="text-text-100">{{ t(`boot.${item.key}`) }}</span>
                     <span class="font-mono text-xs" :class="valueClasses[item.status]" data-testid="boot-item-value">
                         {{ item.status === 'error' ? t('boot.failed') : (item.value ?? '') }}

@@ -1,7 +1,6 @@
 {
   "app": {
-    "name": "J.A.R.V.I.S.",
-    "tagline": "Just A Rather Very Intelligent System"
+    "name": "J.A.R.V.I.S."
   },
   "common": {
     "noData": "sem dados",
@@ -15,17 +14,13 @@
   },
   "nav": {
     "hud": "HUD",
-    "chat": "Chat",
     "agents": "Agentes",
     "tasks": "Tarefas",
-    "settings": "Config",
     "memories": "Memórias",
     "activity": "Atividade",
-    "microphone": "Microfone",
     "toggleSidebar": "Alternar painel lateral",
     "openMenu": "Abrir menu",
     "closeMenu": "Fechar menu",
-    "logout": "Sair",
     "approvals": "Aprovações",
     "conversations": "Conversas",
     "more": "Mais",
@@ -36,12 +31,8 @@
     "sidebar": "Painel lateral",
     "main": "Área central",
     "footer": "Interação",
-    "header": "Cabeçalho",
-    "disconnectedBanner": "Sem conexão com o servidor. Envio desativado até a reconexão.",
-    "reconnecting": "Reconectando em {seconds} s",
     "sheetExpand": "Expandir painel",
-    "sheetCollapse": "Recolher painel",
-    "routeTransition": "Carregando tela"
+    "sheetCollapse": "Recolher painel"
   },
   "stage": {
     "label": "Palco do HUD",
@@ -58,8 +49,6 @@
     "approvals": "Aprovações"
   },
   "auth": {
-    "title": "Acesso restrito",
-    "subtitle": "Identifique-se para iniciar o sistema",
     "email": "E-mail",
     "password": "Senha",
     "remember": "Manter conectado",
@@ -76,11 +65,6 @@
     "tooManyRequests": "Muitas requisições. Aguarde {seconds} s.",
     "network": "Falha de rede. Verifique sua conexão.",
     "unexpected": "Erro inesperado."
-  },
-  "connection": {
-    "connected": "Conectado",
-    "connecting": "Conectando",
-    "disconnected": "Desconectado"
   },
   "status": {
     "IDLE": "Ocioso",
@@ -120,12 +104,6 @@
   },
   "core": {
     "label": "Núcleo JARVIS",
-    "voice": {
-      "listening": "OUVINDO",
-      "user_speaking": "OUVINDO VOCÊ",
-      "speaking": "FALANDO",
-      "sleeping": "Aguardando \"Jarvis\""
-    },
     "mic": "MIC",
     "output": "VOZ",
     "micMeter": "Nível do microfone",
@@ -151,10 +129,6 @@
     "settings": "Configurações",
     "logout": "Sair",
     "more": "Mais opções",
-    "userMenu": "Menu do usuário",
-    "voiceUnsupported": "Reconhecimento de voz não suportado neste navegador",
-    "voiceDenied": "Permissão de microfone negada — libere nas configurações do navegador",
-    "wakeWordActive": "Escuta contínua ativa",
     "approvals": "Aprovações pendentes",
     "connectorsSummary": "{connected} conectados / {errors} com erro",
     "mute": "Mutar microfone",
@@ -211,8 +185,7 @@
     "tasks": "Nenhuma tarefa em andamento",
     "history": "Nenhuma execução registrada",
     "tools": "Nenhuma ferramenta monitorada",
-    "llm": "Nenhum modelo conectado",
-    "approvals": "Nenhuma aprovação pendente. O JARVIS pedirá autorização antes de ações de escrita, sensíveis ou externas."
+    "llm": "Nenhum modelo conectado"
   },
   "toolStatus": {
     "active": "ativo",
@@ -233,8 +206,7 @@
   },
   "messages": {
     "offline": "Sem conexão — a mensagem não foi enviada.",
-    "noConversation": "Nenhuma conversa aberta.",
-    "sendError": "Não foi possível enviar a mensagem."
+    "noConversation": "Nenhuma conversa aberta."
   },
   "results": {
     "invalid": "Resultado inválido recebido — exibido como texto.",
@@ -276,10 +248,7 @@
     "filter": "Filtrar",
     "filterStatus": "Status",
     "filterCategory": "Categoria",
-    "allStatuses": "Todos os status",
     "allCategories": "Todas as categorias",
-    "empty": "Nenhuma memória encontrada",
-    "emptyHint": "Peça ao JARVIS para lembrar algo no chat, ou crie uma aqui.",
     "edit": "Editar",
     "save": "Salvar",
     "delete": "Excluir",
@@ -302,7 +271,6 @@
     "create": "Nova memória",
     "createPlaceholder": "Escreva a nova memória…",
     "createHint": "Salva como memória confirmada.",
-    "editPlaceholder": "Edite o conteúdo…",
     "cancel": "Cancelar",
     "categories": {
       "preference": "Preferência",
@@ -330,7 +298,6 @@
     "delete": "Excluir",
     "deleteTitle": "Excluir conversa",
     "deleteMessage": "Excluir esta conversa e todas as suas mensagens? Esta ação não pode ser desfeita.",
-    "empty": "Nenhuma conversa ainda",
     "open": "Abrir conversa",
     "createError": "Não foi possível criar a conversa",
     "renameError": "Não foi possível renomear a conversa",
@@ -359,7 +326,6 @@
     }
   },
   "settings": {
-    "title": "Voz e idioma",
     "locale": "Idioma da interface",
     "localeHint": "Aplicado imediatamente.",
     "speechLocale": "Idioma de voz",
@@ -373,7 +339,6 @@
     "wakeWordConsentRequired": "Ativar a palavra de ativação exige aceitar o termo de privacidade da voz.",
     "save": "Salvar preferências",
     "saved": "Preferências salvas.",
-    "saveFailed": "Não foi possível salvar as preferências.",
     "wakeWordReconsentTitle": "Novo termo de privacidade da voz",
     "wakeWordReconsentBody": "O termo de privacidade da voz mudou: aceite o novo texto para reativar a palavra de ativação.",
     "wakeWordReconsentAction": "Revisar termo",
@@ -394,15 +359,9 @@
   },
   "approval": {
     "title": "Aprovação necessária",
-    "subtitle": "Ações de escrita, sensíveis ou externas aguardam sua decisão. Nada é executado sem autorização.",
-    "effectWrite": "escrita",
-    "effectSensitive": "sensível",
-    "effectExternal": "externa",
     "requestedBy": "Solicitado pelo agente {agent}",
     "requestedByAssistant": "Solicitado pelo assistente",
     "expiresIn": "Expira em {hours}h {minutes}m {seconds}s",
-    "approve": "Aprovar",
-    "deny": "Negar",
     "denyReasonLabel": "Motivo (opcional)",
     "denyReasonPlaceholder": "Por que negar esta ação?",
     "denyConfirm": "Confirmar negação",
@@ -451,7 +410,6 @@
     "saveFailed": "Não foi possível salvar o conector.",
     "actionFailed": "Não foi possível concluir a ação.",
     "resyncQueued": "Ressincronização agendada.",
-    "empty": "Nenhum conector disponível.",
     "never": "nunca",
     "scopeGlobal": "Global",
     "scopePersonal": "Pessoal",
@@ -471,13 +429,8 @@
     "removeBody": "Remover {name}? As ferramentas dele deixam de ficar disponíveis."
   },
   "activity": {
-    "terminal": "jarvis://activity",
     "subtitle": "Execuções de agentes, ferramentas e decisões feitas em seu nome.",
-    "live": "histórico",
-    "from": "De",
-    "to": "Até",
     "type": "Tipo",
-    "allTypes": "Todos",
     "types": {
       "agent": "Agente",
       "tool": "Ferramenta",
@@ -487,8 +440,6 @@
     "loadError": "Não foi possível carregar o histórico.",
     "openConversation": "Conversa #{id}",
     "openTask": "Tarefa #{id}",
-    "toolCalls": "{count} chamadas de ferramenta",
-    "duration": "{ms} ms",
     "previous": "Anterior",
     "next": "Próxima",
     "page": "Página {page} de {last}",
@@ -543,8 +494,6 @@
   },
   "captions": {
     "label": "Legendas",
-    "user": "VOCÊ",
-    "assistant": "JARVIS",
     "you": "VOCÊ",
     "jarvis": "JARVIS"
   },
@@ -595,8 +544,7 @@
       },
       "memories": {
         "title": "Nenhuma memória ainda",
-        "text": "Memórias aparecem conforme você conversa. Hipóteses chegam tracejadas — você confirma ou descarta.",
-        "action": "Conversar com o JARVIS"
+        "text": "Memórias aparecem conforme você conversa. Hipóteses chegam tracejadas — você confirma ou descarta."
       },
       "connectors": {
         "title": "Nenhum conector MCP",

@@ -64,23 +64,6 @@
     --ease-curve-y: cubic-bezier(0.6, 0, 0.3, 1);
     --ease-sonar: ease-out;
 
-    /* legacy alias — removido em T23 */
-    --color-bg: var(--color-abyss-950);
-    --color-bg-navy: var(--color-abyss-900);
-    --color-panel: color-mix(in srgb, var(--color-abyss-900) 78%, transparent);
-    --color-line: var(--color-ocean-600);
-    --color-cyan: var(--color-cyan-300);
-    --color-cyan-bright: var(--color-biolum-200);
-    --color-blue: var(--color-ocean-400);
-    --color-purple: var(--color-ocean-400);
-    --color-amber: var(--color-amber-400);
-    --color-danger: var(--color-danger-400);
-    --color-success: var(--color-success-400);
-    --color-text: var(--color-text-100);
-    --color-muted: var(--color-text-400);
-    --font-display: var(--font-label);
-    --tracking-hud: 0.22em;
-
     --animate-hud-pulse: hud-pulse 2.4s ease-in-out infinite;
     --animate-hud-spin: hud-spin 18s linear infinite;
     --animate-abyss-caustics: abyss-caustics 32s ease-in-out infinite alternate;
@@ -320,32 +303,6 @@
             animation: none;
         }
     }
-}
-
-/* legacy alias — removido em T23 */
-@utility hud-glow {
-    @apply glow;
-}
-
-/* legacy alias — removido em T23 */
-@utility hud-border {
-    @apply chamfer-md;
-    border: 1px solid color-mix(in srgb, var(--color-ocean-600) 40%, transparent);
-}
-
-/* legacy alias — removido em T23 */
-@utility hud-glass {
-    @apply glass;
-}
-
-/* legacy alias — removido em T23 */
-@utility hud-grid {
-    @apply abyss-bg;
-}
-
-/* legacy alias — removido em T23 */
-@utility hud-label {
-    @apply label-caps;
 }
 
 /* Users who ask for less motion get no continuous animations. */

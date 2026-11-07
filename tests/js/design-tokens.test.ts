@@ -152,12 +152,18 @@ describe('Abissal design tokens', () => {
         '--color-success',
         '--color-text',
         '--color-muted',
-    ])('keeps %s as a transitional alias of an Abissal token', (token) => {
-        expect(tokenValue(token)).toMatch(/var\(--color-(abyss|ocean|cyan|biolum|amber|success|danger|text)-\d+\)/);
+        '--font-display',
+        '--tracking-hud',
+    ])('no longer defines the legacy alias %s', (token) => {
+        expect(tokenValue(token)).toBeUndefined();
     });
 
-    it.each(['hud-glow', 'hud-border', 'hud-glass', 'hud-grid', 'hud-label'])('keeps %s as a marked legacy alias', (utility) => {
-        expect(css).toMatch(new RegExp(`/\\* legacy alias — removido em T23 \\*/\\s*@utility ${utility} \\{`));
+    it.each(['hud-glow', 'hud-border', 'hud-glass', 'hud-grid', 'hud-label'])('no longer declares the legacy %s utility', (utility) => {
+        expect(css).not.toContain(`@utility ${utility} {`);
+    });
+
+    it('carries no legacy alias marker', () => {
+        expect(css).not.toContain('legacy alias');
     });
 
     it.each(['text-100', 'text-400', 'cyan-300', 'amber-400', 'success-400', 'danger-400'] as const)(

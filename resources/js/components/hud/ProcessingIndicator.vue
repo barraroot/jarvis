@@ -20,9 +20,9 @@ const label = computed(() => (props.state === 'EXECUTING' ? t('status.EXECUTING'
         data-testid="processing-indicator"
     >
         <span class="flex items-center gap-1" aria-hidden="true">
-            <span class="size-1 animate-hud-pulse rounded-full bg-cyan-300"></span>
-            <span class="size-1 animate-hud-pulse rounded-full bg-cyan-300 [animation-delay:0.2s]"></span>
-            <span class="size-1 animate-hud-pulse rounded-full bg-cyan-300 [animation-delay:0.4s]"></span>
+            <span class="size-1 animate-hud-pulse rounded-full bg-cyan-300" data-dot></span>
+            <span class="size-1 animate-hud-pulse rounded-full bg-cyan-300 [animation-delay:0.2s]" data-dot></span>
+            <span class="size-1 animate-hud-pulse rounded-full bg-cyan-300 [animation-delay:0.4s]" data-dot></span>
         </span>
         <span class="label-caps text-[0.65rem] text-cyan-300">{{ label }}…</span>
     </div>

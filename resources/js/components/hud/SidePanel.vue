@@ -101,6 +101,7 @@ function formatDuration(durationMs: number): string {
             <div class="mt-2 flex items-center justify-center gap-2" data-testid="panel-core-activity">
                 <span
                     class="size-1.5 rounded-full"
+                    data-dot
                     :class="assistant.state === 'IDLE' ? 'animate-hud-pulse bg-cyan-300' : 'bg-biolum-200'"
                     :aria-label="t('panel.activity')"
                 ></span>
@@ -180,7 +181,7 @@ function formatDuration(durationMs: number): string {
                     class="flex items-center gap-2"
                     data-testid="panel-llm-provider"
                 >
-                    <span class="size-1.5 shrink-0 rounded-full bg-cyan-300"></span>
+                    <span class="size-1.5 shrink-0 rounded-full bg-cyan-300" data-dot></span>
                     <span class="label-caps min-w-0 flex-1 truncate text-[0.65rem] text-text-100">{{ provider.name }}</span>
                     <span class="label-caps text-[0.55rem] text-text-400">{{ t('panel.llmConnected') }}</span>
                     <span class="font-mono text-[0.6rem] text-biolum-200">{{ provider.count }}</span>
@@ -260,7 +261,7 @@ function formatDuration(durationMs: number): string {
                     class="flex items-center gap-2"
                     data-testid="panel-tool"
                 >
-                    <span class="size-1.5 shrink-0 rounded-full" :class="toolTone[tool.status]"></span>
+                    <span class="size-1.5 shrink-0 rounded-full" :class="toolTone[tool.status]" data-dot></span>
                     <span class="label-caps min-w-0 flex-1 truncate text-[0.65rem] text-text-100">{{ tool.name }}</span>
                     <span class="label-caps text-[0.55rem] text-text-400">{{ t(`toolStatus.${tool.status}`) }}</span>
                 </li>
