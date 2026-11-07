@@ -5,35 +5,85 @@
 
 /*
 |--------------------------------------------------------------------------
-| JARVIS HUD design tokens
+| JARVIS "Abissal" design tokens
 |--------------------------------------------------------------------------
-| Derived from .spec/init/design/painel1.jpg, painel2.jpg and painel3.jpg:
-| deep navy background, cyan lines and glow, amber as alert/progress accent.
+| Source: .spec/features/layout-abissal/.handoff/design/board-03-tokens.html.
+| Deep-ocean surfaces, cyan bioluminescence for the JARVIS voice, amber for
+| the user's voice and approvals. Never rounded corners: only the core is
+| circular, everything else uses the chamfer utilities.
+|
+| `static` emits every variable to :root, including the non-namespaced
+| ones (chamfers, durations) consumed by components through var().
 */
 
-@theme {
-    --color-bg: #050a12;
-    --color-bg-navy: #0a1628;
-    --color-panel: rgba(10, 22, 40, 0.6);
-    --color-line: #164e63;
-    --color-cyan: #22d3ee;
-    --color-cyan-bright: #67e8f9;
-    --color-blue: #3b82f6;
-    --color-purple: #a78bfa;
-    --color-amber: #fbbf24;
-    --color-danger: #f87171;
-    --color-success: #34d399;
-    --color-text: #cffafe;
-    --color-muted: #64748b;
+@theme static {
+    --color-abyss-950: #02060d;
+    --color-abyss-900: #061321;
+    --color-abyss-800: #0a2236;
+    --color-ocean-600: #0e4d7a;
+    --color-ocean-400: #1f8fd1;
+    --color-cyan-300: #4fe3f0;
+    --color-biolum-200: #a6f7ff;
+    --color-amber-400: #ffb547;
+    --color-success-400: #3ddc97;
+    --color-danger-400: #ff5a6e;
+    --color-text-100: #e6f4ff;
+    --color-text-400: #7fa3bf;
 
-    --font-sans: 'Exo 2', 'Orbitron', ui-sans-serif, system-ui, sans-serif;
-    --font-display: 'Orbitron', 'Exo 2', ui-sans-serif, system-ui, sans-serif;
+    --chamfer-sm: 8px;
+    --chamfer-md: 14px;
+    --hit-min: 44px;
+
+    --text-display-xl: 64px;
+    --text-display-xl--line-height: 1;
+    --text-clock: 44px;
+    --text-clock--line-height: 1;
+    --text-h1: 28px;
+    --text-h1--line-height: 1.15;
+    --text-caption: 18px;
+    --text-caption--line-height: 1.4;
+    --text-body: 14.5px;
+    --text-body--line-height: 1.55;
+    --text-label: 11px;
+    --text-label--line-height: 1;
+    --text-label--letter-spacing: 0.22em;
+
+    --font-logo: 'Orbitron', ui-sans-serif, system-ui, sans-serif;
+    --font-label: 'Rajdhani', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-    --tracking-hud: 0.25em;
+    --dur-fast: 90ms;
+    --dur-base: 350ms;
+    --dur-fly: 700ms;
+    --dur-glow: 1500ms;
+    --dur-breathe: 4000ms;
+    --stagger: 40ms;
+
+    --ease-fly: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --ease-curve-y: cubic-bezier(0.6, 0, 0.3, 1);
+    --ease-sonar: ease-out;
+
+    /* legacy alias — removido em T23 */
+    --color-bg: var(--color-abyss-950);
+    --color-bg-navy: var(--color-abyss-900);
+    --color-panel: color-mix(in srgb, var(--color-abyss-900) 78%, transparent);
+    --color-line: var(--color-ocean-600);
+    --color-cyan: var(--color-cyan-300);
+    --color-cyan-bright: var(--color-biolum-200);
+    --color-blue: var(--color-ocean-400);
+    --color-purple: var(--color-ocean-400);
+    --color-amber: var(--color-amber-400);
+    --color-danger: var(--color-danger-400);
+    --color-success: var(--color-success-400);
+    --color-text: var(--color-text-100);
+    --color-muted: var(--color-text-400);
+    --font-display: var(--font-label);
+    --tracking-hud: 0.22em;
 
     --animate-hud-pulse: hud-pulse 2.4s ease-in-out infinite;
     --animate-hud-spin: hud-spin 18s linear infinite;
+    --animate-abyss-caustics: abyss-caustics 32s ease-in-out infinite alternate;
 
     @keyframes hud-pulse {
         0%,
@@ -50,6 +100,19 @@
             transform: rotate(360deg);
         }
     }
+
+    /* Slow drift of the light caustics: transform only (RNF-07). */
+    @keyframes abyss-caustics {
+        0% {
+            transform: translate3d(0, 0, 0) scale(1);
+        }
+        50% {
+            transform: translate3d(3%, -2%, 0) scale(1.04);
+        }
+        100% {
+            transform: translate3d(-2%, 2%, 0) scale(1.02);
+        }
+    }
 }
 
 @layer base {
@@ -58,73 +121,131 @@
     }
 
     body {
-        background-color: var(--color-bg);
-        color: var(--color-text);
-        font-family: var(--font-mono);
+        background-color: var(--color-abyss-950);
+        color: var(--color-text-100);
+        font-family: var(--font-sans);
+        font-size: var(--text-body);
+        line-height: var(--text-body--line-height);
         overflow-x: hidden;
     }
 
     h1,
     h2,
     h3 {
-        font-family: var(--font-display);
+        font-family: var(--font-label);
     }
 
     :focus-visible {
-        outline: 1px solid var(--color-cyan-bright);
+        outline: 2px solid var(--color-cyan-300);
         outline-offset: 2px;
     }
 }
 
-/* Cyan text glow used on titles, clock and key figures. */
-@utility hud-glow {
-    text-shadow:
-        0 0 6px rgba(34, 211, 238, 0.65),
-        0 0 18px rgba(34, 211, 238, 0.35);
+/* Translucent abyss glass: 78% surface, 18px blur, ocean border at 40%. */
+@utility glass {
+    background-color: rgba(6, 19, 33, 0.78);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid color-mix(in srgb, var(--color-ocean-600) 40%, transparent);
 }
 
-/* Thin 1px frame with marked corners, like the panels of painel1. */
-@utility hud-border {
-    --hud-corner: 10px;
-    border: 1px solid color-mix(in srgb, var(--color-line) 85%, transparent);
-    background-image:
-        linear-gradient(var(--color-cyan), var(--color-cyan)), linear-gradient(var(--color-cyan), var(--color-cyan)),
-        linear-gradient(var(--color-cyan), var(--color-cyan)), linear-gradient(var(--color-cyan), var(--color-cyan)),
-        linear-gradient(var(--color-cyan), var(--color-cyan)), linear-gradient(var(--color-cyan), var(--color-cyan)),
-        linear-gradient(var(--color-cyan), var(--color-cyan)), linear-gradient(var(--color-cyan), var(--color-cyan));
-    background-repeat: no-repeat;
-    background-size:
-        var(--hud-corner) 2px, 2px var(--hud-corner),
-        var(--hud-corner) 2px, 2px var(--hud-corner),
-        var(--hud-corner) 2px, 2px var(--hud-corner),
-        var(--hud-corner) 2px, 2px var(--hud-corner);
-    background-position:
-        top left, top left,
-        top right, top right,
-        bottom left, bottom left,
-        bottom right, bottom right;
+/* Small chamfer (buttons, chips, inputs): 8-point polygon cutting every corner. */
+@utility chamfer-sm {
+    clip-path: polygon(
+        var(--chamfer-sm) 0,
+        calc(100% - var(--chamfer-sm)) 0,
+        100% var(--chamfer-sm),
+        100% calc(100% - var(--chamfer-sm)),
+        calc(100% - var(--chamfer-sm)) 100%,
+        var(--chamfer-sm) 100%,
+        0 calc(100% - var(--chamfer-sm)),
+        0 var(--chamfer-sm)
+    );
 }
 
-/* Translucent navy glass with backdrop blur. */
-@utility hud-glass {
-    background-color: var(--color-panel);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+/* Medium chamfer (panels, cards, toasts). */
+@utility chamfer-md {
+    clip-path: polygon(
+        var(--chamfer-md) 0,
+        calc(100% - var(--chamfer-md)) 0,
+        100% var(--chamfer-md),
+        100% calc(100% - var(--chamfer-md)),
+        calc(100% - var(--chamfer-md)) 100%,
+        var(--chamfer-md) 100%,
+        0 calc(100% - var(--chamfer-md)),
+        0 var(--chamfer-md)
+    );
 }
 
-/* Subtle technical grid for page backgrounds. */
-@utility hud-grid {
-    background-image:
-        linear-gradient(rgba(22, 78, 99, 0.18) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(22, 78, 99, 0.18) 1px, transparent 1px);
-    background-size: 32px 32px;
+/* Cyan bioluminescent glow, never pure white; works on text, icons and boxes. */
+@utility glow {
+    filter: drop-shadow(0 0 18px color-mix(in srgb, var(--color-cyan-300) 60%, transparent));
 }
 
-/* Spaced uppercase label typography used by panel titles. */
-@utility hud-label {
-    font-family: var(--font-display);
+/* Rajdhani 600 caps labels with .22em tracking. */
+@utility label-caps {
+    font-family: var(--font-label);
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: var(--tracking-hud);
+    letter-spacing: var(--text-label--letter-spacing);
+}
+
+/*
+| Abyss background: fine hexagonal grid (SVG data URI) plus a caustics layer
+| that only animates transform. The caustics stop under reduced motion.
+*/
+@utility abyss-bg {
+    position: relative;
+    isolation: isolate;
+    background-color: var(--color-abyss-950);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='48.5' viewBox='0 0 28 48.5'%3E%3Cpath d='M14 0 L28 8 L28 24 L14 32 L0 24 L0 8 Z M14 32 L14 48.5' fill='none' stroke='%230E4D7A' stroke-opacity='.28' stroke-width='.5'/%3E%3C/svg%3E");
+    background-size: 44.8px 77.6px;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: -25%;
+        z-index: -1;
+        pointer-events: none;
+        background:
+            radial-gradient(45% 35% at 30% 35%, rgba(31, 143, 209, 0.12), transparent 65%),
+            radial-gradient(40% 30% at 70% 60%, rgba(79, 227, 240, 0.07), transparent 65%);
+        filter: blur(28px);
+        animation: var(--animate-abyss-caustics);
+        will-change: transform;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        &::before {
+            animation: none;
+        }
+    }
+}
+
+/* legacy alias — removido em T23 */
+@utility hud-glow {
+    @apply glow;
+}
+
+/* legacy alias — removido em T23 */
+@utility hud-border {
+    @apply chamfer-md;
+    border: 1px solid color-mix(in srgb, var(--color-ocean-600) 40%, transparent);
+}
+
+/* legacy alias — removido em T23 */
+@utility hud-glass {
+    @apply glass;
+}
+
+/* legacy alias — removido em T23 */
+@utility hud-grid {
+    @apply abyss-bg;
+}
+
+/* legacy alias — removido em T23 */
+@utility hud-label {
+    @apply label-caps;
 }
 
 /*

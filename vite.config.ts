@@ -12,16 +12,20 @@ export default defineConfig({
             input: ['resources/css/app.css', 'resources/js/app.ts'],
             refresh: true,
             fonts: [
-                bunny('JetBrains Mono', {
-                    weights: [400, 500, 700],
-                    optimizedFallbacks: false,
-                }),
-                bunny('Exo 2', {
-                    weights: [400, 600],
-                    optimizedFallbacks: false,
-                }),
                 bunny('Orbitron', {
-                    weights: [500, 700, 900],
+                    weights: [700],
+                    optimizedFallbacks: false,
+                }),
+                bunny('Rajdhani', {
+                    weights: [600],
+                    optimizedFallbacks: false,
+                }),
+                bunny('Inter', {
+                    weights: [400, 500],
+                    optimizedFallbacks: false,
+                }),
+                bunny('JetBrains Mono', {
+                    weights: [400, 500],
                     optimizedFallbacks: false,
                 }),
             ],
