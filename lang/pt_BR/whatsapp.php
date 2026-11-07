@@ -45,6 +45,7 @@ return [
         'upstream_unavailable' => 'Não foi possível falar com o serviço do WhatsApp agora. Tente novamente em instantes.',
         'not_found' => 'Nenhuma sessão do WhatsApp foi criada.',
         'not_pairable' => 'A sessão do WhatsApp não pode ser pareada agora: ela já está conectada ou foi suspensa.',
+        'phone_invalid' => 'Informe o telefone com DDI e DDD, só números (10 a 15 dígitos).',
     ],
 
     'schedules' => [
@@ -56,6 +57,12 @@ return [
         'run_at_too_far' => 'Um envio único pode ser agendado para no máximo :days dias à frente.',
         'cron_invalid' => 'A recorrência precisa ser uma expressão cron válida de 5 campos.',
         'cron_too_frequent' => 'A recorrência precisa ter intervalo de pelo menos 1 hora entre ocorrências.',
+    ],
+
+    'notifications' => [
+        'send_failed' => 'Envio pelo WhatsApp falhou',
+        'send_blocked' => 'Envio pelo WhatsApp bloqueado',
+        'schedule_run_failed' => 'Envio agendado do WhatsApp não foi entregue',
     ],
 
     'approvals' => [

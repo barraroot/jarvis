@@ -21,6 +21,9 @@ use App\Http\Controllers\Api\V1\Voice\VoiceSessionController;
 use App\Http\Controllers\Api\V1\Voice\VoiceTaskController;
 use App\Http\Controllers\Api\V1\Voice\VoiceTurnController;
 use App\Http\Controllers\Api\V1\Voice\VoiceUsageController;
+use App\Http\Controllers\Api\V1\Whatsapp\WhatsappConsentController;
+use App\Http\Controllers\Api\V1\Whatsapp\WhatsappPairingController;
+use App\Http\Controllers\Api\V1\Whatsapp\WhatsappSessionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -107,6 +110,16 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::post('tasks', [VoiceTaskController::class, 'store'])
                 ->middleware('throttle:messages')
                 ->name('tasks.store');
+        });
+
+        Route::prefix('whatsapp')->name('whatsapp.')->group(function (): void {
+            Route::post('consent', [WhatsappConsentController::class, 'store'])->name('consent.store');
+            Route::delete('consent', [WhatsappConsentController::class, 'destroy'])->name('consent.destroy');
+            Route::get('session', [WhatsappSessionController::class, 'show'])->name('session.show');
+            Route::post('session', [WhatsappSessionController::class, 'store'])->name('session.store');
+            Route::delete('session', [WhatsappSessionController::class, 'destroy'])->name('session.destroy');
+            Route::post('session/qr', [WhatsappPairingController::class, 'qr'])->name('session.qr');
+            Route::post('session/pair-phone', [WhatsappPairingController::class, 'pairPhone'])->name('session.pair-phone');
         });
 
         Route::get('visualizations/current', [VisualizationController::class, 'current'])->name('visualizations.current');
