@@ -14,7 +14,8 @@ import HudToggle from '@/components/ui/HudToggle.vue';
 import ProgressBar from '@/components/ui/ProgressBar.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import Waveform from '@/components/ui/Waveform.vue';
-import { useToastStore } from '@/stores/toast';
+import { notificationToastVariant } from '@/composables/useNotificationEvents';
+import { useToastStore, type ToastVariant } from '@/stores/toast';
 
 describe('HudPanel', () => {
     it('renders the uppercase spaced title, decorated corners and slot', () => {
@@ -22,8 +23,8 @@ describe('HudPanel', () => {
 
         const title = wrapper.get('h2');
         expect(title.text()).toBe('Sistema');
-        expect(title.classes()).toContain('hud-label');
-        expect(wrapper.classes()).toContain('hud-border');
+        expect(title.classes()).toContain('label-caps');
+        expect(wrapper.classes()).toEqual(expect.arrayContaining(['glass', 'chamfer-md', 'corner-light']));
         expect(wrapper.html()).toContain('<p>conteudo</p>');
     });
 });
@@ -135,7 +136,7 @@ describe('ProgressBar', () => {
         const wrapper = mount(ProgressBar, { props: { value: 150, label: 'CPU', variant: 'amber' } });
 
         expect(wrapper.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('100');
-        expect(wrapper.get('[data-testid="progress-fill"]').classes()).toContain('bg-amber');
+        expect(wrapper.get('[data-testid="progress-fill"]').classes()).toContain('bg-amber-400');
         expect(wrapper.text()).toContain('100%');
     });
 
@@ -219,5 +220,103 @@ describe('Clock', () => {
 
         expect(wrapper.get('[data-testid="clock-time"]').text()).toBe('19:33:04');
         wrapper.unmount();
+    });
+});
+
+describe('chamfered primitives (UI-01)', () => {
+    const options = [{ value: 'a', label: 'Alfa' }];
+
+    it.each([
+        ['HudPanel', () => mount(HudPanel, { props: { title: 'Painel' } }), 'chamfer-md'],
+        ['HudModal', () => mount(HudModal, { props: { open: true, title: 'Modal' } }).get('[role="dialog"]'), 'chamfer-md'],
+        ['HudButton', () => mount(HudButton, { slots: { default: 'Ok' } }), 'chamfer-sm'],
+        ['HudInput', () => mount(HudInput).get('input'), 'chamfer-sm'],
+        ['HudSelect', () => mount(HudSelect, { props: { options } }).get('select'), 'chamfer-sm'],
+        ['HudTextarea', () => mount(HudTextarea).get('textarea'), 'chamfer-sm'],
+        ['HudToggle', () => mount(HudToggle, { props: { label: 'Ligar' } }).get('[role="switch"] > span'), 'chamfer-sm'],
+        ['StatusBadge', () => mount(StatusBadge, { props: { status: 'running' } }), 'chamfer-sm'],
+    ])('%s applies %s', (_name, render, chamfer) => {
+        expect(render().classes()).toContain(chamfer);
+    });
+
+    it.each(['HudButton', 'HudInput', 'HudSelect', 'HudTextarea', 'HudToggle'])('%s has a 44 px minimum height', (name) => {
+        const control = {
+            HudButton: () => mount(HudButton, { slots: { default: 'Ok' } }),
+            HudInput: () => mount(HudInput).get('input'),
+            HudSelect: () => mount(HudSelect, { props: { options } }).get('select'),
+            HudTextarea: () => mount(HudTextarea).get('textarea'),
+            HudToggle: () => mount(HudToggle),
+        }[name]!();
+
+        expect(control.classes()).toContain('min-h-11');
+    });
+
+    it('lights the border from the chamfered corner on hover and focus', () => {
+        expect(mount(HudButton, { slots: { default: 'Ok' } }).classes()).toContain('corner-light');
+        expect(mount(HudPanel).classes()).toContain('corner-light');
+    });
+
+    it('renders the primary button on a solid cyan background', () => {
+        expect(mount(HudButton, { slots: { default: 'Ok' } }).classes()).toEqual(
+            expect.arrayContaining(['bg-cyan-300', 'text-abyss-950']),
+        );
+    });
+
+    it('never uses rounded corners outside status dots', async () => {
+        const toasts = useToastStore();
+        toasts.push('Aviso', { variant: 'info', timeoutMs: 0 });
+
+        const wrappers = [
+            mount(HudPanel, { props: { title: 'Painel' }, slots: { default: 'x' } }),
+            mount(HudButton, { props: { loading: true }, slots: { default: 'Ok' } }),
+            mount(HudInput, { props: { label: 'Campo', error: 'Erro' } }),
+            mount(HudSelect, { props: { options, label: 'Lista' } }),
+            mount(HudTextarea, { props: { label: 'Texto' } }),
+            mount(HudToggle, { props: { label: 'Ligar', modelValue: true } }),
+            mount(HudModal, { props: { open: true, title: 'Modal' } }),
+            mount(HudToast),
+            mount(StatusBadge, { props: { status: 'running' } }),
+            mount(ProgressBar, { props: { value: 50, label: 'CPU' } }),
+            mount(Waveform, { props: { level: 0.5, bars: 4 } }),
+            mount(Clock),
+        ];
+
+        await nextTick();
+
+        for (const wrapper of wrappers) {
+            const rounded = wrapper.findAll('[class*="rounded"]').filter((element) => element.attributes('data-dot') === undefined);
+
+            expect(rounded.map((element) => element.html())).toEqual([]);
+            expect(wrapper.attributes('class') ?? '').not.toMatch(/\brounded/);
+            wrapper.unmount();
+        }
+    });
+});
+
+describe('HudToast accents (UI-25)', () => {
+    it.each<ToastVariant>(['warning', 'success', 'danger', 'info'])('gives the %s toast its accent class', async (variant) => {
+        useToastStore().push('Mensagem', { variant, timeoutMs: 0 });
+
+        const wrapper = mount(HudToast);
+        await nextTick();
+
+        const toast = wrapper.get(`[data-variant="${variant}"]`);
+        expect(toast.classes()).toEqual(expect.arrayContaining([`toast--accent-${variant}`, 'glass', 'chamfer-md']));
+    });
+
+    it('keeps the polite live region', () => {
+        expect(mount(HudToast).attributes('aria-live')).toBe('polite');
+    });
+
+    it.each([
+        ['approval_pending', 'warning'],
+        ['task_completed', 'success'],
+        ['task_failed', 'danger'],
+        ['connector_error', 'danger'],
+        ['usage_limit_reached', 'danger'],
+        ['memory_hypothesis', 'info'],
+        ['constructor', 'info'],
+    ])('maps the %s notification to the %s accent', (type, variant) => {
+        expect(notificationToastVariant(type)).toBe(variant);
     });
 });

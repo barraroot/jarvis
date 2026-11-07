@@ -7,11 +7,12 @@ const toastStore = useToastStore();
 const { toasts } = storeToRefs(toastStore);
 const { t } = useI18n();
 
+/** Accent per variant (UI-25): approval amber, completion green, error red, others cyan. */
 const variantClasses: Record<ToastVariant, string> = {
-    info: 'border-cyan/60 text-cyan-bright',
-    success: 'border-cyan text-cyan-bright',
-    warning: 'border-amber/70 text-amber',
-    danger: 'border-danger/70 text-danger',
+    info: 'border-l-cyan-300 text-biolum-200',
+    success: 'border-l-success-400 text-success-400',
+    warning: 'border-l-amber-400 text-amber-400',
+    danger: 'border-l-danger-400 text-danger-400',
 };
 </script>
 
@@ -23,15 +24,15 @@ const variantClasses: Record<ToastVariant, string> = {
         <div
             v-for="toast in toasts"
             :key="toast.id"
-            class="hud-glass pointer-events-auto flex items-start gap-3 rounded-sm border bg-bg-navy/90 px-4 py-3 text-sm"
-            :class="variantClasses[toast.variant]"
+            class="glass chamfer-md pointer-events-auto flex items-start gap-3 border-l-2 px-4 py-3 text-sm"
+            :class="[`toast--accent-${toast.variant}`, variantClasses[toast.variant]]"
             :data-variant="toast.variant"
             role="status"
         >
             <p class="min-w-0 flex-1 break-words">{{ toast.message }}</p>
             <button
                 type="button"
-                class="shrink-0 text-muted hover:text-text"
+                class="inline-flex size-11 shrink-0 items-center justify-center text-text-400 hover:text-text-100"
                 :aria-label="t('common.close')"
                 @click="toastStore.dismiss(toast.id)"
             >

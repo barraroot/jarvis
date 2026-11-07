@@ -38,9 +38,9 @@ onBeforeUnmount(() => {
 
 <template>
     <div class="flex min-w-0 flex-col font-mono" role="timer" :aria-label="t('clock.label')">
-        <time class="text-2xl tracking-widest text-cyan-bright hud-glow tabular-nums sm:text-3xl" data-testid="clock-time">
+        <time class="text-2xl tracking-widest text-biolum-200 glow tabular-nums sm:text-3xl" data-testid="clock-time">
             {{ time }}
         </time>
-        <span v-if="showDate" class="hud-label truncate text-[0.6rem] text-muted" data-testid="clock-date">{{ date }}</span>
+        <span v-if="showDate" class="label-caps truncate text-[0.6rem] text-text-400" data-testid="clock-date">{{ date }}</span>
     </div>
 </template>

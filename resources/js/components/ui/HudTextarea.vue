@@ -59,7 +59,7 @@ onMounted(resizeToContent);
 
 <template>
     <div class="flex min-w-0 flex-col gap-1">
-        <label v-if="label" :for="id ?? generatedId" class="hud-label text-[0.65rem] text-muted">{{ label }}</label>
+        <label v-if="label" :for="id ?? generatedId" class="label-caps text-[0.65rem] text-text-400">{{ label }}</label>
         <textarea
             ref="textareaRef"
             :id="id ?? generatedId"
@@ -69,10 +69,10 @@ onMounted(resizeToContent);
             :disabled="disabled"
             :maxlength="maxlength"
             :aria-invalid="error ? 'true' : undefined"
-            class="w-full min-w-0 rounded-sm border bg-bg-navy/70 px-3 py-2 font-mono text-sm text-text placeholder:text-muted focus:border-cyan focus:outline-none disabled:opacity-50"
-            :class="[error ? 'border-danger' : 'border-line', autoExpand ? 'resize-none overflow-hidden' : 'resize-y']"
+            class="w-full min-w-0 chamfer-sm min-h-11 border bg-abyss-900/70 px-3 py-2 font-mono text-sm text-text-100 transition-colors duration-(--dur-base) placeholder:text-text-400 hover:border-ocean-400 focus:border-cyan-300 focus:outline-none disabled:opacity-50"
+            :class="[error ? 'border-danger-400' : 'border-ocean-600', autoExpand ? 'resize-none overflow-hidden' : 'resize-y']"
             @input="resizeToContent"
         ></textarea>
-        <p v-if="error" class="text-xs text-danger" role="alert">{{ error }}</p>
+        <p v-if="error" class="text-xs text-danger-400" role="alert">{{ error }}</p>
     </div>
 </template>

@@ -10,12 +10,12 @@ const props = defineProps<{
 const { t } = useI18n();
 
 const tones = {
-    cyan: 'border-cyan/60 bg-cyan/10 text-cyan-bright',
-    blue: 'border-blue/60 bg-blue/10 text-blue',
-    purple: 'border-purple/60 bg-purple/10 text-purple',
-    amber: 'border-amber/60 bg-amber/10 text-amber',
-    danger: 'border-danger/60 bg-danger/10 text-danger',
-    muted: 'border-muted/60 bg-muted/10 text-muted',
+    cyan: 'border-cyan-300/60 bg-cyan-300/10 text-biolum-200',
+    blue: 'border-ocean-400/60 bg-ocean-400/10 text-ocean-400',
+    purple: 'border-biolum-200/60 bg-biolum-200/10 text-biolum-200',
+    amber: 'border-amber-400/60 bg-amber-400/10 text-amber-400',
+    danger: 'border-danger-400/60 bg-danger-400/10 text-danger-400',
+    muted: 'border-text-400/60 bg-text-400/10 text-text-400',
 } as const;
 
 type Tone = keyof typeof tones;
@@ -66,12 +66,12 @@ const label = computed(() => t(`status.${key.value ?? 'unknown'}`));
 
 <template>
     <span
-        class="hud-label inline-flex max-w-full items-center gap-1.5 truncate rounded-sm border px-2 py-0.5 text-[0.6rem]"
+        class="label-caps chamfer-sm inline-flex max-w-full items-center gap-1.5 truncate border px-2 py-0.5 text-[0.6rem]"
         :class="tones[tone]"
         :data-status="key ?? 'unknown'"
         :data-tone="tone"
     >
-        <span class="size-1.5 shrink-0 rounded-full bg-current"></span>
+        <span class="size-1.5 shrink-0 rounded-full bg-current" aria-hidden="true" data-dot></span>
         {{ label }}
     </span>
 </template>

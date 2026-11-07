@@ -26,9 +26,9 @@ const percent = computed(() => {
 
 <template>
     <div class="flex min-w-0 items-center gap-3 font-mono text-xs">
-        <span v-if="label" class="hud-label w-12 shrink-0 truncate text-[0.6rem] text-muted">{{ label }}</span>
+        <span v-if="label" class="label-caps w-12 shrink-0 truncate text-[0.6rem] text-text-400">{{ label }}</span>
         <div
-            class="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-bg-navy"
+            class="h-2 min-w-0 flex-1 overflow-hidden bg-abyss-900"
             role="progressbar"
             :aria-valuenow="percent"
             aria-valuemin="0"
@@ -36,12 +36,12 @@ const percent = computed(() => {
             :aria-label="label ?? t('progress.label')"
         >
             <div
-                class="h-full rounded-full transition-[width] duration-500"
-                :class="variant === 'amber' ? 'bg-amber' : 'bg-cyan'"
+                class="h-full transition-[width] duration-(--dur-base)"
+                :class="variant === 'amber' ? 'bg-amber-400' : 'bg-cyan-300'"
                 :style="{ width: `${percent}%` }"
                 data-testid="progress-fill"
             ></div>
         </div>
-        <span v-if="showValue" class="w-10 shrink-0 text-right text-text">{{ percent }}%</span>
+        <span v-if="showValue" class="w-10 shrink-0 text-right text-text-100">{{ percent }}%</span>
     </div>
 </template>

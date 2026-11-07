@@ -1,0 +1,36 @@
+[[data-source]]
+comment = ""
+database = "laravel"
+driver = "postgres"
+host = "localhost"
+id = "ca781a48-5e61-4268-b713-785958bc79c6"
+name = "laravel@localhost"
+port = 5432
+properties = []
+readOnly = false
+savePassword = true
+ssl = "prefer"
+sslCaFile = ""
+sslCertFile = ""
+sslKeyFile = ""
+url = ""
+urlOnly = false
+user = "sail"
+vendor = ""
+
+[data-source.introspection]
+allDatabases = true
+allSchemas = true
+databases = []
+objectFilter = ""
+schemas = []
+showSystem = false
+showTemplates = false
+
+[data-source.options]
+defaultSchema = ""
+instantClient = ""
+singleDatabase = false
+startupScript = ""
+timeZone = ""
+transaction = "auto"

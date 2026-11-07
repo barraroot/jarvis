@@ -39,18 +39,18 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
 
 <template>
     <div v-if="open" class="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center" data-testid="hud-modal">
-        <div class="absolute inset-0 bg-bg/80 backdrop-blur-sm" data-testid="hud-modal-backdrop" @click="close"></div>
+        <div class="absolute inset-0 bg-abyss-950/80 backdrop-blur-sm" data-testid="hud-modal-backdrop" @click="close"></div>
         <div
             role="dialog"
             aria-modal="true"
             :aria-label="title"
-            class="hud-border hud-glass relative flex max-h-[90dvh] w-full min-w-0 max-w-lg flex-col overflow-y-auto rounded-sm bg-bg-navy/90 p-4 sm:p-5"
+            class="glass chamfer-md relative flex max-h-[90dvh] w-full min-w-0 max-w-lg flex-col overflow-y-auto p-4 sm:p-5"
         >
-            <header class="mb-4 flex items-center justify-between gap-3 border-b border-line/70 pb-2">
-                <h2 v-if="title" class="hud-label truncate text-sm text-cyan hud-glow">{{ title }}</h2>
+            <header class="mb-4 flex items-center justify-between gap-3 border-b border-ocean-600/70 pb-2">
+                <h2 v-if="title" class="label-caps truncate text-sm text-cyan-300 glow">{{ title }}</h2>
                 <button
                     type="button"
-                    class="ml-auto inline-flex size-11 shrink-0 items-center justify-center text-lg text-muted hover:text-cyan-bright"
+                    class="ml-auto inline-flex size-11 shrink-0 items-center justify-center text-lg text-text-400 hover:text-biolum-200"
                     :aria-label="t('common.close')"
                     data-testid="hud-modal-close"
                     @click="close"

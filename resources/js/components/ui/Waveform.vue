@@ -39,7 +39,7 @@ const heights = computed(() =>
         <span
             v-for="(height, index) in heights"
             :key="index"
-            class="w-[3px] shrink rounded-full bg-cyan transition-[height] duration-100"
+            class="w-[3px] shrink bg-cyan-300 transition-[height] duration-(--dur-fast)"
             :style="{ height: `${height}%`, opacity: 0.4 + clampedLevel * 0.6 }"
             data-testid="waveform-bar"
         ></span>

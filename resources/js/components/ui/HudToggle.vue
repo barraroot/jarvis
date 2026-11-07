@@ -20,19 +20,19 @@ const { t } = useI18n();
         :aria-checked="model"
         :aria-label="label"
         :disabled="disabled"
-        class="inline-flex max-w-full items-center gap-3 text-left disabled:cursor-not-allowed disabled:opacity-50"
+        class="inline-flex min-h-11 max-w-full items-center gap-3 text-left disabled:cursor-not-allowed disabled:opacity-50"
         @click="model = !model"
     >
         <span
-            class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors"
-            :class="model ? 'border-cyan bg-cyan/30' : 'border-line bg-bg-navy'"
+            class="chamfer-sm relative inline-flex h-6 w-11 shrink-0 items-center border transition-colors duration-(--dur-base)"
+            :class="model ? 'border-cyan-300 bg-cyan-300/30' : 'border-ocean-600 bg-abyss-900'"
         >
             <span
-                class="absolute size-3.5 rounded-full transition-transform"
-                :class="model ? 'translate-x-4.5 bg-cyan-bright' : 'translate-x-0.5 bg-muted'"
+                class="chamfer-sm absolute size-4 transition-transform duration-(--dur-base)"
+                :class="model ? 'translate-x-6 bg-biolum-200' : 'translate-x-1 bg-text-400'"
             ></span>
         </span>
-        <span v-if="label" class="min-w-0 truncate text-sm text-text">{{ label }}</span>
+        <span v-if="label" class="min-w-0 truncate text-sm text-text-100">{{ label }}</span>
         <span class="sr-only">{{ model ? t('common.on') : t('common.off') }}</span>
     </button>
 </template>
