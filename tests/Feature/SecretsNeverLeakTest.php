@@ -6,11 +6,13 @@ use App\Ai\Agents\IntentClassifier;
 use App\Events\Tool\ToolCompleted;
 use App\Events\Tool\ToolStarted;
 use App\Events\Visualization\VisualizationUpdated;
+use App\Events\Whatsapp\SessionStatusChanged;
 use App\Models\Agent;
 use App\Models\AgentExecution;
 use App\Models\AiModel;
 use App\Models\AiProvider;
 use App\Models\Approval;
+use App\Models\ConnectorStatus;
 use App\Models\Conversation;
 use App\Models\McpServer;
 use App\Models\McpToolDefinition;
@@ -23,6 +25,7 @@ use App\Models\ToolExecution;
 use App\Models\User;
 use App\Models\Visualization;
 use App\Models\VoiceSession;
+use App\Models\WhatsappSession;
 use Illuminate\Broadcasting\BroadcastEvent;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -168,7 +171,7 @@ class SecretsNeverLeakTest extends TestCase
     {
         $classes = array_map(fn (ShouldBroadcast $event): string => $event::class, $this->broadcastableEvents());
 
-        foreach ([VisualizationUpdated::class, ToolStarted::class, ToolCompleted::class] as $class) {
+        foreach ([VisualizationUpdated::class, ToolStarted::class, ToolCompleted::class, SessionStatusChanged::class] as $class) {
             $this->assertContains($class, $classes);
         }
     }
@@ -224,6 +227,16 @@ class SecretsNeverLeakTest extends TestCase
 
         Memory::factory()->for($this->user)->confirmed()->create();
 
+        $whatsappSecrets = ['wz-token-'.Str::random(24), 'wz-hmac-'.Str::random(32), 'wz-webhook-'.Str::random(37)];
+        $this->secrets = [...$this->secrets, ...$whatsappSecrets];
+        $whatsappSession = WhatsappSession::factory()->for($this->user)->create([
+            'token' => $whatsappSecrets[0],
+            'hmac_key' => $whatsappSecrets[1],
+            'webhook_key' => $whatsappSecrets[2],
+            'connector_status_id' => ConnectorStatus::idFor(ConnectorStatus::ERROR),
+            'last_error' => 'Não foi possível falar com o serviço do WhatsApp.',
+        ]);
+
         return [
             'conversation' => $conversation,
             'message' => $message,
@@ -237,6 +250,7 @@ class SecretsNeverLeakTest extends TestCase
             'notification' => Notification::factory()->for($this->user)->create(),
             'voice_session' => $voiceSession,
             'visualization' => $visualization,
+            'whatsapp_session' => $whatsappSession,
             'user' => $this->user,
         ];
     }
@@ -293,6 +307,7 @@ class SecretsNeverLeakTest extends TestCase
             Notification::class => $this->records['notification'],
             VoiceSession::class => $this->records['voice_session'],
             Visualization::class => $this->records['visualization'],
+            WhatsappSession::class => $this->records['whatsapp_session'],
             'int' => $name === 'messageId' ? $this->records['message']->id : 1,
             'bool' => true,
             default => 'idle',
