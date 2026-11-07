@@ -140,4 +140,22 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->hasMany(McpServer::class);
     }
+
+    /** @return HasOne<WhatsappSession, $this> */
+    public function whatsappSession(): HasOne
+    {
+        return $this->hasOne(WhatsappSession::class);
+    }
+
+    /** @return HasOne<WhatsappConsent, $this> */
+    public function whatsappConsent(): HasOne
+    {
+        return $this->hasOne(WhatsappConsent::class);
+    }
+
+    /** @return HasMany<WhatsappSchedule, $this> */
+    public function whatsappSchedules(): HasMany
+    {
+        return $this->hasMany(WhatsappSchedule::class);
+    }
 }

@@ -27,6 +27,11 @@ use App\Models\UserPreference;
 use App\Models\Visualization;
 use App\Models\VisualizationStatus;
 use App\Models\VoiceSession;
+use App\Models\WhatsappConsent;
+use App\Models\WhatsappMessage;
+use App\Models\WhatsappOutboundMessage;
+use App\Models\WhatsappSchedule;
+use App\Models\WhatsappSession;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -69,6 +74,11 @@ class FactoriesSmokeTest extends TestCase
             AuditLog::class => ['system'],
             VoiceSession::class => ['inactive'],
             Visualization::class => ['updated', 'failed', 'closed'],
+            WhatsappConsent::class => ['revoked', 'outdated'],
+            WhatsappSession::class => ['connected', 'disconnected', 'suspended', 'withConsent'],
+            WhatsappSchedule::class => ['recurring', 'paused', 'cancelled', 'completed'],
+            WhatsappOutboundMessage::class => ['queued', 'sent', 'failed', 'blocked'],
+            WhatsappMessage::class => ['fromMe', 'image'],
         ];
     }
 
@@ -152,6 +162,28 @@ class FactoriesSmokeTest extends TestCase
 
         $versionOnly = UserPreference::factory()->create(['wake_word_consent_version' => UserPreference::CURRENT_WAKE_WORD_CONSENT_VERSION]);
         $this->assertFalse($versionOnly->hasValidWakeWordConsent());
+    }
+
+    public function test_whatsapp_factories_share_owner_and_session(): void
+    {
+        $session = WhatsappSession::factory()->connected()->withConsent(['envio'])->create();
+
+        $this->assertTrue($session->isConnected());
+        $this->assertTrue($session->user->whatsappConsent->isValid());
+        $this->assertSame(['envio'], $session->user->whatsappConsent->scopes);
+
+        $schedule = WhatsappSchedule::factory()->for($session->user)->create();
+        $outbound = WhatsappOutboundMessage::factory()->for($session->user)->queued()->create();
+        $message = WhatsappMessage::factory()->for($session->user)->create();
+
+        foreach ([$schedule, $outbound, $message] as $record) {
+            $this->assertSame($session->id, $record->whatsapp_session_id);
+            $this->assertSame($session->user_id, $record->user_id);
+        }
+
+        $this->assertSame(1, WhatsappSession::query()->count());
+        $this->assertNotNull($schedule->next_run_at);
+        $this->assertTrue($schedule->approval_expires_at->isFuture());
     }
 
     public function test_memory_embedding_factory_builds_1536_dimension_vector(): void

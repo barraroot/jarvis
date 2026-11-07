@@ -13,6 +13,8 @@ use App\Models\User;
 use App\Models\UserPreference;
 use App\Models\Visualization;
 use App\Models\VoiceSession;
+use App\Models\WhatsappSchedule;
+use App\Models\WhatsappSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\SeedsLookups;
 use Tests\TestCase;
@@ -36,6 +38,8 @@ class OwnershipPolicyTest extends TestCase
             'personal connector' => McpServer::factory()->for($owner)->create(),
             'voice session' => VoiceSession::factory()->for($owner)->create(),
             'visualization' => Visualization::factory()->for($owner)->create(),
+            'whatsapp session' => WhatsappSession::factory()->for($owner)->create(),
+            'whatsapp schedule' => WhatsappSchedule::factory()->for($owner)->create(),
         ];
 
         foreach ($records as $label => $record) {
