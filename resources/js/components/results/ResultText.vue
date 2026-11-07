@@ -8,5 +8,7 @@ defineProps<{
 </script>
 
 <template>
-    <SafeMarkdown :source="payload.text" data-testid="result-text" />
+    <div class="glass chamfer-md min-w-0 px-3 py-2" data-testid="result-text">
+        <SafeMarkdown :source="payload.text" />
+    </div>
 </template>

@@ -18,33 +18,37 @@ const isUser = computed(() => props.message.role === 'user');
 /** Assistant reply still receiving chunks: blinking caret at the end. */
 const isStreaming = computed(() => !isUser.value && props.message.status === 'running');
 const isFailed = computed(() => props.message.status === 'failed');
+
+/** Letter avatar beside the bubble (`board-05-conversation.html`): first letter of the speaker label. */
+const avatarLetter = computed(() => (isUser.value ? t('conversation.you') : t('conversation.jarvis')).charAt(0).toUpperCase());
 </script>
 
 <template>
     <article
-        class="flex min-w-0"
-        :class="isUser ? 'justify-end' : 'justify-start'"
+        class="flex min-w-0 items-start gap-2"
+        :class="isUser ? 'flex-row justify-end' : 'flex-row-reverse justify-end'"
         :aria-label="isUser ? t('conversation.you') : t('conversation.jarvis')"
         :data-testid="isUser ? 'message-bubble-user' : 'message-bubble-assistant'"
     >
         <div
-            class="hud-glass flex min-w-0 flex-col gap-1 rounded-sm border px-3 py-2 sm:max-w-[75%]"
-            :class="[isUser ? 'border-line max-w-[85%]' : isFailed ? 'border-danger/60 max-w-full' : 'border-cyan/40 max-w-full']"
+            class="glass chamfer-md flex min-w-0 flex-col gap-1 border px-3 py-2 sm:max-w-[75%]"
+            :class="[isUser ? 'border-ocean-600 bg-abyss-800/70 max-w-[85%]' : isFailed ? 'border-danger-400/60 max-w-full' : 'border-cyan-300/40 max-w-full']"
+            data-testid="message-body"
         >
             <div class="flex min-w-0 items-start gap-2">
                 <span
                     v-if="!isUser"
-                    class="shrink-0 font-mono text-sm leading-5 text-cyan hud-glow"
+                    class="shrink-0 font-mono text-sm leading-5 text-cyan-300 glow"
                     aria-hidden="true"
                     data-testid="message-prefix"
                 >
                     »
                 </span>
 
-                <p class="min-w-0 flex-1 whitespace-pre-wrap break-words font-mono text-sm text-text">
+                <p class="min-w-0 flex-1 whitespace-pre-wrap break-words text-sm text-text-100">
                     {{ message.content }}<span
                         v-if="isStreaming"
-                        class="animate-hud-pulse text-cyan-bright hud-glow"
+                        class="animate-hud-pulse text-biolum-200 glow"
                         :aria-label="t('conversation.streaming')"
                         data-testid="message-streaming-caret"
                     >▍</span>
@@ -57,7 +61,7 @@ const isFailed = computed(() => props.message.status === 'failed');
                     fill="none"
                     stroke="currentColor"
                     stroke-width="2"
-                    class="mt-0.5 size-3.5 shrink-0 text-muted"
+                    class="mt-0.5 size-3.5 shrink-0 text-text-400"
                     aria-hidden="true"
                     :data-testid="message.source === 'voice' ? 'message-source-voice' : 'message-source-text'"
                 >
@@ -79,7 +83,7 @@ const isFailed = computed(() => props.message.status === 'failed');
                     fill="none"
                     stroke="currentColor"
                     stroke-width="2"
-                    class="size-3.5 shrink-0 text-danger"
+                    class="size-3.5 shrink-0 text-danger-400"
                     aria-hidden="true"
                     data-testid="message-error-icon"
                 >
@@ -87,10 +91,10 @@ const isFailed = computed(() => props.message.status === 'failed');
                     <path d="M12 17h.01" />
                     <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
                 </svg>
-                <span class="hud-label font-mono text-[0.6rem] text-danger">{{ t('conversation.failed') }}</span>
+                <span class="label-caps font-mono text-[0.6rem] text-danger-400">{{ t('conversation.failed') }}</span>
                 <button
                     type="button"
-                    class="hud-label ml-auto rounded-sm border border-danger/60 px-2 py-1 text-[0.6rem] text-danger hover:bg-danger/15"
+                    class="label-caps chamfer-sm ml-auto min-h-11 border border-danger-400/60 px-2 py-1 text-[0.6rem] text-danger-400 hover:bg-danger-400/15"
                     data-testid="message-retry"
                     @click="emit('retry', message)"
                 >
@@ -104,5 +108,15 @@ const isFailed = computed(() => props.message.status === 'failed');
             <!-- Hypothesis confirmation prompt (US-6.2) on assistant replies. -->
             <MemoryHypothesesCard v-if="!isUser" :message="message" />
         </div>
+
+        <!-- After the body in the DOM so the bubble stays the first child; flex direction places it. -->
+        <span
+            class="chamfer-sm flex size-8 shrink-0 items-center justify-center border font-logo text-xs"
+            :class="isUser ? 'border-ocean-600 bg-abyss-800 text-text-100' : 'border-cyan-300/60 bg-cyan-300/10 text-cyan-300 glow'"
+            aria-hidden="true"
+            data-testid="message-avatar"
+        >
+            {{ avatarLetter }}
+        </span>
     </article>
 </template>

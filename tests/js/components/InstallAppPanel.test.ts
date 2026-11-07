@@ -102,6 +102,22 @@ describe('InstallAppPanel (US-2.5)', () => {
         wrapper.unmount();
     });
 
+    it('lists the iOS steps as numbered chamfered rows without rounded corners', async () => {
+        setUserAgent(IPHONE_UA);
+
+        const wrapper = mount(InstallAppPanel);
+        await flushPromises();
+
+        const steps = wrapper.findAll('[data-testid="install-app-ios"] li');
+        expect(steps).toHaveLength(3);
+        expect(steps.map((step) => step.text().slice(0, 2))).toEqual(['01', '02', '03']);
+        expect(steps.every((step) => step.classes().includes('chamfer-sm'))).toBe(true);
+        expect(wrapper.get('[data-testid="install-app-panel"]').classes()).toContain('chamfer-md');
+        expect(wrapper.html()).not.toMatch(/\brounded(-[a-z0-9]+)?\b/);
+
+        wrapper.unmount();
+    });
+
     it('detects iPhone and iPadOS (touch Mac) but not desktop browsers', () => {
         setUserAgent(IPHONE_UA);
         expect(isIosDevice()).toBe(true);

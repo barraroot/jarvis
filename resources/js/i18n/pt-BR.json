@@ -374,6 +374,7 @@
     "wakeWordReconsentTitle": "Novo termo de privacidade da voz",
     "wakeWordReconsentBody": "O termo de privacidade da voz mudou: aceite o novo texto para reativar a palavra de ativação.",
     "wakeWordReconsentAction": "Revisar termo",
+    "wakeWordConsentedAt": "Termo aceito em {date}",
     "sections": {
       "preferences": "Preferências",
       "voice": "Voz",

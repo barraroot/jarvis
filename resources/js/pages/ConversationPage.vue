@@ -54,8 +54,8 @@ function onLoadOlder(): void {
 
 <template>
     <div class="flex h-full min-h-0 flex-col gap-3" data-testid="conversation-page">
-        <div class="flex items-center justify-between gap-3 border-b border-line pb-2" data-testid="conversation-header">
-            <h1 class="hud-label min-w-0 truncate text-sm text-cyan hud-glow" data-testid="conversation-title">
+        <div class="flex items-center justify-between gap-3 border-b border-ocean-600/70 pb-2" data-testid="conversation-header">
+            <h1 class="label-caps min-w-0 truncate text-sm text-cyan-300 glow" data-testid="conversation-title">
                 {{ conversations.active?.title ?? '' }}
             </h1>
             <ModelSelector

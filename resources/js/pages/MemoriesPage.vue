@@ -18,9 +18,12 @@ const { t } = useI18n();
 const memories = useMemoriesStore();
 const toasts = useToastStore();
 
-const statusOptions = [
-    { value: 'confirmed', label: t('status.confirmed') },
-    { value: 'hypothesis', label: t('status.hypothesis') },
+type MemoryTab = 'confirmed' | 'hypothesis';
+
+/** Status tabs (UI-16): each maps to the `status` filter of `GET /api/v1/memories`. */
+const tabs: { value: MemoryTab; label: string }[] = [
+    { value: 'confirmed', label: t('memories.tabs.confirmed') },
+    { value: 'hypothesis', label: t('memories.tabs.hypotheses') },
 ];
 
 const categoryOptions: { value: MemoryCategory; label: string }[] = [
@@ -31,7 +34,7 @@ const categoryOptions: { value: MemoryCategory; label: string }[] = [
     { value: 'fact', label: t('memories.categories.fact') },
 ];
 
-const statusFilter = ref('');
+const activeTab = ref<MemoryTab>('confirmed');
 const categoryFilter = ref<'' | MemoryCategory>('');
 const search = ref('');
 
@@ -56,15 +59,40 @@ const creating = ref(false);
 const newContent = ref('');
 const newCategory = ref<MemoryCategory>('preference');
 
+/** Set once the page's own list request settled (the side panel summary also flips `memories.loaded`). */
+const listSettled = ref(false);
+
 function applyFilters(): void {
-    memories.setStatusFilter(statusFilter.value === '' ? null : statusFilter.value);
+    memories.setStatusFilter(activeTab.value);
     memories.setCategoryFilter(categoryFilter.value === '' ? null : categoryFilter.value);
     memories.setSearch(search.value);
 
-    void memories.refresh().catch(() => {
-        toasts.push(t('errors.network'), { variant: 'danger' });
-    });
+    void memories
+        .refresh()
+        .catch(() => {
+            toasts.push(t('errors.network'), { variant: 'danger' });
+        })
+        .finally(() => {
+            listSettled.value = true;
+        });
 }
+
+function selectTab(tab: MemoryTab): void {
+    if (activeTab.value !== tab) {
+        activeTab.value = tab;
+        applyFilters();
+    }
+}
+
+function selectCategory(category: '' | MemoryCategory): void {
+    if (categoryFilter.value !== category) {
+        categoryFilter.value = category;
+        applyFilters();
+    }
+}
+
+/** The empty state only shows after a load settled with no items (never while loading). */
+const showEmpty = computed(() => listSettled.value && !memories.loading && memories.memories.length === 0);
 
 function categoryLabel(slug: string): string {
     return t(`memories.categories.${slug}`) as string;
@@ -146,23 +174,19 @@ async function createMemory(): Promise<void> {
 
 const newMemoryValid = computed(() => newContent.value.trim().length > 0 && newContent.value.trim().length <= 2000);
 
-onMounted(() => {
-    void memories.refresh().catch(() => {
-        toasts.push(t('errors.network'), { variant: 'danger' });
-    });
-});
+onMounted(applyFilters);
 </script>
 
 <template>
     <div class="mx-auto flex h-full min-h-0 max-w-3xl flex-col gap-3" data-testid="memories-page">
-        <div class="flex items-center justify-between gap-3 border-b border-line pb-2" data-testid="memories-header">
-            <h1 class="hud-label text-sm text-cyan hud-glow">{{ t('memories.title') }}</h1>
+        <div class="flex items-center justify-between gap-3 border-b border-ocean-600/70 pb-2" data-testid="memories-header">
+            <h1 class="label-caps text-sm text-cyan-300 glow">{{ t('memories.title') }}</h1>
             <HudButton data-testid="memories-create" @click="creating = !creating">
                 {{ t('memories.create') }}
             </HudButton>
         </div>
 
-        <div v-if="creating" class="hud-glass flex flex-col gap-2 rounded-sm border border-line p-3" data-testid="memories-create-form">
+        <div v-if="creating" class="glass chamfer-md flex flex-col gap-2 border border-ocean-600 p-3" data-testid="memories-create-form">
             <HudTextarea
                 v-model="newContent"
                 :placeholder="t('memories.createPlaceholder')"
@@ -188,7 +212,23 @@ onMounted(() => {
                     </HudButton>
                 </div>
             </div>
-            <p class="hud-label text-[0.6rem] text-muted">{{ t('memories.createHint') }}</p>
+            <p class="label-caps text-[0.6rem] text-text-400">{{ t('memories.createHint') }}</p>
+        </div>
+
+        <div class="flex flex-wrap gap-2 border-b border-ocean-600/50" role="tablist" :aria-label="t('memories.filterStatus')" data-testid="memories-tabs">
+            <button
+                v-for="tab in tabs"
+                :key="tab.value"
+                type="button"
+                role="tab"
+                class="label-caps -mb-px min-h-11 border-b-2 px-3 text-xs transition-colors"
+                :class="activeTab === tab.value ? 'border-cyan-300 text-cyan-300 glow' : 'border-transparent text-text-400 hover:text-biolum-200'"
+                :aria-selected="activeTab === tab.value"
+                :data-testid="`memories-tab-${tab.value}`"
+                @click="selectTab(tab.value)"
+            >
+                {{ tab.label }}
+            </button>
         </div>
 
         <div class="flex flex-wrap items-end gap-2" data-testid="memories-filters">
@@ -199,61 +239,66 @@ onMounted(() => {
                 data-testid="memories-search"
                 @keyup.enter="applyFilters"
             />
-            <label class="flex min-w-0 flex-col gap-1">
-                <span class="hud-label text-[0.65rem] text-muted">{{ t('memories.filterStatus') }}</span>
-                <select
-                    v-model="statusFilter"
-                    class="w-full min-w-0 rounded-sm border border-line bg-bg-navy px-3 py-2 font-mono text-sm text-text focus:border-cyan focus:outline-none"
-                    data-testid="memories-filter-status"
-                    @change="applyFilters"
-                >
-                    <option value="">{{ t('memories.allStatuses') }}</option>
-                    <option v-for="option in statusOptions" :key="option.value" :value="option.value">
-                        {{ option.label }}
-                    </option>
-                </select>
-            </label>
-            <label class="flex min-w-0 flex-col gap-1">
-                <span class="hud-label text-[0.65rem] text-muted">{{ t('memories.filterCategory') }}</span>
-                <select
-                    v-model="categoryFilter"
-                    class="w-full min-w-0 rounded-sm border border-line bg-bg-navy px-3 py-2 font-mono text-sm text-text focus:border-cyan focus:outline-none"
-                    data-testid="memories-filter-category"
-                    @change="applyFilters"
-                >
-                    <option value="">{{ t('memories.allCategories') }}</option>
-                    <option v-for="option in categoryOptions" :key="option.value" :value="option.value">
-                        {{ option.label }}
-                    </option>
-                </select>
-            </label>
             <HudButton variant="ghost" data-testid="memories-filter-apply" @click="applyFilters">
                 {{ t('memories.filter') }}
             </HudButton>
         </div>
 
-        <div class="min-h-0 flex-1 overflow-y-auto" data-testid="memories-list">
-            <EmptyState v-if="memories.memories.length === 0 && !memories.loading">
-                {{ t('memories.emptyHint') }}
-            </EmptyState>
+        <div class="flex flex-wrap items-center gap-1.5" role="group" :aria-label="t('memories.filterCategory')" data-testid="memories-categories">
+            <button
+                type="button"
+                class="label-caps chamfer-sm min-h-11 border px-3 text-[0.65rem] transition-colors"
+                :class="categoryFilter === '' ? 'border-cyan-300 bg-cyan-300/10 text-cyan-300' : 'border-ocean-600 text-text-400 hover:border-ocean-400'"
+                :aria-pressed="categoryFilter === ''"
+                data-testid="memories-category-all"
+                @click="selectCategory('')"
+            >
+                {{ t('memories.allCategories') }}
+            </button>
+            <button
+                v-for="option in categoryOptions"
+                :key="option.value"
+                type="button"
+                class="label-caps chamfer-sm min-h-11 border px-3 text-[0.65rem] transition-colors"
+                :class="categoryFilter === option.value ? 'border-cyan-300 bg-cyan-300/10 text-cyan-300' : 'border-ocean-600 text-text-400 hover:border-ocean-400'"
+                :aria-pressed="categoryFilter === option.value"
+                :data-testid="`memories-category-${option.value}`"
+                @click="selectCategory(option.value)"
+            >
+                {{ option.label }}
+            </button>
+        </div>
 
-            <ul v-else class="flex min-w-0 flex-col gap-2 pb-2">
+        <div class="min-h-0 flex-1 overflow-y-auto" data-testid="memories-list">
+            <EmptyState
+                v-if="showEmpty"
+                :title="t('edge.empty.memories.title')"
+                :text="t('edge.empty.memories.text')"
+            />
+
+            <ul v-else-if="memories.memories.length > 0" class="stagger-children flex min-w-0 flex-col gap-2 pb-2">
                 <li
-                    v-for="memory in memories.memories"
+                    v-for="(memory, index) in memories.memories"
                     :key="memory.id"
-                    class="hud-glass flex min-w-0 flex-col gap-2 rounded-sm border border-line p-3"
+                    class="chamfer-md corner-light flex min-w-0 flex-col gap-2 border p-3"
+                    :class="memory.status === 'hypothesis'
+                        ? 'border-dashed border-amber-400/60 bg-abyss-900/35'
+                        : 'glass border-solid border-ocean-600'"
+                    :style="{ '--i': index }"
+                    :data-status="memory.status"
                     data-testid="memory-item"
                 >
                     <div class="flex items-start justify-between gap-2">
                         <StatusBadge :status="memory.status" />
-                        <span class="hud-label font-mono text-[0.6rem] text-muted" data-testid="memory-category">
+                        <span class="label-caps font-mono text-[0.6rem] text-text-400" data-testid="memory-category">
                             {{ categoryLabel(memory.category) }}
                         </span>
                     </div>
 
                     <p
                         v-if="editingId !== memory.id"
-                        class="min-w-0 whitespace-pre-wrap break-words font-mono text-sm text-text"
+                        class="min-w-0 whitespace-pre-wrap break-words text-sm"
+                        :class="memory.status === 'hypothesis' ? 'text-text-100/80' : 'text-text-100'"
                         data-testid="memory-content"
                     >
                         {{ memory.content }}
@@ -268,21 +313,21 @@ onMounted(() => {
                         data-testid="memory-edit-input"
                     />
 
-                    <div class="flex flex-wrap items-center gap-2 border-t border-line/50 pt-2">
+                    <div class="flex flex-wrap items-center gap-2 border-t border-ocean-600/50 pt-2">
                         <RouterLink
                             v-if="memory.source_conversation_id !== null"
                             :to="{ name: 'conversation', params: { id: memory.source_conversation_id } }"
-                            class="hud-label rounded-sm border border-line px-2 py-1 text-[0.6rem] text-cyan-bright hover:border-cyan"
+                            class="label-caps chamfer-sm inline-flex min-h-11 items-center border border-ocean-600 px-2 py-1 text-[0.6rem] text-biolum-200 hover:border-cyan-300"
                             data-testid="memory-source"
                         >
                             {{ t('memories.source') }}: {{ t('memories.sourceConversation', { id: memory.source_conversation_id }) }}
                         </RouterLink>
 
-                        <span v-else class="hud-label text-[0.6rem] text-muted" data-testid="memory-source-manual">
+                        <span v-else class="label-caps text-[0.6rem] text-text-400" data-testid="memory-source-manual">
                             {{ t('memories.source') }}: —
                         </span>
 
-                        <span class="hud-label ml-auto font-mono text-[0.55rem] text-muted" data-testid="memory-date">
+                        <span class="ml-auto font-mono text-[0.6rem] text-text-400" data-testid="memory-date">
                             {{ formatDate(memory.created_at) }}
                         </span>
 
@@ -296,18 +341,18 @@ onMounted(() => {
                         </template>
 
                         <template v-else>
-                            <HudButton variant="ghost" data-testid="memory-edit" @click="startEdit(memory)">
-                                {{ t('memories.edit') }}
-                            </HudButton>
-
                             <template v-if="memory.status === 'hypothesis'">
                                 <HudButton data-testid="memory-confirm" @click="confirmMemory(memory)">
                                     {{ t('memories.confirm') }}
                                 </HudButton>
-                                <HudButton variant="danger" data-testid="memory-discard" @click="discardMemory(memory)">
+                                <HudButton variant="ghost" data-testid="memory-discard" @click="discardMemory(memory)">
                                     {{ t('memories.discard') }}
                                 </HudButton>
                             </template>
+
+                            <HudButton variant="ghost" data-testid="memory-edit" @click="startEdit(memory)">
+                                {{ t('memories.edit') }}
+                            </HudButton>
 
                             <HudButton variant="danger" data-testid="memory-delete" @click="deleting = memory">
                                 {{ t('memories.delete') }}
@@ -326,8 +371,8 @@ onMounted(() => {
 
         <HudModal v-model:open="deleteOpen" :title="t('memories.deleteTitle')">
             <template v-if="deleting !== null">
-                <p class="font-mono text-sm text-text">{{ t('memories.deleteMessage') }}</p>
-                <p class="hud-label mt-3 max-h-40 overflow-y-auto break-words border border-line p-2 text-[0.65rem] text-muted">
+                <p class="text-sm text-text-100">{{ t('memories.deleteMessage') }}</p>
+                <p class="chamfer-sm mt-3 max-h-40 overflow-y-auto break-words border border-ocean-600 p-2 font-mono text-[0.65rem] text-text-400">
                     {{ deleting.content }}
                 </p>
             </template>

@@ -133,7 +133,70 @@ describe('ConversationDrawer', () => {
         mockFetch({ 'GET /api/v1/conversations?page=1': { body: listEnvelope([], 1, 1) } });
         const { wrapper } = await mountDrawer();
 
-        expect(wrapper.get('[data-testid="empty-state"]').text()).toBe('Nenhuma conversa ainda');
+        expect(wrapper.get('[data-testid="empty-state-title"]').text()).toBe('Nenhuma conversa ainda');
+        expect(wrapper.get('[data-testid="empty-state-text"]').text()).toContain('A primeira conversa ganha nome sozinha');
+        expect(wrapper.get('[data-testid="drawer-empty-start"]').text()).toBe('Começar');
+
+        wrapper.unmount();
+    });
+
+    it('hides the empty state while the list is loading', async () => {
+        mockFetch({ 'GET /api/v1/conversations?page=1': { body: listEnvelope([], 1, 1) } });
+        const { wrapper } = await mountDrawer();
+        const store = useConversationsStore();
+
+        store.loading = true;
+        await nextTick();
+
+        expect(wrapper.find('[data-testid="empty-state"]').exists()).toBe(false);
+
+        wrapper.unmount();
+    });
+
+    it('closes the drawer and focuses the composer on "Começar"', async () => {
+        mockFetch({ 'GET /api/v1/conversations?page=1': { body: listEnvelope([], 1, 1) } });
+        const composer = document.createElement('div');
+        composer.dataset.testid = 'composer';
+        const textarea = document.createElement('textarea');
+        composer.appendChild(textarea);
+        document.body.appendChild(composer);
+
+        const { wrapper } = await mountDrawer();
+
+        await wrapper.get('[data-testid="drawer-empty-start"]').trigger('click');
+        await flushPromises();
+
+        expect(wrapper.find('[data-testid="conversation-drawer"]').exists()).toBe(false);
+        expect(document.activeElement).toBe(textarea);
+
+        wrapper.unmount();
+        composer.remove();
+    });
+
+    it('shows the model selector for the open conversation', async () => {
+        mockFetch({
+            'GET /api/v1/conversations?page=1': { body: listEnvelope([makeConversation('c1', 'Aberta')], 1, 1) },
+            'GET /api/v1/models': { body: { data: [] } },
+        });
+        const { wrapper } = await mountDrawer();
+
+        expect(wrapper.find('[data-testid="drawer-model-selector"]').exists()).toBe(false);
+
+        const store = useConversationsStore();
+        store.active = makeConversation('c1', 'Aberta');
+        await flushPromises();
+
+        expect(wrapper.find('[data-testid="drawer-model-selector"]').exists()).toBe(true);
+
+        wrapper.unmount();
+    });
+
+    it('uses chamfered controls without rounded corners', async () => {
+        mockFetch({ 'GET /api/v1/conversations?page=1': { body: listEnvelope([makeConversation('c1', 'Um')], 1, 1) } });
+        const { wrapper } = await mountDrawer();
+
+        expect(wrapper.html()).not.toMatch(/\brounded(-[a-z0-9]+)?\b/);
+        expect(wrapper.get('[data-testid="conversation-item"]').classes()).toContain('chamfer-sm');
 
         wrapper.unmount();
     });

@@ -1,22 +1,23 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { createMemoryHistory } from 'vue-router';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { i18n } from '@/i18n';
 import SettingsPage from '@/pages/SettingsPage.vue';
 import { createAppRouter } from '@/router';
 import { useAuthStore } from '@/stores/auth';
 import { DEFAULT_PREFERENCES } from '@/stores/preferences';
 import { useToastStore } from '@/stores/toast';
-import { makeUser, mockFetch } from '../helpers/fetch';
+import { makeUser, mockFetch, type MockRoutes } from '../helpers/fetch';
 import { stubSpeechRecognition } from '../helpers/speech';
 
 function seedPreferences(overrides: Record<string, unknown> = {}) {
     return useAuthStore().user = makeUser({ preference: { ...DEFAULT_PREFERENCES, ...overrides } });
 }
 
-async function mountSettings() {
+async function mountSettings(routes: MockRoutes = {}) {
     const { calls } = mockFetch({
         'PUT /api/v1/preferences': { body: { data: { ...DEFAULT_PREFERENCES } } },
+        ...routes,
     });
     const router = createAppRouter(createMemoryHistory());
     await router.push('/settings');
@@ -34,27 +35,117 @@ function putPayloads(calls: Array<{ method: string; url: string; init: RequestIn
 }
 
 describe('SettingsPage', () => {
-    it('renders the persisted languages and hides the browser voice fields', async () => {
-        seedPreferences({ speech_locale: 'en-US' });
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    it('renders the persisted languages and browser voice fields', async () => {
+        seedPreferences({
+            speech_locale: 'en-US',
+            voice_name: 'Samantha',
+            speech_rate: 1.2,
+            spoken_responses_enabled: false,
+            silence_timeout_ms: 2000,
+        });
         const { wrapper } = await mountSettings();
 
         expect((wrapper.get('[data-testid="settings-speech-locale"] select').element as HTMLSelectElement).value).toBe('en-US');
-        for (const field of ['settings-voice', 'settings-rate', 'settings-silence', 'settings-spoken', 'settings-test-voice']) {
-            expect(wrapper.find(`[data-testid="${field}"]`).exists(), field).toBe(false);
-        }
+        expect((wrapper.get('[data-testid="settings-voice"] select').element as HTMLSelectElement).value).toBe('Samantha');
+        expect(wrapper.get('[data-testid="settings-voice"]').text()).toContain('Padrão do navegador');
+        expect((wrapper.get('[data-testid="settings-rate"] input').element as HTMLInputElement).value).toBe('1.2');
+        expect(wrapper.get('[data-testid="settings-rate-value"]').text()).toBe('1,2');
+        expect(wrapper.get('[data-testid="settings-spoken"]').attributes('aria-checked')).toBe('false');
+        expect((wrapper.get('[data-testid="settings-silence"] input').element as HTMLInputElement).value).toBe('2000');
+        expect(wrapper.find('[data-testid="settings-test-voice"]').exists()).toBe(false);
     });
 
-    it('saves the form through PUT /api/v1/preferences without browser voice fields', async () => {
-        seedPreferences({ speech_locale: 'pt-BR' });
+    it('lists the browser voices for the speech language next to the default', async () => {
+        const voices = [
+            { name: 'Luciana', lang: 'pt-BR' },
+            { name: 'Samantha', lang: 'en-US' },
+        ];
+        vi.stubGlobal('speechSynthesis', Object.assign(new EventTarget(), { getVoices: () => voices }));
+        seedPreferences({ speech_locale: 'pt-BR', voice_name: null });
+        const { wrapper } = await mountSettings();
+
+        const options = wrapper.findAll('[data-testid="settings-voice"] option').map((option) => option.text());
+        expect(options).toContain('Padrão do navegador');
+        expect(options).toContain('Luciana');
+        expect(options).not.toContain('Samantha');
+        expect((wrapper.get('[data-testid="settings-voice"] select').element as HTMLSelectElement).value).toBe('__browser_default__');
+    });
+
+    it('saves the form with the voice fields through PUT /api/v1/preferences', async () => {
+        seedPreferences({ speech_locale: 'pt-BR', voice_name: 'Luciana', speech_rate: 1, spoken_responses_enabled: true, silence_timeout_ms: 1500 });
         const { wrapper, calls } = await mountSettings();
 
         await wrapper.get('[data-testid="settings-speech-locale"] select').setValue('en-US');
+        await wrapper.get('[data-testid="settings-rate"] input').setValue('1.5');
+        await wrapper.get('[data-testid="settings-silence"] input').setValue('3000');
+        await wrapper.get('[data-testid="settings-spoken"]').trigger('click');
+        await wrapper.get('[data-testid="settings-voice"] select').setValue('__browser_default__');
         await wrapper.get('[data-testid="settings-save"]').trigger('click');
         await flushPromises();
 
         const [payload] = putPayloads(calls);
-        expect(payload).toEqual({ locale: 'pt-BR', speech_locale: 'en-US', wake_word_enabled: false });
+        expect(payload).toEqual({
+            locale: 'pt-BR',
+            speech_locale: 'en-US',
+            voice_name: null,
+            speech_rate: 1.5,
+            spoken_responses_enabled: false,
+            silence_timeout_ms: 3000,
+            wake_word_enabled: false,
+        });
         expect(useToastStore().toasts.some((toast) => toast.variant === 'success')).toBe(true);
+    });
+
+    it('shows the four sections and keeps the #connectors anchor', async () => {
+        seedPreferences();
+        const { wrapper } = await mountSettings();
+
+        const nav = wrapper.findAll('[data-testid="settings-nav"] a');
+        expect(nav.map((link) => link.text())).toEqual(['Preferências', 'Voz', 'Conectores MCP', 'Instalar PWA']);
+        expect(nav.map((link) => link.attributes('href'))).toEqual(['#preferences', '#voice', '#connectors', '#install']);
+
+        for (const section of ['preferences', 'voice', 'connectors', 'install']) {
+            expect(wrapper.find(`[data-testid="settings-section-${section}"]`).exists(), section).toBe(true);
+        }
+        expect(wrapper.find('#connectors').exists()).toBe(true);
+    });
+
+    it('omits board-only fields without a real source', async () => {
+        seedPreferences();
+        const { wrapper } = await mountSettings();
+
+        for (const text of ['Limite de custo', 'Modelo padrão', 'Janela de escuta', 'Ouvir amostra']) {
+            expect(wrapper.text(), text).not.toContain(text);
+        }
+        expect(wrapper.find('[data-testid="settings-test-voice"]').exists()).toBe(false);
+    });
+
+    it('shows the connectors empty state whose action opens the form', async () => {
+        seedPreferences();
+        const { wrapper } = await mountSettings({ 'GET /api/v1/connectors': { body: { data: [] } } });
+
+        const empty = wrapper.get('[data-testid="connectors-empty"]');
+        expect(empty.get('[data-testid="empty-state-title"]').text()).toBe('Nenhum conector MCP');
+        expect(wrapper.find('[data-testid="connectors-form"]').exists()).toBe(false);
+
+        const add = wrapper.get('[data-testid="connectors-empty-add"]');
+        expect(add.text()).toBe('Adicionar conector');
+        await add.trigger('click');
+
+        expect(wrapper.find('[data-testid="connectors-form"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="connectors-empty"]').exists()).toBe(false);
+    });
+
+    it('shows when the wake word consent was accepted', async () => {
+        stubSpeechRecognition();
+        seedPreferences({ wake_word_enabled: true, wake_word_consented_at: '2026-11-04T10:00:00.000000Z', wake_word_consent_valid: true });
+        const { wrapper } = await mountSettings();
+
+        expect(wrapper.get('[data-testid="settings-consented-at"]').text()).toMatch(/^Termo aceito em \d{2}\/\d{2}\/\d{4}/);
     });
 
     it('changing the interface language switches vue-i18n live', async () => {

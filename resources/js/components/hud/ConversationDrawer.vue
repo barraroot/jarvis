@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
+import ModelSelector from '@/components/hud/ModelSelector.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import HudButton from '@/components/ui/HudButton.vue';
 import HudInput from '@/components/ui/HudInput.vue';
@@ -35,6 +36,17 @@ function close(): void {
     open.value = false;
     renamingId.value = null;
 }
+
+/** Empty-state action (UI-20, A7): close the drawer and focus the footer composer; the first send creates the conversation. */
+function startConversation(): void {
+    close();
+    void nextTick(() => {
+        document.querySelector<HTMLTextAreaElement>('[data-testid="composer"] textarea')?.focus();
+    });
+}
+
+/** The empty state only shows once a load settled with no conversations (never while loading). */
+const showEmpty = computed(() => store.conversations.length === 0 && !store.loading);
 
 function onKeydown(event: KeyboardEvent): void {
     if (event.key === 'Escape') {
@@ -155,19 +167,19 @@ watch(open, (isOpen) => {
 
 <template>
     <div v-if="open" class="fixed inset-0 z-50 flex justify-end" data-testid="conversation-drawer">
-        <div class="absolute inset-0 bg-bg/80 backdrop-blur-sm" data-testid="conversation-drawer-backdrop" @click="close"></div>
+        <div class="absolute inset-0 bg-abyss-950/80 backdrop-blur-sm" data-testid="conversation-drawer-backdrop" @click="close"></div>
 
         <aside
-            class="hud-glass relative flex h-full w-[min(22rem,90vw)] flex-col border-l border-line"
+            class="glass relative flex h-full w-[min(22rem,90vw)] flex-col border-l border-ocean-600"
             role="dialog"
             aria-modal="true"
             :aria-label="t('drawer.title')"
         >
-            <header class="flex items-center justify-between gap-2 border-b border-line p-4">
-                <h2 class="hud-label truncate text-sm text-cyan hud-glow">{{ t('drawer.title') }}</h2>
+            <header class="flex items-center justify-between gap-2 border-b border-ocean-600/70 p-4">
+                <h2 class="label-caps truncate text-sm text-cyan-300 glow">{{ t('drawer.title') }}</h2>
                 <button
                     type="button"
-                    class="text-muted hover:text-cyan-bright"
+                    class="chamfer-sm flex min-h-11 min-w-11 items-center justify-center text-text-400 hover:text-biolum-200"
                     :aria-label="t('common.close')"
                     data-testid="conversation-drawer-close"
                     @click="close"
@@ -176,20 +188,36 @@ watch(open, (isOpen) => {
                 </button>
             </header>
 
-            <div class="p-3">
+            <div class="flex flex-col gap-3 p-3">
+                <ModelSelector
+                    v-if="store.active !== null"
+                    :conversation-id="String(store.active.id)"
+                    :model-id="store.active.ai_model_id ?? null"
+                    data-testid="drawer-model-selector"
+                />
                 <HudButton variant="primary" block :loading="creating" data-testid="drawer-new" @click="createConversation">
                     {{ t('drawer.new') }}
                 </HudButton>
             </div>
 
             <div class="min-h-0 flex-1 overflow-y-auto px-3 pb-3" data-testid="drawer-list">
-                <EmptyState v-if="store.conversations.length === 0" :message="t('drawer.empty')" />
+                <EmptyState
+                    v-if="showEmpty"
+                    :title="t('edge.empty.conversations.title')"
+                    :text="t('edge.empty.conversations.text')"
+                >
+                    <template #action>
+                        <HudButton variant="primary" data-testid="drawer-empty-start" @click="startConversation">
+                            {{ t('edge.empty.conversations.action') }}
+                        </HudButton>
+                    </template>
+                </EmptyState>
 
-                <ul v-else class="flex min-w-0 flex-col gap-1">
+                <ul v-else-if="store.conversations.length > 0" class="flex min-w-0 flex-col gap-1">
                     <li
                         v-for="conversation in store.conversations"
                         :key="conversation.id"
-                        class="flex min-w-0 items-center gap-2 rounded-sm border border-transparent px-2 py-1.5 hover:border-line"
+                        class="chamfer-sm corner-light flex min-w-0 items-center gap-2 border border-transparent px-2 py-1.5 hover:border-ocean-600"
                         data-testid="conversation-item"
                     >
                         <template v-if="renamingId === conversation.id">
@@ -208,20 +236,20 @@ watch(open, (isOpen) => {
                         <template v-else>
                             <button
                                 type="button"
-                                class="min-w-0 flex-1 text-left"
+                                class="min-h-11 min-w-0 flex-1 text-left"
                                 :aria-label="t('drawer.open')"
                                 data-testid="conversation-open"
                                 @click="openConversation(conversation.id)"
                             >
-                                <span class="hud-label block truncate text-[0.65rem] text-text">{{ conversation.title }}</span>
-                                <span class="block truncate font-mono text-[0.55rem] text-muted">
+                                <span class="label-caps block truncate text-[0.65rem] text-text-100">{{ conversation.title }}</span>
+                                <span class="block truncate font-mono text-[0.55rem] text-text-400">
                                     {{ formatActivity(conversation.last_activity_at) }}
                                 </span>
                             </button>
 
                             <button
                                 type="button"
-                                class="size-7 shrink-0 rounded-sm border border-line text-muted hover:border-cyan hover:text-cyan-bright"
+                                class="chamfer-sm flex size-11 shrink-0 items-center justify-center border border-ocean-600 text-text-400 hover:border-cyan-300 hover:text-biolum-200"
                                 :aria-label="t('drawer.rename')"
                                 data-testid="conversation-rename"
                                 @click="startRename(conversation.id, conversation.title)"
@@ -230,7 +258,7 @@ watch(open, (isOpen) => {
                             </button>
                             <button
                                 type="button"
-                                class="size-7 shrink-0 rounded-sm border border-line text-muted hover:border-danger hover:text-danger"
+                                class="chamfer-sm flex size-11 shrink-0 items-center justify-center border border-ocean-600 text-text-400 hover:border-danger-400 hover:text-danger-400"
                                 :aria-label="t('drawer.delete')"
                                 data-testid="conversation-delete"
                                 @click="deleting = conversation"
@@ -256,7 +284,7 @@ watch(open, (isOpen) => {
         </aside>
 
         <HudModal v-model:open="deleteOpen" :title="t('drawer.deleteTitle')">
-            <p class="font-mono text-sm text-text">{{ t('drawer.deleteMessage') }}</p>
+            <p class="font-mono text-sm text-text-100">{{ t('drawer.deleteMessage') }}</p>
             <template #footer>
                 <HudButton variant="ghost" data-testid="drawer-delete-cancel" @click="deleting = null">
                     {{ t('common.cancel') }}

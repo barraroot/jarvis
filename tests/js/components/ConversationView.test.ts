@@ -89,4 +89,15 @@ describe('ConversationView', () => {
         const withoutOlder = mountView([makeMessage()]);
         expect(withoutOlder.find('[data-testid="conversation-load-older"]').exists()).toBe(false);
     });
+    it('renders letter avatars and chamfered bubbles without rounded corners', () => {
+        const wrapper = mountView([
+            makeMessage({ id: 'u1', content: 'pergunta' }),
+            makeMessage({ id: 'a1', role: 'assistant', source: null, content: 'resposta' }),
+        ]);
+
+        expect(wrapper.get('[data-testid="message-bubble-user"] [data-testid="message-avatar"]').text()).toBe('V');
+        expect(wrapper.get('[data-testid="message-bubble-assistant"] [data-testid="message-avatar"]').text()).toBe('J');
+        expect(wrapper.get('[data-testid="message-bubble-user"] [data-testid="message-body"]').classes()).toContain('chamfer-md');
+        expect(wrapper.find('[data-testid="conversation-messages"]').html()).not.toMatch(/\brounded(-[a-z0-9]+)?\b/);
+    });
 });

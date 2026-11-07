@@ -196,3 +196,34 @@ describe('ResultData', () => {
         expect(wrapper.find('[data-testid="result-data-series"]').exists()).toBe(false);
     });
 });
+
+describe('ResultRenderer chamfer containers (UI-15)', () => {
+    const payloads: Record<string, Record<string, unknown>> = {
+        text: { type: 'text', text: 'Olá' },
+        list: { type: 'list', title: 'Lista', items: [{ label: 'Item' }] },
+        table: { type: 'table', columns: ['A'], rows: [['x']], caption: 'Tabela' },
+        report: { type: 'report', title: 'Relatório', sections: [{ heading: 'Resumo', body: 'Texto' }] },
+        search_results: { type: 'search_results', query: 'aula', results: [{ title: 'Aula', snippet: 'x', source: 'blog' }] },
+        task_card: { type: 'task_card', task_id: 1, title: 'Tarefa', status: 'running', progress: 10 },
+        data: { type: 'data', label: 'CPU', value: 10 },
+        execution_status: { type: 'execution_status', entity: 'tool', name: 'busca', status: 'completed', message: 'ok' },
+        document: { type: 'document', title: 'Doc', format: 'markdown', body: 'Corpo' },
+    };
+
+    it.each(Object.keys(payloads))('renders %s inside a chamfer-md container without rounded corners', (type) => {
+        const wrapper = mount(ResultRenderer, { props: { message: makeMessage(payloads[type] ?? null) } });
+        const testid = `result-${type.replace(/_/g, '-')}`;
+        const element = wrapper.get(`[data-testid="${testid}"]`).element;
+
+        const rounded = wrapper.findAll('[class*="rounded"]').filter((node) => node.attributes('data-dot') === undefined);
+
+        expect(element.closest('.chamfer-md')).not.toBeNull();
+        expect(rounded.map((node) => node.html())).toEqual([]);
+    });
+
+    it('renders suggested actions as chamfered chips', () => {
+        const wrapper = mount(SuggestedActions, { props: { actions: [{ label: 'Enviar', request: 'Envie' }] } });
+
+        expect(wrapper.get('[data-testid="suggested-action-0"]').classes()).toContain('chamfer-sm');
+    });
+});

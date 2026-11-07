@@ -79,7 +79,7 @@ const component = computed(() => {
     <div v-if="payload !== null" class="flex min-w-0 flex-col gap-2" data-testid="result-renderer">
         <p
             v-if="isInvalidFallback"
-            class="hud-label flex items-center gap-1.5 font-mono text-[0.6rem] text-amber"
+            class="label-caps flex items-center gap-1.5 font-mono text-[0.6rem] text-amber-400"
             data-testid="result-invalid-warning"
         >
             <span aria-hidden="true">⚠</span>

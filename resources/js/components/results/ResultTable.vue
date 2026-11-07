@@ -61,9 +61,9 @@ function cellLabel(cell: TableCell | undefined): string {
     <HudPanel :title="payload.caption" tag="div" data-testid="result-table">
         <!-- Horizontal scrolling on mobile; the table itself never overflows the bubble. -->
         <div class="min-w-0 overflow-x-auto">
-            <table class="w-full border-collapse font-mono text-xs text-text">
+            <table class="w-full border-collapse font-mono text-xs text-text-100">
                 <thead>
-                    <tr class="border-b border-line">
+                    <tr class="border-b border-ocean-600">
                         <th
                             v-for="(column, index) in payload.columns"
                             :key="index"
@@ -72,18 +72,18 @@ function cellLabel(cell: TableCell | undefined): string {
                         >
                             <button
                                 type="button"
-                                class="hud-label inline-flex min-h-11 items-center gap-1 text-[0.65rem] text-cyan-bright hover:text-cyan"
+                                class="label-caps inline-flex min-h-11 items-center gap-1 text-[0.65rem] text-biolum-200 hover:text-cyan-300"
                                 :data-testid="`result-table-sort-${index}`"
                                 @click="toggleSort(index)"
                             >
                                 {{ column }}
-                                <span aria-hidden="true" class="text-muted">{{ sortIndex === index ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅' }}</span>
+                                <span aria-hidden="true" class="text-text-400">{{ sortIndex === index ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅' }}</span>
                             </button>
                         </th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(row, rowIndex) in rows" :key="rowIndex" class="border-b border-line/40 last:border-0">
+                    <tr v-for="(row, rowIndex) in rows" :key="rowIndex" class="border-b border-ocean-600/40 last:border-0">
                         <td
                             v-for="(cell, columnIndex) in row"
                             :key="columnIndex"

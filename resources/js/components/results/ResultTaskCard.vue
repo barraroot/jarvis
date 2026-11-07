@@ -23,12 +23,12 @@ function openTask(): void {
         <div class="flex flex-col gap-2">
             <div class="flex items-center gap-2">
                 <StatusBadge :status="payload.status" />
-                <span class="hud-label font-mono text-[0.6rem] text-muted">#{{ payload.task_id }}</span>
+                <span class="label-caps font-mono text-[0.6rem] text-text-400">#{{ payload.task_id }}</span>
             </div>
             <ProgressBar :value="payload.progress" :label="t('results.progress')" />
             <button
                 type="button"
-                class="hud-label self-start rounded-sm border border-cyan/60 px-2 py-1 text-[0.6rem] text-cyan-bright hover:bg-cyan/10"
+                class="label-caps chamfer-sm corner-light self-start min-h-11 border border-cyan-300/60 px-3 py-1 text-[0.6rem] text-biolum-200 hover:bg-cyan-300/10"
                 data-testid="result-task-card-open"
                 @click="openTask"
             >

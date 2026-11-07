@@ -14,14 +14,14 @@ defineProps<{
         <details
             v-for="(section, index) in payload.sections"
             :key="index"
-            class="group border-b border-line/40 pb-2 last:border-0 last:pb-0"
+            class="group border-b border-ocean-600/40 pb-2 last:border-0 last:pb-0"
             :open="index === 0"
         >
             <summary
-                class="hud-label flex cursor-pointer list-none items-center gap-1.5 py-1.5 text-[0.65rem] text-cyan-bright group-open:border-cyan hover:text-cyan"
+                class="label-caps flex min-h-11 cursor-pointer list-none items-center gap-1.5 py-1.5 text-[0.65rem] text-biolum-200 hover:text-cyan-300"
                 :data-testid="`result-report-section-${index}`"
             >
-                <span aria-hidden="true" class="text-muted transition-transform group-open:rotate-90">›</span>
+                <span aria-hidden="true" class="text-text-400 transition-transform group-open:rotate-90">›</span>
                 {{ section.heading }}
             </summary>
             <div class="pl-4">

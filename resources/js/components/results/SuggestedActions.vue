@@ -24,12 +24,12 @@ async function send(action: SuggestedAction): Promise<void> {
 
 <template>
     <div v-if="visibleActions.length > 0" class="flex flex-wrap items-center gap-1.5" data-testid="suggested-actions">
-        <span class="hud-label font-mono text-[0.6rem] text-muted">{{ t('results.suggestedActions') }}:</span>
+        <span class="label-caps font-mono text-[0.6rem] text-text-400">{{ t('results.suggestedActions') }}:</span>
         <button
             v-for="(action, index) in visibleActions"
             :key="index"
             type="button"
-            class="hud-label rounded-sm border border-cyan/60 bg-bg-navy px-2 py-1 text-[0.6rem] text-cyan-bright transition-colors hover:border-cyan hover:bg-cyan/10"
+            class="label-caps chamfer-sm corner-light min-h-11 border border-cyan-300/60 bg-abyss-900 px-3 py-1 text-[0.6rem] text-biolum-200 transition-colors hover:border-cyan-300 hover:bg-cyan-300/10"
             :data-testid="`suggested-action-${index}`"
             @click="send(action)"
         >

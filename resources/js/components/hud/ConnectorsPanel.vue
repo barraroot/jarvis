@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import EmptyState from '@/components/ui/EmptyState.vue';
 import HudButton from '@/components/ui/HudButton.vue';
 import HudInput from '@/components/ui/HudInput.vue';
 import HudModal from '@/components/ui/HudModal.vue';
@@ -33,6 +34,9 @@ const removeOpen = computed({
         }
     },
 });
+
+/** UI-20: the empty state only after a settled load, never while loading or with the form open. */
+const showEmpty = computed(() => connectors.loaded && !connectors.loading && connectors.connectors.length === 0 && !formOpen.value);
 
 const editing = computed(() => connectors.connectors.find((connector) => connector.id === editingId.value) ?? null);
 
@@ -156,7 +160,7 @@ onMounted(() => {
 <template>
     <HudPanel id="connectors" :title="t('connectors.title')" data-testid="connectors-panel">
         <template #actions>
-            <span class="hud-label text-[0.6rem] text-muted" data-testid="connectors-summary">
+            <span class="label-caps text-[0.6rem] text-text-400" data-testid="connectors-summary">
                 {{ t('header.connectorsSummary', { connected: connectors.connectedCount, errors: connectors.errorCount }) }}
             </span>
             <HudButton variant="ghost" data-testid="connectors-add" @click="openCreate">
@@ -167,11 +171,11 @@ onMounted(() => {
         <div class="flex flex-col gap-4">
             <form
                 v-if="formOpen"
-                class="flex flex-col gap-3 rounded-sm border border-line/70 p-3"
+                class="chamfer-md flex flex-col gap-3 border border-ocean-600/70 bg-abyss-900/40 p-3"
                 data-testid="connectors-form"
                 @submit.prevent="submit"
             >
-                <p class="hud-label text-[0.65rem] text-cyan">
+                <p class="label-caps text-[0.65rem] text-cyan-300">
                     {{ editing ? t('connectors.editTitle', { name: editing.name }) : t('connectors.createTitle') }}
                 </p>
                 <div class="grid gap-3 md:grid-cols-2">
@@ -201,7 +205,7 @@ onMounted(() => {
                     :error="errors.credential?.[0] ?? null"
                     data-testid="connectors-credential"
                 />
-                <p class="hud-label text-[0.6rem] text-muted">{{ t('connectors.urlHint') }}</p>
+                <p class="text-[0.65rem] text-text-400">{{ t('connectors.urlHint') }}</p>
                 <div class="flex justify-end gap-2">
                     <HudButton variant="ghost" data-testid="connectors-cancel" @click="closeForm">
                         {{ t('common.cancel') }}
@@ -212,25 +216,32 @@ onMounted(() => {
                 </div>
             </form>
 
-            <p
-                v-if="connectors.loaded && connectors.connectors.length === 0"
-                class="hud-label text-[0.65rem] text-muted"
+            <EmptyState
+                v-if="showEmpty"
+                :title="t('edge.empty.connectors.title')"
+                :text="t('edge.empty.connectors.text')"
                 data-testid="connectors-empty"
             >
-                {{ t('connectors.empty') }}
-            </p>
+                <template #action>
+                    <HudButton variant="primary" data-testid="connectors-empty-add" @click="openCreate">
+                        {{ t('edge.empty.connectors.action') }}
+                    </HudButton>
+                </template>
+            </EmptyState>
 
-            <ul class="grid gap-3 md:grid-cols-2" data-testid="connectors-list">
+            <ul class="stagger-children grid gap-3 md:grid-cols-2" data-testid="connectors-list">
                 <li
-                    v-for="connector in connectors.connectors"
+                    v-for="(connector, index) in connectors.connectors"
                     :key="connector.id"
-                    class="flex min-w-0 flex-col gap-2 rounded-sm border border-line/70 bg-bg-navy/40 p-3"
+                    class="chamfer-md corner-light flex min-w-0 flex-col gap-2 border p-3"
+                    :class="connector.status === 'error' ? 'border-danger-400/60 bg-danger-400/5' : 'border-ocean-600/70 bg-abyss-900/40'"
+                    :style="{ '--i': index }"
                     :data-testid="`connector-${connector.id}`"
                 >
                     <div class="flex items-start justify-between gap-2">
                         <div class="min-w-0">
-                            <p class="truncate text-sm text-text">{{ connector.name }}</p>
-                            <p class="hud-label truncate text-[0.6rem] text-muted">
+                            <p class="truncate text-sm text-text-100">{{ connector.name }}</p>
+                            <p class="label-caps truncate text-[0.6rem] text-text-400">
                                 {{ connector.scope === 'global' ? t('connectors.scopeGlobal') : t('connectors.scopePersonal') }}
                                 · {{ t('connectors.toolsCount', { count: connector.tools_count, active: connector.active_tools_count }) }}
                             </p>
@@ -238,12 +249,12 @@ onMounted(() => {
                         <StatusBadge :status="connector.is_active ? connector.status : 'disconnected'" data-testid="connector-status" />
                     </div>
 
-                    <p class="hud-label text-[0.6rem] text-muted" data-testid="connector-last-sync">
+                    <p class="font-mono text-[0.6rem] text-text-400" data-testid="connector-last-sync">
                         {{ t('connectors.lastSynced', { date: formatDate(connector.last_synced_at) }) }}
                     </p>
                     <p
                         v-if="connector.status === 'error' && connector.last_error"
-                        class="text-xs break-words text-danger"
+                        class="font-mono text-xs break-words text-danger-400"
                         role="alert"
                         data-testid="connector-error"
                     >
@@ -267,13 +278,13 @@ onMounted(() => {
                         </template>
                     </div>
 
-                    <div v-if="expandedId === connector.id" class="border-t border-line/70 pt-2" :data-testid="`connector-tool-list-${connector.id}`">
-                        <p v-if="loadingToolsId === connector.id" class="hud-label text-[0.6rem] text-muted">
+                    <div v-if="expandedId === connector.id" class="border-t border-ocean-600/70 pt-2" :data-testid="`connector-tool-list-${connector.id}`">
+                        <p v-if="loadingToolsId === connector.id" class="label-caps text-[0.6rem] text-text-400">
                             {{ t('common.loading') }}
                         </p>
                         <p
                             v-else-if="(connectors.toolsByConnector[connector.id] ?? []).length === 0"
-                            class="hud-label text-[0.6rem] text-muted"
+                            class="label-caps text-[0.6rem] text-text-400"
                         >
                             {{ t('connectors.noTools') }}
                         </p>
@@ -281,16 +292,16 @@ onMounted(() => {
                             <li
                                 v-for="tool in connectors.toolsByConnector[connector.id]"
                                 :key="tool.definition_id"
-                                class="flex flex-col gap-1 rounded-sm border border-line/50 p-2"
+                                class="chamfer-sm flex flex-col gap-1 border border-ocean-600/50 p-2"
                                 :data-testid="`connector-tool-${tool.definition_id}`"
                             >
                                 <div class="flex items-center justify-between gap-2">
-                                    <span class="truncate font-mono text-xs text-cyan-bright">{{ tool.name }}</span>
-                                    <span v-if="!tool.is_available" class="hud-label text-[0.6rem] text-danger">
+                                    <span class="truncate font-mono text-xs text-biolum-200">{{ tool.name }}</span>
+                                    <span v-if="!tool.is_available" class="label-caps text-[0.6rem] text-danger-400">
                                         {{ t('connectors.toolUnavailable') }}
                                     </span>
                                 </div>
-                                <p v-if="tool.description" class="text-xs text-muted">{{ tool.description }}</p>
+                                <p v-if="tool.description" class="text-xs text-text-400">{{ tool.description }}</p>
                                 <div class="flex flex-wrap gap-4">
                                     <HudToggle
                                         :model-value="tool.is_write"
@@ -319,7 +330,7 @@ onMounted(() => {
         </div>
 
         <HudModal v-model:open="removeOpen" :title="t('connectors.removeTitle')" data-testid="connectors-remove-modal">
-            <p class="text-sm text-text">{{ t('connectors.removeBody', { name: removing?.name ?? '' }) }}</p>
+            <p class="text-sm text-text-100">{{ t('connectors.removeBody', { name: removing?.name ?? '' }) }}</p>
             <template #footer>
                 <HudButton variant="ghost" data-testid="connectors-remove-cancel" @click="removing = null">
                     {{ t('common.cancel') }}

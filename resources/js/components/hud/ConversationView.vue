@@ -75,10 +75,10 @@ watch(
     <div class="relative flex h-full min-h-0 flex-col" data-testid="conversation-view" :aria-label="t('conversation.ariaLabel')">
         <div ref="scrollerRef" class="min-h-0 flex-1 overflow-y-auto pb-2" data-testid="conversation-scroller" @scroll="onScroll">
             <div v-if="showGreeting" class="flex h-full flex-col items-center justify-center gap-8 py-10" data-testid="conversation-greeting">
-                <p class="hud-label max-w-md text-center text-sm leading-relaxed text-cyan-bright hud-glow">
+                <p class="label-caps max-w-md text-center text-sm leading-relaxed text-biolum-200 glow">
                     {{ t('conversation.greeting') }}
                 </p>
-                <p class="max-w-md text-center font-mono text-xs text-muted">
+                <p class="max-w-md text-center font-mono text-xs text-text-400">
                     {{ t('conversation.greetingHint') }}
                 </p>
                 <JarvisCore v-if="props.showCore" :state="assistant.state" :level="assistant.audioLevel" size="full" class="hidden lg:block" />
@@ -88,7 +88,7 @@ watch(
                 <div v-if="hasOlder" class="flex justify-center" data-testid="conversation-load-older">
                     <button
                         type="button"
-                        class="hud-label min-h-11 rounded-sm border border-line bg-bg-navy px-3 py-1.5 text-[0.6rem] text-cyan-bright hover:border-cyan"
+                        class="label-caps chamfer-sm min-h-11 border border-ocean-600 bg-abyss-900 px-3 py-1.5 text-[0.6rem] text-biolum-200 hover:border-cyan-300"
                         @click="emit('loadOlder')"
                     >
                         {{ t('conversation.loadOlder') }}
@@ -113,7 +113,7 @@ watch(
         <button
             v-if="scrolledUp"
             type="button"
-            class="hud-label absolute bottom-3 left-1/2 -translate-x-1/2 min-h-11 rounded-sm border border-line bg-bg-navy px-3 py-1.5 text-[0.6rem] text-cyan-bright hover:border-cyan"
+            class="label-caps chamfer-sm absolute bottom-3 left-1/2 -translate-x-1/2 min-h-11 border border-ocean-600 bg-abyss-900 px-3 py-1.5 text-[0.6rem] text-biolum-200 hover:border-cyan-300"
             data-testid="conversation-go-to-end"
             @click="scrollToEnd"
         >
