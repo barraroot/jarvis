@@ -65,6 +65,10 @@ async function mountHud() {
         routes: [
             { path: '/', name: 'hud', component: HudPage },
             { path: '/settings', name: 'settings', component: HudPage },
+            // Mobile bottom nav targets (UI-23).
+            { path: '/activity', name: 'activity', component: { render: () => null } },
+            { path: '/approvals', name: 'approvals', component: { render: () => null } },
+            { path: '/memories', name: 'memories', component: { render: () => null } },
         ],
     });
     await router.push('/');

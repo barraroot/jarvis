@@ -9,11 +9,14 @@ import ConversationDrawer from '@/components/hud/ConversationDrawer.vue';
 import EdgeState from '@/components/ui/EdgeState.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import HudButton from '@/components/ui/HudButton.vue';
+import HudSheet from '@/components/ui/HudSheet.vue';
 import HudStage from '@/components/hud/HudStage.vue';
 import InteractionFooter from '@/components/hud/InteractionFooter.vue';
 import JarvisCore from '@/components/hud/JarvisCore.vue';
 import SidePanel from '@/components/hud/SidePanel.vue';
+import { useApprovalsStore } from '@/stores/approvals';
 import { useAssistantStore } from '@/stores/assistant';
+import { useAuthStore } from '@/stores/auth';
 import { useConnectionStore } from '@/stores/connection';
 import { useLimitsStore } from '@/stores/limits';
 import { useVoiceStore } from '@/stores/voice';
@@ -51,6 +54,8 @@ const connection = useConnectionStore();
 const assistant = useAssistantStore();
 const voice = useVoiceStore();
 const limits = useLimitsStore();
+const approvals = useApprovalsStore();
+const auth = useAuthStore();
 const { mode } = useLayoutMode();
 
 /** Sending (text, voice) is blocked while the realtime link is down. */
@@ -85,7 +90,7 @@ onBeforeUnmount(() => document.removeEventListener('visibilitychange', syncDocum
  * collapsed so the conversation keeps the width; the toggle reopens the panel.
  */
 const sidebarCollapsed = usePersistentFlag(SIDEBAR_COLLAPSED_STORAGE_KEY, mode.value === 'tablet');
-/** Mobile (<768px) drawer, transient; agents/tasks open it as a bottom sheet. */
+/** Mobile (<768px) drawer, transient; agents/tasks open as a `HudSheet` instead (UI-23). */
 const drawerOpen = ref(false);
 const drawerSection = ref<'agents' | 'tasks' | null>(null);
 /** Bottom sheet height: half screen by default, expandable to full height. */
@@ -102,6 +107,37 @@ const isHudRoute = computed(() => route.name === 'hud');
 /** AGENTES drawer of the stage (`Alt+1`) while the core is centered. */
 const stageAgentsOpen = ref(false);
 const isSheet = computed(() => isMobile.value && drawerOpen.value && drawerSection.value !== null);
+/** Closing the sheet (handle, `Esc`, backdrop) closes the transient drawer state. */
+const sheetOpen = computed({
+    get: () => isSheet.value,
+    set: (open: boolean) => {
+        if (!open) {
+            drawerOpen.value = false;
+        }
+    },
+});
+const sheetLabel = computed(() => (drawerSection.value === 'tasks' ? t('nav.tasks') : t('nav.agents')));
+
+/** The mobile `Aprovações` badge (UI-23) needs the pending list once, on mobile and signed in. */
+let approvalsRequested = false;
+
+watch(
+    [isMobile, () => auth.isAuthenticated],
+    ([mobile, authenticated]) => {
+        if (mobile && authenticated && !approvalsRequested) {
+            approvalsRequested = true;
+            approvals.load().catch(() => undefined);
+        }
+    },
+    { immediate: true },
+);
+
+/** `Digitar` on the mobile strip focuses the composer. */
+const footerControls = ref<HTMLFieldSetElement | null>(null);
+
+function focusComposer(): void {
+    footerControls.value?.querySelector<HTMLElement>('textarea, input:not([type="hidden"])')?.focus();
+}
 
 watch(
     () => route.fullPath,
@@ -119,14 +155,9 @@ watch(isMobile, (mobile) => {
 });
 
 const sidebarClasses = computed(() => [
-    drawerOpen.value ? 'flex' : 'hidden',
+    drawerOpen.value && !isSheet.value ? 'flex' : 'hidden',
     sidebarCollapsed.value ? 'md:hidden xl:flex' : 'md:flex',
-    isSheet.value
-        ? [
-              'z-40 inset-x-0 left-0 w-full rounded-t-md border-t',
-              sheetExpanded.value ? 'top-14 bottom-0' : 'top-auto bottom-0 max-h-[60dvh]',
-          ]
-        : 'z-30 bottom-0 left-0 top-14 w-[min(20rem,85vw)] border-r md:w-80',
+    'z-30 bottom-0 left-0 top-14 w-[min(20rem,85vw)] border-r md:w-80',
 ]);
 
 const offsetClasses = computed(() => {
@@ -236,24 +267,19 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
             class="glass fixed flex-col gap-4 overflow-y-auto p-4"
             :class="sidebarClasses"
             :aria-label="t('layout.sidebar')"
-            :data-sheet="isSheet ? (sheetExpanded ? 'expanded' : 'half') : undefined"
             data-testid="layout-sidebar"
         >
-            <button
-                v-if="isSheet"
-                type="button"
-                class="hud-label -mt-2 flex min-h-11 w-full shrink-0 flex-col items-center justify-center gap-1 text-[0.6rem] text-muted"
-                :aria-expanded="sheetExpanded"
-                :aria-label="sheetExpanded ? t('layout.sheetCollapse') : t('layout.sheetExpand')"
-                data-testid="sheet-handle"
-                @click="sheetExpanded = !sheetExpanded"
-            >
-                <span class="h-1 w-10 rounded-full bg-line"></span>
-            </button>
             <slot name="sidebar">
                 <SidePanel :expanded-section="drawerSection" />
             </slot>
         </aside>
+
+        <!-- Mobile AGENTES/Tarefas (UI-23): a sheet sliding up from the bottom. -->
+        <HudSheet v-if="isMobile" v-model:open="sheetOpen" v-model:expanded="sheetExpanded" :label="sheetLabel">
+            <div class="flex min-w-0 flex-col gap-4" :data-section="drawerSection" data-testid="layout-sheet">
+                <SidePanel :expanded-section="drawerSection" />
+            </div>
+        </HudSheet>
 
         <ConversationDrawer v-model:open="conversationsOpen" />
 
@@ -329,7 +355,7 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
             </div>
 
             <main
-                class="min-w-0 flex-1 px-3 pt-4 pb-40 sm:px-5 md:pb-28"
+                class="min-w-0 flex-1 px-3 pt-4 pb-80 sm:px-5 md:pb-28"
                 :aria-label="t('layout.main')"
                 data-testid="layout-main"
             >
@@ -354,6 +380,7 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
             <CaptionsBar class="glass border-x-0 border-b-0" />
 
             <fieldset
+                ref="footerControls"
                 class="glass min-w-0 border-x-0 border-b-0 px-3 py-3 disabled:opacity-60 sm:px-5"
                 :disabled="sendingDisabled"
                 data-testid="layout-footer-controls"
@@ -370,7 +397,14 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
                 </slot>
             </fieldset>
 
-            <BottomNav :disabled="sendingDisabled" @select="openSection" @microphone="emit('microphone')" />
+            <BottomNav
+                :disabled="sendingDisabled"
+                @conversations="conversationsOpen = true"
+                @compose="focusComposer"
+                @sleep="emit('sleep')"
+                @wake="emit('wake')"
+                @microphone="emit('microphone')"
+            />
         </footer>
     </div>
 </template>

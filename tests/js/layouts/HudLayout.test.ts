@@ -1,18 +1,20 @@
 import { mount } from '@vue/test-utils';
 import { createMemoryHistory, createRouter } from 'vue-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
+import { useAuthStore } from '@/stores/auth';
 import { useVisualizationsStore } from '@/stores/visualizations';
+import { useVoiceStore } from '@/stores/voice';
 import type { Visualization } from '@/types/models';
 import { SIDEBAR_COLLAPSED_STORAGE_KEY } from '@/layouts/constants';
 import HudLayout from '@/layouts/HudLayout.vue';
-import { mockFetch } from '../helpers/fetch';
+import { makeUser, mockFetch } from '../helpers/fetch';
 import { mockViewport } from '../helpers/matchMedia';
 
 const Blank = { render: () => null };
 
 /** Side panel behaviour is checked on `/settings`; the `hud` route renders the stage. */
-async function mountLayout(slots: Record<string, string> = {}, path = '/settings', options: { animate?: boolean } = {}) {
+async function mountLayout(slots: Record<string, string> = {}, path = '/settings', options: { animate?: boolean; attach?: boolean } = {}) {
     const router = createRouter({
         history: createMemoryHistory(),
         routes: [
@@ -20,6 +22,7 @@ async function mountLayout(slots: Record<string, string> = {}, path = '/settings
             { path: '/settings', name: 'settings', component: Blank },
             { path: '/memories', name: 'memories', component: Blank },
             { path: '/approvals', name: 'approvals', component: Blank },
+            { path: '/activity', name: 'activity', component: Blank },
         ],
     });
     await router.push(path);
@@ -27,6 +30,7 @@ async function mountLayout(slots: Record<string, string> = {}, path = '/settings
     return mount(HudLayout, {
         slots,
         global: { plugins: [router], stubs: options.animate ? { transition: false } : {} },
+        attachTo: options.attach ? document.body : undefined,
     });
 }
 
@@ -97,34 +101,112 @@ describe('HudLayout', () => {
         expect(sidebar().classes()).toContain('hidden');
     });
 
-    it('shows the mobile bottom navigation with a highlighted microphone', async () => {
-        const wrapper = await mountLayout();
+    it('shows the mobile bottom navigation with push-to-talk and the five items', async () => {
+        mockViewport(360);
+        const wrapper = await mountLayout({}, '/settings', { attach: true });
         const nav = wrapper.get('[data-testid="bottom-nav"]');
 
         expect(nav.classes()).toContain('md:hidden');
-        expect(nav.text()).toContain('Chat');
-        expect(nav.text()).toContain('Agentes');
-        expect(nav.text()).toContain('Tarefas');
-        expect(nav.text()).toContain('Config');
+        expect(nav.element.children).toHaveLength(5);
+        for (const label of ['HUD', 'Conversas', 'Atividade', 'Aprovações', 'Mais']) {
+            expect(nav.text()).toContain(label);
+        }
+        expect(nav.text()).not.toContain('Microfone');
 
-        await wrapper.get('[data-testid="bottom-nav-microphone"]').trigger('click');
+        // Holding push-to-talk while sleeping wakes the voice; releasing mutes without sleeping (RF-06).
+        const ptt = wrapper.get('[data-testid="push-to-talk"]');
+        await ptt.trigger('pointerdown', { button: 0, pointerId: 1 });
+        expect(wrapper.emitted('wake')).toHaveLength(1);
+        await ptt.trigger('pointerup', { button: 0, pointerId: 1 });
         expect(wrapper.emitted('microphone')).toHaveLength(1);
+        expect(wrapper.emitted('sleep')).toBeUndefined();
 
-        await wrapper.get('[data-testid="bottom-nav-agents"]').trigger('click');
-        expect(wrapper.get('[data-testid="layout-sidebar"]').classes()).toContain('flex');
+        // `Dormir` sleeps once the window is open; `Digitar` focuses the composer.
+        expect(wrapper.get('[data-testid="bottom-nav-sleep"]').attributes('disabled')).toBeDefined();
+        useVoiceStore().phase = 'listening';
+        await nextTick();
+        await wrapper.get('[data-testid="bottom-nav-sleep"]').trigger('click');
+        expect(wrapper.emitted('sleep')).toHaveLength(1);
+
+        await wrapper.get('[data-testid="bottom-nav-compose"]').trigger('click');
+        expect(document.activeElement).toBe(wrapper.get('[data-testid="composer"] textarea').element);
+
+        // `Conversas` opens the conversations drawer.
+        await wrapper.get('[data-testid="bottom-nav-conversations"]').trigger('click');
+        expect(wrapper.find('[data-testid="conversation-drawer"]').exists()).toBe(true);
+
+        wrapper.unmount();
     });
 
-    it('opens the drawer as an expandable sheet for the selected bottom nav section', async () => {
-        const wrapper = await mountLayout();
-        const sectionTitles = () => wrapper.get('[data-testid="layout-sidebar"]').findAll('h2').map((title) => title.text());
+    it('opens Memórias and Configurações from the Mais menu', async () => {
+        mockViewport(360);
+        const wrapper = await mountLayout({}, '/', { attach: true });
 
-        await wrapper.get('[data-testid="bottom-nav-agents"]').trigger('click');
+        expect(wrapper.find('[data-testid="bottom-nav-more-menu"]').exists()).toBe(false);
+
+        await wrapper.get('[data-testid="bottom-nav-more"]').trigger('click');
+        const menu = wrapper.get('[data-testid="bottom-nav-more-menu"]');
+        expect(menu.findAll('[role="menuitem"]').map((item) => item.text())).toEqual(['Memórias', 'Configurações']);
+        expect(wrapper.get('[data-testid="bottom-nav-more"]').attributes('aria-expanded')).toBe('true');
+
+        await menu.get('[data-testid="bottom-nav-memories"]').trigger('click');
+        await vi.waitFor(() => expect(wrapper.find('[data-testid="bottom-nav-more-menu"]').exists()).toBe(false));
+
+        wrapper.unmount();
+    });
+
+    it('loads the pending approvals once on mobile when authenticated', async () => {
+        mockViewport(360);
+        const { calls } = mockFetch({ 'GET /api/v1/approvals?status=pending': { body: { data: [] } } });
+        useAuthStore().user = makeUser() as never;
+
+        const wrapper = await mountLayout();
+        await nextTick();
+
+        expect(calls.filter((call) => call.url === '/api/v1/approvals?status=pending')).toHaveLength(1);
+
+        wrapper.unmount();
+    });
+
+    it('does not load approvals on tablet/desktop or without a session, and loads after a late login', async () => {
+        mockViewport(1280);
+        const { calls } = mockFetch({});
+        useAuthStore().user = makeUser() as never;
+        const desktop = await mountLayout();
+        await nextTick();
+        desktop.unmount();
+
+        mockViewport(360);
+        useAuthStore().user = null;
+        const wrapper = await mountLayout();
+        await nextTick();
+
+        expect(calls.some((call) => call.url.startsWith('/api/v1/approvals'))).toBe(false);
+
+        useAuthStore().user = makeUser() as never;
+        await nextTick();
+
+        expect(calls.filter((call) => call.url === '/api/v1/approvals?status=pending')).toHaveLength(1);
+
+        wrapper.unmount();
+    });
+
+    it('opens the agents sheet from the mobile header as a HudSheet', async () => {
+        mockViewport(360);
+        const wrapper = await mountLayout();
+        const sectionTitles = () => wrapper.get('[data-testid="hud-sheet"]').findAll('h2').map((title) => title.text());
+
+        await wrapper.get('[data-testid="header-agents-mobile"]').trigger('click');
+        expect(wrapper.get('[data-testid="hud-sheet"]').attributes('role')).toBe('dialog');
         expect(sectionTitles()).toContain('Agentes ativos');
         expect(sectionTitles()).not.toContain('Tarefas');
 
-        await wrapper.get('[data-testid="bottom-nav-tasks"]').trigger('click');
-        expect(sectionTitles()).toContain('Tarefas');
-        expect(sectionTitles()).not.toContain('Agentes ativos');
+        // `Esc` closes the sheet.
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        await nextTick();
+        expect(wrapper.find('[data-testid="hud-sheet"]').exists()).toBe(false);
+
+        wrapper.unmount();
     });
 
     it('prevents horizontal scroll on narrow screens', async () => {

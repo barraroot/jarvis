@@ -334,8 +334,24 @@ const menuItem =
             <HeaderMenu />
         </div>
 
-        <!-- Mobile: mute + compact menu. -->
+        <!-- Mobile (UI-23): icon-only agents and mute, the rest in the compact menu. -->
         <div class="ml-auto flex items-center gap-1.5 md:hidden" data-testid="header-actions-mobile">
+            <button
+                type="button"
+                :class="iconButton"
+                :aria-label="t('header.agents')"
+                data-testid="header-agents-mobile"
+                @click="emit('agents')"
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="size-[18px]" aria-hidden="true">
+                    <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" />
+                    <circle cx="12" cy="12" r="3" />
+                </svg>
+                <span v-if="agentsBadge > 0" :class="[badgeClasses, 'bg-amber-400 text-abyss-950']" data-testid="header-agents-mobile-badge">
+                    {{ agentsBadge }}
+                </span>
+            </button>
+
             <button
                 type="button"
                 :class="[iconButton, voice.muted ? 'border-danger-400/70 text-danger-400' : '']"
@@ -366,18 +382,6 @@ const menuItem =
                         @click="toggleSleep(); close()"
                     >
                         {{ isSleeping ? t('header.wake') : t('header.sleep') }}
-                    </button>
-                    <button
-                        type="button"
-                        :class="menuItem"
-                        role="menuitem"
-                        data-testid="header-more-agents"
-                        @click="emit('agents'); close()"
-                    >
-                        {{ t('header.agents') }}
-                        <span v-if="agentsBadge > 0" class="ml-auto min-w-4 bg-amber-400 px-1 text-center font-mono text-[10px] text-abyss-950">
-                            {{ agentsBadge }}
-                        </span>
                     </button>
                     <button
                         type="button"

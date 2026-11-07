@@ -9,8 +9,10 @@ import HudModal from '@/components/ui/HudModal.vue';
 import { LAYOUT_MEDIA_QUERIES, useLayoutMode } from '@/composables/useLayoutMode';
 import { SIDEBAR_COLLAPSED_STORAGE_KEY } from '@/layouts/constants';
 import HudLayout from '@/layouts/HudLayout.vue';
+import { useApprovalsStore } from '@/stores/approvals';
+import { useTasksStore } from '@/stores/tasks';
 import { useVisualizationsStore } from '@/stores/visualizations';
-import type { ApprovalSummary, Message, Visualization } from '@/types/models';
+import type { ApprovalSummary, Message, TaskSummary, Visualization } from '@/types/models';
 import { mockViewport } from '../helpers/matchMedia';
 
 const Blank = { render: () => null };
@@ -24,6 +26,7 @@ async function mountLayout(path = '/settings') {
             { path: '/settings', name: 'settings', component: Blank },
             { path: '/memories', name: 'memories', component: Blank },
             { path: '/approvals', name: 'approvals', component: Blank },
+            { path: '/activity', name: 'activity', component: Blank },
         ],
     });
     await router.push(path);
@@ -32,6 +35,25 @@ async function mountLayout(path = '/settings') {
 }
 
 const TOUCH_TARGET = /(^|\s)(min-h-11|size-11|size-14|h-11)(\s|$)/;
+/** Both axes ≥ 44 px (UI-23): `min-h-11`+`min-w-11`, `size-11`/`size-14` or the 84 px push-to-talk. */
+const TOUCH_TARGET_BOTH_AXES = (classes: string): boolean =>
+    /(^|\s)(size-11|size-14|size-\[84px\])(\s|$)/.test(classes) ||
+    (/(^|\s)(min-h-11|h-11)(\s|$)/.test(classes) && /(^|\s)(min-w-11|w-full)(\s|$)/.test(classes));
+
+function pendingApproval(id: string): ApprovalSummary {
+    return {
+        id,
+        status: 'pending',
+        tool: { identifier: 'whatsapp.send_message', name: 'Enviar mensagem', description: 'Envia.' },
+        effect: { is_write: true, is_sensitive: false, external: true },
+        params: {},
+        agent: 'Communication',
+        requested_at: '2026-11-07T14:00:00+00:00',
+        expires_at: new Date(Date.now() + 3600_000).toISOString(),
+        decided_at: null,
+        decision_reason: null,
+    };
+}
 
 describe('useLayoutMode (matchMedia)', () => {
     it.each([
@@ -64,7 +86,7 @@ describe('useLayoutMode (matchMedia)', () => {
 });
 
 describe('HudLayout — mobile (360px)', () => {
-    it('makes the conversation the main area with the compact core on top and the bottom nav', async () => {
+    it('makes the conversation the main area with the compact core on top and the five-item bottom nav', async () => {
         mockViewport(360);
         const wrapper = await mountLayout();
 
@@ -74,61 +96,159 @@ describe('HudLayout — mobile (360px)', () => {
 
         expect(wrapper.find('[data-testid="mobile-core"] [data-testid="jarvis-core"]').exists()).toBe(true);
 
-        const navItems = wrapper.get('[data-testid="bottom-nav"]').element.children;
-        expect(navItems).toHaveLength(5);
-        // Microphone is the central item.
-        expect(navItems[2]?.getAttribute('data-testid')).toBe('bottom-nav-microphone');
+        const nav = wrapper.get('[data-testid="bottom-nav"]');
+        const navItems = Array.from(nav.element.children).map(
+            (item) => item.getAttribute('data-testid') ?? item.querySelector('[data-testid]')?.getAttribute('data-testid'),
+        );
+        expect(navItems).toEqual([
+            'bottom-nav-hud',
+            'bottom-nav-conversations',
+            'bottom-nav-activity',
+            'bottom-nav-approvals',
+            'bottom-nav-more',
+        ]);
+        expect(Array.from(nav.element.children).map((item) => item.textContent?.trim())).toEqual([
+            'HUD',
+            'Conversas',
+            'Atividade',
+            'Aprovações',
+            'Mais',
+        ]);
+
+        // The old central microphone is gone: push-to-talk lives in the strip above the nav.
+        expect(nav.find('[data-testid="push-to-talk"]').exists()).toBe(false);
+        const strip = wrapper.get('[data-testid="mobile-controls"] [data-testid="bottom-nav-microphone"]');
+        expect(strip.findAll('button').map((button) => button.attributes('data-testid'))).toEqual([
+            'bottom-nav-compose',
+            'push-to-talk',
+            'bottom-nav-sleep',
+        ]);
+        expect(strip.get('[data-testid="push-to-talk"]').classes()).toEqual(expect.arrayContaining(['size-[84px]', 'border-amber-400']));
+        expect(strip.get('[data-testid="push-to-talk"]').attributes('aria-label')).toBe('Segure para falar');
+        expect(strip.get('[data-testid="bottom-nav-compose"]').text()).toBe('Digitar');
+        expect(strip.get('[data-testid="bottom-nav-sleep"]').text()).toBe('Dormir');
 
         wrapper.unmount();
     });
 
-    it('opens agents/tasks as an expandable bottom sheet without the core', async () => {
+    it('shows the approvals badge with one pending approval and hides it at zero', async () => {
         mockViewport(360);
         const wrapper = await mountLayout();
-        const sidebar = () => wrapper.get('[data-testid="layout-sidebar"]');
+        const approvals = useApprovalsStore();
 
-        await wrapper.get('[data-testid="bottom-nav-agents"]').trigger('click');
+        expect(wrapper.find('[data-testid="bottom-nav-approvals-badge"]').exists()).toBe(false);
 
-        expect(sidebar().attributes('data-sheet')).toBe('half');
-        expect(sidebar().classes()).toEqual(expect.arrayContaining(['flex', 'bottom-0', 'w-full', 'max-h-[60dvh]']));
-        expect(sidebar().text()).toContain('Agentes ativos');
-        expect(sidebar().text()).not.toContain('Núcleo');
-        expect(sidebar().findAll('h2').map((title) => title.text())).toEqual(['Agentes ativos']);
+        approvals.items = [pendingApproval('1')];
+        await nextTick();
+        expect(wrapper.get('[data-testid="bottom-nav-approvals-badge"]').text()).toBe('1');
+
+        approvals.items = [{ ...pendingApproval('1'), status: 'approved' }];
+        await nextTick();
+        expect(wrapper.find('[data-testid="bottom-nav-approvals-badge"]').exists()).toBe(false);
+
+        wrapper.unmount();
+    });
+
+    it('puts icon-only Agentes (with badge) and Mutar microfone in the mobile header', async () => {
+        mockViewport(360);
+        const wrapper = await mountLayout('/');
+        const actions = wrapper.get('[data-testid="header-actions-mobile"]');
+
+        expect(actions.get('[data-testid="header-agents-mobile"]').attributes('aria-label')).toBe('Agentes');
+        expect(actions.get('[data-testid="header-agents-mobile"]').text()).toBe('');
+        expect(actions.get('[data-testid="header-mic-mobile"]').attributes('aria-label')).toBe('Mutar microfone');
+        expect(actions.get('[data-testid="header-mic-mobile"]').text()).toBe('');
+        expect(actions.find('[data-testid="header-agents-mobile-badge"]').exists()).toBe(false);
+
+        useTasksStore().tasks = [{ id: 1, status: 'running' }] as unknown as TaskSummary[];
+        await nextTick();
+        expect(actions.get('[data-testid="header-agents-mobile-badge"]').text()).toBe('1');
+
+        wrapper.unmount();
+    });
+
+    it('opens AGENTES as an expandable HudSheet from the header icon', async () => {
+        mockViewport(360);
+        const wrapper = await mountLayout();
+        const sheet = () => wrapper.get('[data-testid="hud-sheet"]');
+
+        expect(wrapper.find('[data-testid="hud-sheet"]').exists()).toBe(false);
+
+        await wrapper.get('[data-testid="header-agents-mobile"]').trigger('click');
+
+        expect(sheet().attributes('role')).toBe('dialog');
+        expect(sheet().attributes('aria-label')).toBe('Agentes');
+        expect(sheet().attributes('data-expanded')).toBe('false');
+        expect(sheet().classes()).toEqual(expect.arrayContaining(['bottom-0', 'max-h-[60dvh]']));
+        expect(sheet().classes()).not.toContain('rounded-t-md');
+        expect(sheet().find('[data-testid="layout-sheet"]').exists()).toBe(true);
+        expect(sheet().text()).not.toContain('Núcleo');
+        expect(sheet().findAll('h2').map((title) => title.text())).toEqual(['Agentes ativos']);
+        expect(wrapper.get('[data-testid="layout-sidebar"]').classes()).toContain('hidden');
 
         await wrapper.get('[data-testid="sheet-handle"]').trigger('click');
-        expect(sidebar().attributes('data-sheet')).toBe('expanded');
-        expect(sidebar().classes()).toContain('top-14');
+        expect(sheet().attributes('data-expanded')).toBe('true');
+        expect(sheet().classes()).toContain('top-14');
 
-        // Tapping the same section again closes the sheet.
-        await wrapper.get('[data-testid="bottom-nav-agents"]').trigger('click');
-        expect(sidebar().classes()).toContain('hidden');
-
-        await wrapper.get('[data-testid="bottom-nav-tasks"]').trigger('click');
-        expect(sidebar().attributes('data-sheet')).toBe('half');
-        expect(sidebar().findAll('h2').map((title) => title.text())).toContain('Tarefas');
+        // Tapping the same icon again closes the sheet.
+        await wrapper.get('[data-testid="header-agents-mobile"]').trigger('click');
+        expect(wrapper.find('[data-testid="hud-sheet"]').exists()).toBe(false);
 
         wrapper.unmount();
     });
 
-    it('gives every navigation control a touch area of at least 44px', async () => {
+    it('shows VISUALIZAÇÃO and the pending approval as HudSheets on the mobile HUD', async () => {
         mockViewport(360);
-        const wrapper = await mountLayout();
+        const wrapper = await mountLayout('/');
 
-        const controls = [
+        useVisualizationsStore().apply(makeVisualization());
+        await nextTick();
+
+        expect(wrapper.find('[data-testid="hud-stage-visualization"]').exists()).toBe(false);
+        const visualizationSheet = wrapper.get('[data-testid="hud-stage-visualization-sheet"]');
+        expect(visualizationSheet.element.closest('[data-testid="hud-sheet"]')?.getAttribute('aria-label')).toBe('Painel de visualização');
+        expect(visualizationSheet.find('[data-testid="viz-title"]').text()).toBe('Pesquisa');
+        expect(wrapper.get('[data-testid="hud-stage-content"]').attributes('style') ?? '').not.toContain('display: none');
+
+        useApprovalsStore().items = [pendingApproval('9')];
+        await nextTick();
+
+        const approvalSheet = wrapper.get('[data-testid="hud-stage-approval-sheet"]');
+        expect(approvalSheet.element.closest('[data-testid="hud-sheet"]')?.getAttribute('aria-label')).toBe('Aprovação necessária');
+        expect(approvalSheet.findAll('[data-testid="approval-approve"]')).toHaveLength(1);
+
+        wrapper.unmount();
+    });
+
+    it('gives every button and link of the bottom nav and the mobile HUD a 44px touch area', async () => {
+        mockViewport(360);
+        const wrapper = await mountLayout('/');
+
+        useApprovalsStore().items = [pendingApproval('1')];
+        await nextTick();
+        await wrapper.get('[data-testid="bottom-nav-more"]').trigger('click');
+
+        const scopes = [
+            '[data-testid="mobile-controls"]',
+            '[data-testid="header-actions-mobile"]',
+            '[data-testid="hud-stage"]',
+        ];
+        const controls = scopes.flatMap((scope) => wrapper.get(scope).findAll('button, a'));
+
+        expect(controls.length).toBeGreaterThanOrEqual(12);
+        expect(wrapper.find('[data-testid="bottom-nav-memories"]').exists()).toBe(true);
+
+        for (const control of controls) {
+            const label = control.attributes('data-testid') ?? control.text();
+            expect(TOUCH_TARGET_BOTH_AXES(control.attributes('class') ?? ''), label).toBe(true);
+        }
+
+        for (const selector of [
             '[data-testid="drawer-toggle"]',
-            '[data-testid="bottom-nav-chat"]',
-            '[data-testid="bottom-nav-agents"]',
-            '[data-testid="bottom-nav-microphone"]',
-            '[data-testid="bottom-nav-tasks"]',
-            '[data-testid="bottom-nav-settings"]',
-            '[data-testid="header-mic-mobile"]',
-            '[data-testid="header-more"]',
             '[data-testid="header-notifications"]',
             '[data-testid="footer-send"]',
             '[data-testid="footer-mute"]',
-        ];
-
-        for (const selector of controls) {
+        ]) {
             expect(wrapper.get(selector).attributes('class'), selector).toMatch(TOUCH_TARGET);
         }
 
@@ -139,13 +259,16 @@ describe('HudLayout — mobile (360px)', () => {
         const viewport = mockViewport(360);
         const wrapper = await mountLayout();
 
-        await wrapper.get('[data-testid="bottom-nav-tasks"]').trigger('click');
+        await wrapper.get('[data-testid="header-agents-mobile"]').trigger('click');
+        expect(wrapper.find('[data-testid="hud-sheet"]').exists()).toBe(true);
+
         viewport.resize(1024);
         await nextTick();
 
         expect(wrapper.get('[data-testid="hud-layout"]').attributes('data-layout')).toBe('tablet');
         expect(wrapper.find('[data-testid="mobile-core"]').exists()).toBe(false);
-        expect(wrapper.get('[data-testid="layout-sidebar"]').attributes('data-sheet')).toBeUndefined();
+        expect(wrapper.find('[data-testid="hud-sheet"]').exists()).toBe(false);
+        expect(wrapper.get('[data-testid="layout-sidebar"]').classes()).not.toContain('flex');
 
         wrapper.unmount();
     });
@@ -220,7 +343,7 @@ function stageOrder(wrapper: Awaited<ReturnType<typeof mountLayout>>): string[] 
 }
 
 describe('HUD stage stacked on tablet/mobile (UI-09)', () => {
-    it.each([360, 768, 1024])('stacks compact core, AGENTES and VISUALIZAÇÃO at %ipx', async (width) => {
+    it.each([768, 1024])('stacks compact core, AGENTES and VISUALIZAÇÃO at %ipx', async (width) => {
         mockViewport(width);
         const wrapper = await mountLayout('/');
         const stage = () => wrapper.get('[data-testid="hud-stage"]');
@@ -237,6 +360,25 @@ describe('HUD stage stacked on tablet/mobile (UI-09)', () => {
         expect(stage().attributes('data-stage')).toBe('stacked');
         expect(stageOrder(wrapper)).toEqual(['hud-stage-core', 'hud-stage-agents', 'hud-stage-visualization', 'hud-stage-content']);
         expect(wrapper.get('[data-testid="hud-stage-visualization"]').classes()).toContain('w-full');
+        expect(wrapper.find('[data-testid="hud-sheet"]').exists()).toBe(false);
+
+        wrapper.unmount();
+    });
+
+    it('keeps the compact core on top at 360px with VISUALIZAÇÃO in a sheet', async () => {
+        mockViewport(360);
+        const wrapper = await mountLayout('/');
+        const stage = () => wrapper.get('[data-testid="hud-stage"]');
+
+        expect(stage().attributes('data-stage')).toBe('stacked');
+        expect(wrapper.find('[data-testid="mobile-core"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="hud-stage-core"] [data-testid="jarvis-core"]').classes()).toContain('core--compact');
+        expect(stageOrder(wrapper)).toEqual(['hud-stage-core', 'hud-stage-content']);
+
+        useVisualizationsStore().apply(makeVisualization());
+        await nextTick();
+
+        expect(stageOrder(wrapper)).toEqual(['hud-stage-core', 'hud-stage-content', 'hud-stage-visualization-sheet']);
 
         wrapper.unmount();
     });
@@ -251,8 +393,8 @@ describe('HUD stage stacked on tablet/mobile (UI-09)', () => {
         viewport.resize(360);
         await nextTick();
 
-        await wrapper.get('[data-testid="bottom-nav-tasks"]').trigger('click');
-        expect(wrapper.get('[data-testid="layout-sidebar"]').attributes('data-sheet')).toBe('half');
+        await wrapper.get('[data-testid="header-agents-mobile"]').trigger('click');
+        expect(wrapper.get('[data-testid="hud-sheet"] [data-testid="layout-sheet"]').attributes('data-section')).toBe('agents');
 
         wrapper.unmount();
     });

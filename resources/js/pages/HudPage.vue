@@ -3,6 +3,7 @@ import { computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ApprovalCard from '@/components/hud/ApprovalCard.vue';
 import ConversationView from '@/components/hud/ConversationView.vue';
+import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useApprovalsStore } from '@/stores/approvals';
 import { useConversationsStore } from '@/stores/conversations';
 import { useTasksStore } from '@/stores/tasks';
@@ -13,8 +14,9 @@ const conversations = useConversationsStore();
 const visualizations = useVisualizationsStore();
 const tasks = useTasksStore();
 const approvals = useApprovalsStore();
+const { mode } = useLayoutMode();
 
-/** Pending decisions shown on the HUD itself (UI-13); decided cards leave the list. */
+/** Pending decisions shown on the HUD itself (UI-13); decided cards leave the list. Mobile shows them as a sheet (UI-23). */
 const pendingApprovals = computed(() => approvals.items.filter((approval) => approval.status === 'pending'));
 
 /**
@@ -34,7 +36,7 @@ onMounted(() => {
     <!-- Single root: the route transition (UI-24) animates one element. -->
     <div class="min-w-0" data-testid="hud-page">
         <section
-            v-if="pendingApprovals.length > 0"
+            v-if="pendingApprovals.length > 0 && mode !== 'mobile'"
             class="mx-auto mb-4 flex w-full max-w-2xl flex-col gap-3"
             :aria-label="t('approval.title')"
             data-testid="hud-approvals"

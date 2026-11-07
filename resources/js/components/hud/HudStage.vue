@@ -2,9 +2,11 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AgentsPanel from '@/components/hud/AgentsPanel.vue';
+import ApprovalCard from '@/components/hud/ApprovalCard.vue';
 import JarvisCore from '@/components/hud/JarvisCore.vue';
 import ScanBar from '@/components/hud/ScanBar.vue';
 import VisualizationPanel from '@/components/hud/VisualizationPanel.vue';
+import HudSheet from '@/components/ui/HudSheet.vue';
 import {
     HUD_STAGE_CORE_DELAY_CLOSE_MS,
     HUD_STAGE_CORE_DELAY_OPEN_MS,
@@ -16,6 +18,7 @@ import {
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { isEditableTarget } from '@/composables/usePushToTalk';
 import { useReducedMotion } from '@/composables/useReducedMotion';
+import { useApprovalsStore } from '@/stores/approvals';
 import { useAssistantStore } from '@/stores/assistant';
 import { useTaskTimelineStore } from '@/stores/taskTimeline';
 import { useTasksStore } from '@/stores/tasks';
@@ -44,6 +47,7 @@ const voice = useVoiceStore();
 const visualizations = useVisualizationsStore();
 const tasks = useTasksStore();
 const timeline = useTaskTimelineStore();
+const approvals = useApprovalsStore();
 const { mode } = useLayoutMode();
 const reducedMotion = useReducedMotion();
 
@@ -55,7 +59,32 @@ const stageState = computed<StageState>(() => {
     return visualizations.isOpen ? 'corner' : 'center';
 });
 
-const showPanels = computed(() => stageState.value !== 'center');
+/** Mobile (UI-23): the core stays on top; AGENTES (layout sheet), VISUALIZAÇÃO and approvals slide up as sheets. */
+const isMobile = computed(() => mode.value === 'mobile');
+const showPanels = computed(() => stageState.value !== 'center' && !isMobile.value);
+const showVisualizationInline = computed(() => visualizations.isOpen && !isMobile.value);
+const visualizationSheetExpanded = ref(false);
+
+/** Dismissing the visualization sheet closes it like `×`. */
+function onVisualizationSheet(open: boolean): void {
+    if (!open && visualizations.isOpen) {
+        void visualizations.close();
+    }
+}
+
+/** Pending approvals pop up as a sheet on mobile; a dismissed batch only comes back with a new request. */
+const dismissedApprovalIds = ref<string[]>([]);
+const sheetApprovals = computed(() =>
+    approvals.items.filter((approval) => approval.status === 'pending' && !dismissedApprovalIds.value.includes(approval.id)),
+);
+const approvalSheetOpen = computed({
+    get: () => isMobile.value && sheetApprovals.value.length > 0,
+    set: (open: boolean) => {
+        if (!open) {
+            dismissedApprovalIds.value = [...dismissedApprovalIds.value, ...sheetApprovals.value.map((approval) => approval.id)];
+        }
+    },
+});
 const showDrawer = computed(() => props.agentsDrawerOpen && stageState.value === 'center');
 
 const containerClasses = computed(() => {
@@ -230,7 +259,7 @@ watch(
  * is in an editable field or a modal/drawer (`aria-modal`) is open.
  */
 function onKeydown(event: KeyboardEvent): void {
-    if (event.key !== 'Escape' || event.defaultPrevented || !visualizations.isOpen) {
+    if (event.key !== 'Escape' || event.defaultPrevented || !visualizations.isOpen || isMobile.value) {
         return;
     }
 
@@ -303,7 +332,7 @@ onBeforeUnmount(() => {
 
         <Transition v-bind="visualizationTransition">
             <div
-                v-if="visualizations.isOpen"
+                v-if="showVisualizationInline"
                 class="min-w-0"
                 :class="stageState === 'corner' ? 'col-start-2 row-span-2 row-start-1 min-h-0 overflow-y-auto' : 'w-full'"
                 data-testid="hud-stage-visualization"
@@ -312,9 +341,28 @@ onBeforeUnmount(() => {
             </div>
         </Transition>
 
-        <div v-show="!visualizations.isOpen" class="w-full min-w-0" data-testid="hud-stage-content">
+        <div v-show="!showVisualizationInline" class="w-full min-w-0" data-testid="hud-stage-content">
             <slot />
         </div>
+
+        <template v-if="isMobile">
+            <HudSheet
+                :open="visualizations.isOpen"
+                v-model:expanded="visualizationSheetExpanded"
+                :label="t('stage.visualizationSheet')"
+                @update:open="onVisualizationSheet"
+            >
+                <div class="min-w-0" data-testid="hud-stage-visualization-sheet">
+                    <VisualizationPanel />
+                </div>
+            </HudSheet>
+
+            <HudSheet v-model:open="approvalSheetOpen" :label="t('approval.title')">
+                <div class="flex min-w-0 flex-col gap-3" data-testid="hud-stage-approval-sheet">
+                    <ApprovalCard v-for="approval in sheetApprovals" :key="approval.id" :approval="approval" />
+                </div>
+            </HudSheet>
+        </template>
 
         <Transition v-bind="drawerTransition">
             <aside

@@ -28,7 +28,9 @@
     "logout": "Sair",
     "approvals": "Aprovações",
     "conversations": "Conversas",
-    "more": "Mais"
+    "more": "Mais",
+    "navigation": "Navegação",
+    "pendingApprovals": "{n} aprovação pendente | {n} aprovações pendentes"
   },
   "layout": {
     "sidebar": "Painel lateral",
@@ -44,7 +46,8 @@
   "stage": {
     "label": "Palco do HUD",
     "agentsDrawer": "Painel de agentes",
-    "closeAgents": "Fechar painel de agentes"
+    "closeAgents": "Fechar painel de agentes",
+    "visualizationSheet": "Painel de visualização"
   },
   "pages": {
     "hud": "Painel principal",

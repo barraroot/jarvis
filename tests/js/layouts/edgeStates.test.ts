@@ -21,6 +21,7 @@ async function mountLayout() {
             { path: '/settings', name: 'settings', component: Blank },
             { path: '/memories', name: 'memories', component: Blank },
             { path: '/approvals', name: 'approvals', component: Blank },
+            { path: '/activity', name: 'activity', component: Blank },
         ],
     });
     await router.push('/settings');
