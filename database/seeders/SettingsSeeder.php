@@ -33,6 +33,18 @@ class SettingsSeeder extends Seeder
             'voice.listening_window_seconds' => ['value' => 60, 'description' => 'Seconds the voice listening window stays open after the wake word.'],
             'voice.session_token_ceiling' => ['value' => 200000, 'description' => 'Maximum tokens reported by a single Realtime voice session.'],
             'voice.realtime_voice' => ['value' => 'marin', 'description' => 'Voice used by the OpenAI Realtime session.'],
+            'whatsapp.kill_switch' => ['value' => 0, 'description' => 'Global WhatsApp kill switch (1 blocks every WhatsApp write and delivery).'],
+            'whatsapp.max_sends_per_minute' => ['value' => 6, 'description' => 'Maximum WhatsApp sends per session per minute.'],
+            'whatsapp.max_sends_per_recipient_per_hour' => ['value' => 10, 'description' => 'Maximum WhatsApp sends to the same recipient per hour.'],
+            'whatsapp.daily_send_cap' => ['value' => 200, 'description' => 'Maximum WhatsApp sends per session per day (America/Sao_Paulo).'],
+            'whatsapp.min_send_interval_seconds' => ['value' => 8, 'description' => 'Minimum seconds between two WhatsApp deliveries of a session.'],
+            'whatsapp.jitter_min_seconds' => ['value' => 2, 'description' => 'Minimum random jitter added to the WhatsApp delivery interval.'],
+            'whatsapp.jitter_max_seconds' => ['value' => 7, 'description' => 'Maximum random jitter added to the WhatsApp delivery interval.'],
+            'whatsapp.typing_min_ms' => ['value' => 1500, 'description' => 'Minimum duration of the WhatsApp typing presence (ms).'],
+            'whatsapp.typing_max_ms' => ['value' => 6000, 'description' => 'Maximum duration of the WhatsApp typing presence (ms).'],
+            'whatsapp.max_non_contact_recipients' => ['value' => 5, 'description' => 'Distinct non-contact WhatsApp recipients allowed per window.'],
+            'whatsapp.non_contact_window_minutes' => ['value' => 60, 'description' => 'Window (minutes) of the WhatsApp non-contact recipient limit.'],
+            'retention.whatsapp_messages_days' => ['value' => 30, 'description' => 'Days to keep stored WhatsApp messages.'],
         ];
     }
 

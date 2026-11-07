@@ -31,6 +31,9 @@ class LookupTablesTest extends TestCase
         'notification_types',
         'audit_actions',
         'log_levels',
+        'visualization_statuses',
+        'whatsapp_outbound_statuses',
+        'whatsapp_schedule_statuses',
     ];
 
     public function test_all_lookup_tables_exist_with_unique_slug(): void

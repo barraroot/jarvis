@@ -1,0 +1,36 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Lookups of WhatsApp outbound statuses (`queued`, `sent`, `failed`,
+     * `blocked`) and schedule statuses (`active`, `paused`, `cancelled`,
+     * `completed`), same shape as the tables in `create_lookup_tables`.
+     */
+    public function up(): void
+    {
+        foreach (['whatsapp_outbound_statuses', 'whatsapp_schedule_statuses'] as $name) {
+            Schema::create($name, function (Blueprint $table): void {
+                $table->id();
+                $table->string('name');
+                $table->string('slug')->unique();
+                $table->text('description')->nullable();
+                $table->boolean('is_active')->default(true);
+                $table->timestamps();
+            });
+        }
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('whatsapp_schedule_statuses');
+        Schema::dropIfExists('whatsapp_outbound_statuses');
+    }
+};

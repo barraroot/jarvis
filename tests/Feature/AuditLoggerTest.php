@@ -52,6 +52,26 @@ class AuditLoggerTest extends TestCase
         $this->assertSame(AuditAction::PROVIDER_UPDATED, $log->action->slug);
     }
 
+    public function test_logger_strips_whatsapp_secret_keys(): void
+    {
+        $this->assertSame(['session_id' => 7, 'nested' => ['safe' => true]], AuditLogger::sanitize([
+            'session_id' => 7,
+            'hmac_key' => 'hmac-secret',
+            'webhook_key' => 'webhook-secret',
+            'token' => 'wuzapi-token',
+            'nested' => ['HMAC_KEY' => 'upper', 'webhook_key_hash' => 'hash', 'safe' => true],
+        ]));
+
+        $log = app(AuditLogger::class)->log(AuditAction::WHATSAPP_SESSION_PROVISIONED, User::factory()->create(), null, [
+            'session_id' => 7,
+            'hmac_key' => 'hmac-secret',
+            'webhook_key' => 'webhook-secret',
+        ]);
+
+        $this->assertSame(['session_id' => 7], $log->properties);
+        $this->assertStringNotContainsString('secret', (string) AuditLog::query()->findOrFail($log->id)->getRawOriginal('properties'));
+    }
+
     public function test_logger_captures_request_ip_and_user_agent_and_allows_system_actor(): void
     {
         $request = Request::create('/admin', 'POST', server: [

@@ -65,6 +65,26 @@ return [
         'origin' => env('OPENAI_REALTIME_ORIGIN', 'https://api.openai.com'),
     ],
 
+    /*
+    | WhatsApp connector (wuzapi multi-user, `compose.yaml` service `wuzapi`):
+    | reached only on the internal Docker network. `admin_token` authorizes
+    | the admin API (`/admin/users`); `webhook_base_url` is the address the
+    | wuzapi container uses to call the JARVIS webhook. Outbound media comes
+    | from https URLs fetched by the server, capped per type (bytes).
+    */
+    'wuzapi' => [
+        'url' => env('WUZAPI_URL'),
+        'admin_token' => env('WUZAPI_ADMIN_TOKEN'),
+        'timeout_seconds' => (int) env('WUZAPI_TIMEOUT_SECONDS', 15),
+        'webhook_base_url' => env('WUZAPI_WEBHOOK_BASE_URL'),
+        'media_max_bytes' => [
+            'image' => (int) env('WUZAPI_MEDIA_MAX_IMAGE_BYTES', 5 * 1024 * 1024),
+            'video' => (int) env('WUZAPI_MEDIA_MAX_VIDEO_BYTES', 16 * 1024 * 1024),
+            'audio' => (int) env('WUZAPI_MEDIA_MAX_AUDIO_BYTES', 16 * 1024 * 1024),
+            'document' => (int) env('WUZAPI_MEDIA_MAX_DOCUMENT_BYTES', 100 * 1024 * 1024),
+        ],
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

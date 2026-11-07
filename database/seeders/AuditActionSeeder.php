@@ -44,6 +44,17 @@ class AuditActionSeeder extends LookupTableSeeder
             'memory_deleted' => ['name' => 'Memory Deleted'],
             'task_cancelled' => ['name' => 'Task Cancelled'],
             'preference_updated' => ['name' => 'Preference Updated'],
+            'whatsapp_consent_granted' => ['name' => 'WhatsApp Consent Granted'],
+            'whatsapp_consent_revoked' => ['name' => 'WhatsApp Consent Revoked'],
+            'whatsapp_session_provisioned' => ['name' => 'WhatsApp Session Provisioned'],
+            'whatsapp_session_removed' => ['name' => 'WhatsApp Session Removed'],
+            'whatsapp_session_suspended' => ['name' => 'WhatsApp Session Suspended'],
+            'whatsapp_session_resumed' => ['name' => 'WhatsApp Session Resumed'],
+            'whatsapp_message_sent' => ['name' => 'WhatsApp Message Sent'],
+            'whatsapp_send_blocked' => ['name' => 'WhatsApp Send Blocked'],
+            'whatsapp_schedule_created' => ['name' => 'WhatsApp Schedule Created'],
+            'whatsapp_schedule_executed' => ['name' => 'WhatsApp Schedule Executed'],
+            'whatsapp_schedule_cancelled' => ['name' => 'WhatsApp Schedule Cancelled'],
         ];
     }
 }

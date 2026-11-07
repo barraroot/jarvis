@@ -20,6 +20,9 @@ class NotificationTypeSeeder extends LookupTableSeeder
             'approval_pending' => ['name' => 'Approval Pending'],
             'connector_error' => ['name' => 'Connector Error'],
             'usage_limit_reached' => ['name' => 'Usage Limit Reached'],
+            'whatsapp_send_failed' => ['name' => 'WhatsApp Send Failed'],
+            'whatsapp_schedule_run_failed' => ['name' => 'WhatsApp Schedule Run Failed'],
+            'whatsapp_session_suspended' => ['name' => 'WhatsApp Session Suspended'],
         ];
     }
 }

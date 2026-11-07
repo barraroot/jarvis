@@ -38,6 +38,7 @@ services:
         volumes:
             - 'sail-pgsql:/var/lib/postgresql'
             - './vendor/laravel/sail/database/pgsql/create-testing-database.sql:/docker-entrypoint-initdb.d/10-create-testing-database.sql'
+            - './database/pgsql/create-wuzapi-database.sql:/docker-entrypoint-initdb.d/20-create-wuzapi-database.sql'
         networks:
             - sail
         healthcheck:
@@ -144,6 +145,31 @@ services:
         depends_on:
             - pgsql
             - redis
+    wuzapi:
+        build:
+            context: 'https://github.com/asternic/wuzapi.git#v1.1.0'
+            dockerfile: Dockerfile
+        image: 'jarvis/wuzapi:v1.1.0'
+        environment:
+            WUZAPI_ADMIN_TOKEN: '${WUZAPI_ADMIN_TOKEN:-}'
+            WUZAPI_GLOBAL_ENCRYPTION_KEY: '${WUZAPI_GLOBAL_ENCRYPTION_KEY:-}'
+            WEBHOOK_FORMAT: json
+            DB_USER: '${DB_USERNAME}'
+            DB_PASSWORD: '${DB_PASSWORD:-secret}'
+            DB_NAME: wuzapi
+            DB_HOST: pgsql
+            DB_PORT: 5432
+            DB_SSLMODE: 'false'
+            TZ: America/Sao_Paulo
+            SESSION_DEVICE_NAME: JARVIS
+        volumes:
+            - 'sail-wuzapi:/app/files'
+        networks:
+            - sail
+        depends_on:
+            pgsql:
+                condition: service_healthy
+        restart: on-failure
 networks:
     sail:
         driver: bridge
@@ -153,4 +179,6 @@ volumes:
     sail-redis:
         driver: local
     sail-rustfs:
+        driver: local
+    sail-wuzapi:
         driver: local

@@ -38,6 +38,50 @@ class Settings
         'retention.read_notifications_days' => ['min' => 1, 'max' => null, 'type' => 'int'],
         'voice.listening_window_seconds' => ['min' => 15, 'max' => 300, 'type' => 'int'],
         'voice.session_token_ceiling' => ['min' => 10000, 'max' => 2000000, 'type' => 'int'],
+        'whatsapp.kill_switch' => ['min' => 0, 'max' => 1, 'type' => 'int'],
+        'whatsapp.max_sends_per_minute' => ['min' => 2, 'max' => 30, 'type' => 'int'],
+        'whatsapp.max_sends_per_recipient_per_hour' => ['min' => 3, 'max' => 50, 'type' => 'int'],
+        'whatsapp.daily_send_cap' => ['min' => 50, 'max' => 1000, 'type' => 'int'],
+        'whatsapp.min_send_interval_seconds' => ['min' => 2, 'max' => 40, 'type' => 'int'],
+        'whatsapp.jitter_min_seconds' => ['min' => 1, 'max' => 10, 'type' => 'int'],
+        'whatsapp.jitter_max_seconds' => ['min' => 2, 'max' => 35, 'type' => 'int'],
+        'whatsapp.typing_min_ms' => ['min' => 375, 'max' => 7500, 'type' => 'int'],
+        'whatsapp.typing_max_ms' => ['min' => 1500, 'max' => 30000, 'type' => 'int'],
+        'whatsapp.max_non_contact_recipients' => ['min' => 2, 'max' => 25, 'type' => 'int'],
+        'whatsapp.non_contact_window_minutes' => ['min' => 15, 'max' => 300, 'type' => 'int'],
+        'retention.whatsapp_messages_days' => ['min' => 1, 'max' => null, 'type' => 'int'],
+    ];
+
+    /**
+     * Pairs of keys whose values must stay ordered (`min` ≤ `max`) — WhatsApp
+     * jitter and typing windows (CT-40).
+     *
+     * @var list<array{min: string, max: string}>
+     */
+    public const array CROSS_RULES = [
+        ['min' => 'whatsapp.jitter_min_seconds', 'max' => 'whatsapp.jitter_max_seconds'],
+        ['min' => 'whatsapp.typing_min_ms', 'max' => 'whatsapp.typing_max_ms'],
+    ];
+
+    /**
+     * Defaults of the WhatsApp anti-block settings (CT-40), used while no
+     * value is stored.
+     *
+     * @var array<string, int>
+     */
+    public const array WHATSAPP_DEFAULTS = [
+        'whatsapp.kill_switch' => 0,
+        'whatsapp.max_sends_per_minute' => 6,
+        'whatsapp.max_sends_per_recipient_per_hour' => 10,
+        'whatsapp.daily_send_cap' => 200,
+        'whatsapp.min_send_interval_seconds' => 8,
+        'whatsapp.jitter_min_seconds' => 2,
+        'whatsapp.jitter_max_seconds' => 7,
+        'whatsapp.typing_min_ms' => 1500,
+        'whatsapp.typing_max_ms' => 6000,
+        'whatsapp.max_non_contact_recipients' => 5,
+        'whatsapp.non_contact_window_minutes' => 60,
+        'retention.whatsapp_messages_days' => 30,
     ];
 
     /**
@@ -116,6 +160,30 @@ class Settings
         }
 
         return $changed;
+    }
+
+    /**
+     * Cross-field violations of `CROSS_RULES` for the submitted values, falling
+     * back to the stored (or default) value of keys not submitted. Errors are
+     * keyed by the `max` key of each violated pair, in pt-BR.
+     *
+     * @param  array<string, mixed>  $values
+     * @return array<string, string>
+     */
+    public function crossFieldErrors(array $values): array
+    {
+        $errors = [];
+
+        foreach (self::CROSS_RULES as $rule) {
+            $min = (int) ($values[$rule['min']] ?? $this->get($rule['min'], self::WHATSAPP_DEFAULTS[$rule['min']] ?? null));
+            $max = (int) ($values[$rule['max']] ?? $this->get($rule['max'], self::WHATSAPP_DEFAULTS[$rule['max']] ?? null));
+
+            if ($min > $max) {
+                $errors[$rule['max']] = __('whatsapp.settings.cross_field', ['min' => $rule['min'], 'max' => $rule['max']]);
+            }
+        }
+
+        return $errors;
     }
 
     /**
@@ -239,5 +307,65 @@ class Settings
         $voice = $this->get('voice.realtime_voice');
 
         return is_string($voice) && in_array($voice, self::OPTIONS['voice.realtime_voice'], true) ? $voice : 'marin';
+    }
+
+    public function whatsappKillSwitchActive(): bool
+    {
+        return (int) $this->get('whatsapp.kill_switch', self::WHATSAPP_DEFAULTS['whatsapp.kill_switch']) === 1;
+    }
+
+    public function whatsappMaxSendsPerMinute(): int
+    {
+        return (int) $this->get('whatsapp.max_sends_per_minute', self::WHATSAPP_DEFAULTS['whatsapp.max_sends_per_minute']);
+    }
+
+    public function whatsappMaxSendsPerRecipientPerHour(): int
+    {
+        return (int) $this->get('whatsapp.max_sends_per_recipient_per_hour', self::WHATSAPP_DEFAULTS['whatsapp.max_sends_per_recipient_per_hour']);
+    }
+
+    public function whatsappDailySendCap(): int
+    {
+        return (int) $this->get('whatsapp.daily_send_cap', self::WHATSAPP_DEFAULTS['whatsapp.daily_send_cap']);
+    }
+
+    public function whatsappMinSendIntervalSeconds(): int
+    {
+        return (int) $this->get('whatsapp.min_send_interval_seconds', self::WHATSAPP_DEFAULTS['whatsapp.min_send_interval_seconds']);
+    }
+
+    public function whatsappJitterMinSeconds(): int
+    {
+        return (int) $this->get('whatsapp.jitter_min_seconds', self::WHATSAPP_DEFAULTS['whatsapp.jitter_min_seconds']);
+    }
+
+    public function whatsappJitterMaxSeconds(): int
+    {
+        return (int) $this->get('whatsapp.jitter_max_seconds', self::WHATSAPP_DEFAULTS['whatsapp.jitter_max_seconds']);
+    }
+
+    public function whatsappTypingMinMs(): int
+    {
+        return (int) $this->get('whatsapp.typing_min_ms', self::WHATSAPP_DEFAULTS['whatsapp.typing_min_ms']);
+    }
+
+    public function whatsappTypingMaxMs(): int
+    {
+        return (int) $this->get('whatsapp.typing_max_ms', self::WHATSAPP_DEFAULTS['whatsapp.typing_max_ms']);
+    }
+
+    public function whatsappMaxNonContactRecipients(): int
+    {
+        return (int) $this->get('whatsapp.max_non_contact_recipients', self::WHATSAPP_DEFAULTS['whatsapp.max_non_contact_recipients']);
+    }
+
+    public function whatsappNonContactWindowMinutes(): int
+    {
+        return (int) $this->get('whatsapp.non_contact_window_minutes', self::WHATSAPP_DEFAULTS['whatsapp.non_contact_window_minutes']);
+    }
+
+    public function whatsappMessagesRetentionDays(): int
+    {
+        return (int) $this->get('retention.whatsapp_messages_days', self::WHATSAPP_DEFAULTS['retention.whatsapp_messages_days']);
     }
 }

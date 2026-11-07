@@ -64,4 +64,26 @@ class AuditAction extends LookupModel
     public const string TASK_CANCELLED = 'task_cancelled';
 
     public const string PREFERENCE_UPDATED = 'preference_updated';
+
+    public const string WHATSAPP_CONSENT_GRANTED = 'whatsapp_consent_granted';
+
+    public const string WHATSAPP_CONSENT_REVOKED = 'whatsapp_consent_revoked';
+
+    public const string WHATSAPP_SESSION_PROVISIONED = 'whatsapp_session_provisioned';
+
+    public const string WHATSAPP_SESSION_REMOVED = 'whatsapp_session_removed';
+
+    public const string WHATSAPP_SESSION_SUSPENDED = 'whatsapp_session_suspended';
+
+    public const string WHATSAPP_SESSION_RESUMED = 'whatsapp_session_resumed';
+
+    public const string WHATSAPP_MESSAGE_SENT = 'whatsapp_message_sent';
+
+    public const string WHATSAPP_SEND_BLOCKED = 'whatsapp_send_blocked';
+
+    public const string WHATSAPP_SCHEDULE_CREATED = 'whatsapp_schedule_created';
+
+    public const string WHATSAPP_SCHEDULE_EXECUTED = 'whatsapp_schedule_executed';
+
+    public const string WHATSAPP_SCHEDULE_CANCELLED = 'whatsapp_schedule_cancelled';
 }

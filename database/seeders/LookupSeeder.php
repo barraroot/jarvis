@@ -28,6 +28,8 @@ class LookupSeeder extends Seeder
             AuditActionSeeder::class,
             LogLevelSeeder::class,
             VisualizationStatusSeeder::class,
+            WhatsappOutboundStatusSeeder::class,
+            WhatsappScheduleStatusSeeder::class,
         ]);
     }
 }

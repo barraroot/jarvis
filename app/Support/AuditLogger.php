@@ -18,7 +18,7 @@ class AuditLogger
      *
      * @var list<string>
      */
-    public const array SECRET_KEYS = ['api_key', 'credential', 'password', 'token'];
+    public const array SECRET_KEYS = ['api_key', 'credential', 'password', 'token', 'hmac_key', 'webhook_key'];
 
     public function __construct(private readonly Request $request) {}
 

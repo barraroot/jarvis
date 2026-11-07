@@ -32,6 +32,7 @@ use App\Models\ToolType;
 use App\Models\User;
 use App\Models\UserPreference;
 use App\Services\ApprovalService;
+use App\Support\AuditLogger;
 use App\Support\Settings;
 use App\Tools\Contracts\JarvisTool;
 use App\Tools\ToolContext;
@@ -359,7 +360,38 @@ class AuditCoverageTest extends TestCase
                 ->fillForm(['speech_rate' => 1.5])
                 ->call('save')
                 ->assertHasNoFormErrors()),
+
+            ...$this->whatsappFixtures(),
         ];
+    }
+
+    /**
+     * CT-41 WhatsApp slugs. Their emitting flows (session, consent, send and
+     * schedule services) land in later phases; until T26 swaps these for the
+     * real flows, each slug is emitted through the AuditLogger entry point.
+     *
+     * @return array<string, Closure(): void>
+     */
+    private function whatsappFixtures(): array
+    {
+        $slugs = [
+            AuditAction::WHATSAPP_CONSENT_GRANTED,
+            AuditAction::WHATSAPP_CONSENT_REVOKED,
+            AuditAction::WHATSAPP_SESSION_PROVISIONED,
+            AuditAction::WHATSAPP_SESSION_REMOVED,
+            AuditAction::WHATSAPP_SESSION_SUSPENDED,
+            AuditAction::WHATSAPP_SESSION_RESUMED,
+            AuditAction::WHATSAPP_MESSAGE_SENT,
+            AuditAction::WHATSAPP_SEND_BLOCKED,
+            AuditAction::WHATSAPP_SCHEDULE_CREATED,
+            AuditAction::WHATSAPP_SCHEDULE_EXECUTED,
+            AuditAction::WHATSAPP_SCHEDULE_CANCELLED,
+        ];
+
+        return array_combine(
+            $slugs,
+            array_map(fn (string $slug): Closure => fn () => app(AuditLogger::class)->log($slug, $this->operator), $slugs),
+        );
     }
 
     private function asAdmin(Closure $flow): void

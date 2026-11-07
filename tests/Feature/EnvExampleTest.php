@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\File;
+use Symfony\Component\Yaml\Yaml;
 use Tests\TestCase;
 
 /**
@@ -51,6 +52,7 @@ class EnvExampleTest extends TestCase
             'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_DEFAULT_REGION', 'AWS_BUCKET',
             'ADMIN_NAME', 'ADMIN_EMAIL', 'ADMIN_PASSWORD', 'MCP_ALLOW_PRIVATE_HOSTS',
             'SANCTUM_STATEFUL_DOMAINS', 'FRONTEND_URL', 'SESSION_SECURE_COOKIE', 'SESSION_SAME_SITE',
+            'WUZAPI_URL', 'WUZAPI_ADMIN_TOKEN', 'WUZAPI_WEBHOOK_BASE_URL',
         ] as $key) {
             $this->assertContains($key, $active, "{$key} must be an active entry in .env.example.");
         }
@@ -61,8 +63,33 @@ class EnvExampleTest extends TestCase
         foreach (['cors.php', 'sanctum.php', 'services.php', 'broadcasting.php', 'reverb.php'] as $file) {
             $contents = File::get(config_path($file));
 
-            $this->assertDoesNotMatchRegularExpression("/'[^']*(?:localhost:5173|127\.0\.0\.1:5173|laravel\.test|rustfs|mailpit)[^']*'/", $contents, "{$file} hardcodes a development host.");
+            $this->assertDoesNotMatchRegularExpression("/'[^']*(?:localhost:5173|127\.0\.0\.1:5173|laravel\.test|rustfs|mailpit|wuzapi:8080)[^']*'/", $contents, "{$file} hardcodes a development host.");
         }
+    }
+
+    /**
+     * RNF-02: wuzapi stays on the internal `sail` network (no published
+     * ports), is built from a pinned upstream tag and uses its own `wuzapi`
+     * database on the existing pgsql service.
+     */
+    public function test_wuzapi_service_is_internal_pinned_and_uses_its_own_database(): void
+    {
+        $compose = Yaml::parseFile(base_path('compose.yaml'));
+        $service = $compose['services']['wuzapi'];
+
+        $this->assertArrayNotHasKey('ports', $service);
+        $this->assertSame(['sail'], $service['networks']);
+        $this->assertMatchesRegularExpression('~^https://github\.com/asternic/wuzapi\.git#(v\d+\.\d+\.\d+|[0-9a-f]{40})$~', $service['build']['context']);
+        $this->assertSame('pgsql', $service['environment']['DB_HOST']);
+        $this->assertSame('wuzapi', $service['environment']['DB_NAME']);
+        $this->assertSame('json', $service['environment']['WEBHOOK_FORMAT']);
+        $this->assertArrayHasKey('pgsql', $service['depends_on']);
+        $this->assertArrayHasKey('sail-wuzapi', $compose['volumes']);
+        $this->assertContains(
+            './database/pgsql/create-wuzapi-database.sql:/docker-entrypoint-initdb.d/20-create-wuzapi-database.sql',
+            $compose['services']['pgsql']['volumes'],
+        );
+        $this->assertStringContainsString('CREATE DATABASE wuzapi', File::get(base_path('database/pgsql/create-wuzapi-database.sql')));
     }
 
     /**

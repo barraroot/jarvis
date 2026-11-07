@@ -30,10 +30,12 @@ class LookupSeederTest extends TestCase
         'connector_statuses' => 4,
         'ai_provider_drivers' => 13,
         'ai_model_capabilities' => 3,
-        'notification_types' => 5,
-        'audit_actions' => 29,
+        'notification_types' => 8,
+        'audit_actions' => 40,
         'log_levels' => 4,
         'visualization_statuses' => 3,
+        'whatsapp_outbound_statuses' => 4,
+        'whatsapp_schedule_statuses' => 4,
     ];
 
     public function test_seeders_are_idempotent_and_seed_expected_slugs(): void
