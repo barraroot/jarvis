@@ -17,3 +17,7 @@ Schedule::command('jarvis:retention:prune')->daily();
 // MCP connectors are pinged every `connector.health_check_minutes` (default 5);
 // the command itself skips connectors checked within the interval (US-9.4).
 Schedule::command('jarvis:connectors:health-check')->everyMinute()->withoutOverlapping();
+
+// WhatsApp sessions are checked every `connector.health_check_minutes`; the
+// command itself skips sessions checked within the interval (RF-07).
+Schedule::command('jarvis:whatsapp:health-check')->everyMinute()->withoutOverlapping();
