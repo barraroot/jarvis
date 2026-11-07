@@ -15,15 +15,15 @@ const label = computed(() => (props.state === 'EXECUTING' ? t('status.EXECUTING'
 
 <template>
     <div
-        class="flex items-center gap-2 self-start rounded-sm border border-purple/50 bg-purple/10 px-3 py-1.5"
+        class="glass chamfer-sm flex items-center gap-2 self-start border-ocean-400/60 px-3 py-1.5"
         role="status"
         data-testid="processing-indicator"
     >
         <span class="flex items-center gap-1" aria-hidden="true">
-            <span class="size-1 animate-hud-pulse rounded-full bg-purple"></span>
-            <span class="size-1 animate-hud-pulse rounded-full bg-purple [animation-delay:0.2s]"></span>
-            <span class="size-1 animate-hud-pulse rounded-full bg-purple [animation-delay:0.4s]"></span>
+            <span class="size-1 animate-hud-pulse rounded-full bg-cyan-300"></span>
+            <span class="size-1 animate-hud-pulse rounded-full bg-cyan-300 [animation-delay:0.2s]"></span>
+            <span class="size-1 animate-hud-pulse rounded-full bg-cyan-300 [animation-delay:0.4s]"></span>
         </span>
-        <span class="hud-label font-mono text-[0.6rem] text-purple">{{ label }}…</span>
+        <span class="label-caps text-[0.65rem] text-cyan-300">{{ label }}…</span>
     </div>
 </template>

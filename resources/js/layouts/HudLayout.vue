@@ -1,20 +1,24 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import AppHeader from '@/components/hud/AppHeader.vue';
 import BottomNav from '@/components/hud/BottomNav.vue';
 import CaptionsBar from '@/components/hud/CaptionsBar.vue';
 import ConversationDrawer from '@/components/hud/ConversationDrawer.vue';
+import EdgeState from '@/components/ui/EdgeState.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
+import HudButton from '@/components/ui/HudButton.vue';
 import HudStage from '@/components/hud/HudStage.vue';
 import InteractionFooter from '@/components/hud/InteractionFooter.vue';
 import JarvisCore from '@/components/hud/JarvisCore.vue';
 import SidePanel from '@/components/hud/SidePanel.vue';
 import { useAssistantStore } from '@/stores/assistant';
 import { useConnectionStore } from '@/stores/connection';
+import { useLimitsStore } from '@/stores/limits';
 import { useVoiceStore } from '@/stores/voice';
 import { useLayoutMode } from '@/composables/useLayoutMode';
+import { usePushToTalk } from '@/composables/usePushToTalk';
 import { usePersistentFlag } from '@/composables/usePersistentFlag';
 import { SIDEBAR_COLLAPSED_STORAGE_KEY } from '@/layouts/constants';
 
@@ -28,11 +32,15 @@ const props = withDefaults(
     { voiceUnavailable: false, muted: false },
 );
 
-/** `microphone` toggles the mute (RF-06); `sleep`/`wake` drive the voice window (RF-05). */
+/**
+ * `microphone` toggles the mute (RF-06); `sleep`/`wake` drive the voice window (RF-05);
+ * `allowMicrophone` re-asks the microphone permission after `mic_denied` (UI-22).
+ */
 const emit = defineEmits<{
     sleep: [];
     wake: [];
     microphone: [];
+    allowMicrophone: [];
     send: [payload: { content: string; source: 'text' | 'voice' }];
 }>();
 
@@ -42,10 +50,35 @@ const router = useRouter();
 const connection = useConnectionStore();
 const assistant = useAssistantStore();
 const voice = useVoiceStore();
+const limits = useLimitsStore();
 const { mode } = useLayoutMode();
 
 /** Sending (text, voice) is blocked while the realtime link is down. */
 const sendingDisabled = computed(() => connection.isDisconnected);
+
+/** Offline countdown (RF-10): only shown while a reconnection is actually scheduled. */
+const reconnectSeconds = computed(() =>
+    connection.nextRetryDelayMs === null ? null : Math.ceil(connection.nextRetryDelayMs / 1000),
+);
+
+/** Voice unavailable (UI-22) is only reported while the server is reachable: offline takes precedence. */
+const voiceUnavailableReason = computed(() => (sendingDisabled.value ? null : voice.unavailableReason));
+
+/**
+ * `Space` held as push-to-talk on desktop/tablet (RF-06); mobile uses the
+ * on-screen button. Editable fields keep typing spaces (`usePushToTalk`).
+ */
+usePushToTalk({ keyboard: mode.value !== 'mobile', onWake: () => emit('wake'), onToggleMic: () => emit('microphone') });
+
+/** The caustics pause while the tab is hidden (UI-01). */
+const documentHidden = ref(typeof document !== 'undefined' && document.hidden);
+
+function syncDocumentHidden(): void {
+    documentHidden.value = document.hidden;
+}
+
+onMounted(() => document.addEventListener('visibilitychange', syncDocumentHidden));
+onBeforeUnmount(() => document.removeEventListener('visibilitychange', syncDocumentHidden));
 
 /**
  * Tablet (768–1279px) collapse state, persisted between visits. Tablets start
@@ -146,17 +179,18 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
 
 <template>
     <div
-        class="hud-grid relative min-h-dvh w-full overflow-x-hidden bg-bg text-text"
+        class="abyss-bg relative min-h-dvh w-full overflow-x-hidden text-text-100"
+        :class="{ 'before:[animation-play-state:paused]': documentHidden }"
         :data-layout="mode"
         data-testid="hud-layout"
     >
         <header
-            class="hud-glass fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 border-b border-line px-3 sm:px-5"
+            class="glass fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 border-x-0 border-t-0 px-3 sm:px-5"
             data-testid="layout-header"
         >
             <button
                 type="button"
-                class="inline-flex size-11 shrink-0 items-center justify-center rounded-sm border border-line text-cyan md:hidden"
+                class="chamfer-sm inline-flex size-11 shrink-0 items-center justify-center border border-ocean-600 text-cyan-300 md:hidden"
                 :aria-label="drawerOpen ? t('nav.closeMenu') : t('nav.openMenu')"
                 :aria-expanded="drawerOpen"
                 data-testid="drawer-toggle"
@@ -171,7 +205,7 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
             <button
                 v-if="!isHudRoute"
                 type="button"
-                class="hidden size-11 shrink-0 items-center justify-center rounded-sm border border-line text-cyan md:inline-flex xl:hidden"
+                class="chamfer-sm hidden size-11 shrink-0 items-center justify-center border border-ocean-600 text-cyan-300 md:inline-flex xl:hidden"
                 :aria-label="t('nav.toggleSidebar')"
                 :aria-expanded="!sidebarCollapsed"
                 data-testid="sidebar-toggle"
@@ -192,14 +226,14 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
 
         <div
             v-if="drawerOpen"
-            class="fixed inset-0 top-14 z-20 bg-bg/70 md:hidden"
+            class="fixed inset-0 top-14 z-20 bg-abyss-950/70 md:hidden"
             data-testid="drawer-backdrop"
             @click="drawerOpen = false"
         ></div>
 
         <aside
             v-if="!isHudRoute || isMobile"
-            class="hud-glass fixed flex-col gap-4 overflow-y-auto border-line p-4"
+            class="glass fixed flex-col gap-4 overflow-y-auto p-4"
             :class="sidebarClasses"
             :aria-label="t('layout.sidebar')"
             :data-sheet="isSheet ? (sheetExpanded ? 'expanded' : 'half') : undefined"
@@ -225,22 +259,60 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
 
         <div class="flex min-h-dvh min-w-0 flex-col pt-14" :class="offsetClasses">
             <div
-                v-if="sendingDisabled"
-                class="sticky top-14 z-20 border-b border-danger/60 bg-danger/15 px-4 py-2 text-center text-xs text-danger"
-                role="alert"
-                data-testid="disconnected-banner"
+                v-if="sendingDisabled || limits.costLimitMessage !== null || voiceUnavailableReason !== null"
+                class="sticky top-14 z-20 flex flex-col gap-2 px-3 pt-3 sm:px-5"
+                data-testid="edge-states"
             >
-                {{ t('layout.disconnectedBanner') }}
-                <span v-if="connection.nextRetryDelayMs !== null" class="ml-2 text-muted">
-                    {{ t('layout.reconnecting', { seconds: Math.ceil(connection.nextRetryDelayMs / 1000) }) }}
-                </span>
+                <!-- Offline (RF-10): sending stays disabled; nothing is queued. -->
+                <div v-if="sendingDisabled" data-testid="disconnected-banner">
+                    <EdgeState tone="offline" :title="t('edge.offline.title')" :text="t('edge.offline.text')">
+                        <p
+                            v-if="reconnectSeconds !== null"
+                            class="font-mono text-xs text-text-400"
+                            data-testid="edge-offline-reconnecting"
+                        >
+                            {{ t('edge.offline.reconnecting', { seconds: reconnectSeconds }) }}
+                        </p>
+                    </EdgeState>
+                </div>
+
+                <!-- Monthly cost limit (RF-09): the server message verbatim; navigation and the composer keep working. -->
+                <div v-if="limits.costLimitMessage !== null" data-testid="cost-limit-edge">
+                    <EdgeState
+                        tone="cost-limit"
+                        :title="t('edge.costLimit.title')"
+                        :text="limits.costLimitMessage === '' ? undefined : limits.costLimitMessage"
+                    >
+                        <template #actions>
+                            <HudButton variant="ghost" data-testid="cost-limit-dismiss" @click="limits.clearCostLimit()">
+                                {{ t('common.close') }}
+                            </HudButton>
+                        </template>
+                    </EdgeState>
+                </div>
+
+                <!-- Voice unavailable (UI-22): text chat keeps working. -->
+                <div v-if="voiceUnavailableReason !== null" :data-reason="voiceUnavailableReason" data-testid="voice-unavailable-edge">
+                    <EdgeState
+                        tone="voice"
+                        :title="t('edge.voiceUnavailable.title')"
+                        :text="t(`edge.voiceUnavailable.reasons.${voiceUnavailableReason}`)"
+                    >
+                        <p class="text-xs text-text-400">{{ t('edge.voiceUnavailable.textChat') }}</p>
+                        <template v-if="voiceUnavailableReason === 'mic_denied'" #actions>
+                            <HudButton data-testid="voice-allow-microphone" @click="emit('allowMicrophone')">
+                                {{ t('edge.voiceUnavailable.allowMicrophone') }}
+                            </HudButton>
+                        </template>
+                    </EdgeState>
+                </div>
             </div>
             <slot name="banner" />
 
             <!-- Mobile: the core moves out of the hidden side panel into a compact strip on top. -->
             <div
                 v-if="isMobile && !isHudRoute"
-                class="flex items-center justify-center border-b border-line/60 py-1"
+                class="flex items-center justify-center border-b border-ocean-600/40 py-1"
                 data-testid="mobile-core"
             >
                 <div class="w-24">
@@ -279,10 +351,10 @@ function onCommand(payload: { type: 'new' | 'remember' | 'tasks' | 'memories' })
             data-testid="layout-footer"
         >
             <!-- Live captions sit right above the text input (UI-07). -->
-            <CaptionsBar class="hud-glass border-t border-line" />
+            <CaptionsBar class="glass border-x-0 border-b-0" />
 
             <fieldset
-                class="hud-glass min-w-0 border-t border-line px-3 py-3 disabled:opacity-60 sm:px-5"
+                class="glass min-w-0 border-x-0 border-b-0 px-3 py-3 disabled:opacity-60 sm:px-5"
                 :disabled="sendingDisabled"
                 data-testid="layout-footer-controls"
             >

@@ -136,8 +136,8 @@ describe('HudLayout', () => {
     });
 });
 
-describe('HudLayout connection banner', () => {
-    it('shows a banner and disables sending while disconnected', async () => {
+describe('HudLayout connection edge state', () => {
+    it('shows the offline edge state and disables sending while disconnected', async () => {
         const { useConnectionStore } = await import('@/stores/connection');
         const wrapper = await mountLayout({ footer: '<input id="composer" />' });
         const connection = useConnectionStore();
@@ -148,13 +148,22 @@ describe('HudLayout connection banner', () => {
         connection.state = 'disconnected';
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.get('[data-testid="disconnected-banner"]').text()).toContain('Sem conexão');
+        const offline = wrapper.get('[data-testid="disconnected-banner"] [data-testid="edge-state"]');
+        expect(offline.attributes('data-tone')).toBe('offline');
+        expect(offline.text()).toContain('Sem conexão');
         expect(wrapper.get('[data-testid="layout-footer-controls"]').attributes('disabled')).toBeDefined();
         expect(wrapper.get('[data-testid="bottom-nav-microphone"]').attributes('disabled')).toBeDefined();
 
         connection.state = 'connected';
         await wrapper.vm.$nextTick();
         expect(wrapper.find('[data-testid="disconnected-banner"]').exists()).toBe(false);
+    });
+
+    it('paints the abyss background with a glass header', async () => {
+        const wrapper = await mountLayout();
+
+        expect(wrapper.get('[data-testid="hud-layout"]').classes()).toContain('abyss-bg');
+        expect(wrapper.get('[data-testid="layout-header"]').classes()).toContain('glass');
     });
 });
 

@@ -55,21 +55,22 @@ async function discard(hypothesis: MemoryHypothesis): Promise<void> {
 <template>
     <div
         v-if="(message.hypotheses ?? []).length > 0"
-        class="flex min-w-0 flex-col gap-2 rounded-sm border border-purple/40 bg-purple/5 p-2"
+        class="glass chamfer-md flex min-w-0 flex-col gap-2 border-dashed border-amber-400/50 p-3"
         data-testid="memory-hypotheses-card"
     >
-        <p class="hud-label text-[0.65rem] text-purple" data-testid="memory-hypotheses-title">
+        <p class="label-caps text-[0.65rem] text-amber-400" data-testid="memory-hypotheses-title">
             {{ t('memoryCard.title') }}
         </p>
 
-        <ul class="flex min-w-0 flex-col gap-2">
+        <ul class="stagger-children flex min-w-0 flex-col gap-2">
             <li
-                v-for="hypothesis in message.hypotheses ?? []"
+                v-for="(hypothesis, index) in message.hypotheses ?? []"
                 :key="hypothesis.id"
-                class="flex min-w-0 flex-col gap-1.5 border-b border-line/50 pb-2 last:border-none last:pb-0"
+                class="flex min-w-0 flex-col gap-1.5 border-b border-ocean-600/40 pb-2 last:border-none last:pb-0"
+                :style="{ '--i': index }"
                 data-testid="memory-hypothesis"
             >
-                <p class="min-w-0 whitespace-pre-wrap break-words font-mono text-xs text-text">
+                <p class="min-w-0 whitespace-pre-wrap break-words text-sm text-text-100">
                     {{ hypothesis.content }}
                 </p>
 

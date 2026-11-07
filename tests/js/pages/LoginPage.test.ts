@@ -1,11 +1,13 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { createMemoryHistory } from 'vue-router';
+import App from '@/App.vue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetCsrfCookie } from '@/lib/http';
 import LoginPage from '@/pages/LoginPage.vue';
 import { createAppRouter } from '@/router';
 import { useAuthStore } from '@/stores/auth';
 import { makeUser, mockFetch, type MockRoutes } from '../helpers/fetch';
+import { mockViewport } from '../helpers/matchMedia';
 
 async function mountLogin(routes: MockRoutes, path = '/login') {
     const fetch = mockFetch({
@@ -19,6 +21,18 @@ async function mountLogin(routes: MockRoutes, path = '/login') {
     const wrapper = mount(LoginPage, { global: { plugins: [router] } });
 
     return { wrapper, router, ...fetch };
+}
+
+/** Boot requests never answer, so the boot stays on screen while the test inspects it. */
+function hangBootRequests(): void {
+    const fetchMock = vi.mocked(fetch);
+    const original = fetchMock.getMockImplementation()!;
+
+    fetchMock.mockImplementation((input, init) =>
+        /\/api\/v1\/(memories|agents|connectors|preferences)/.test(String(input))
+            ? new Promise<Response>(() => undefined)
+            : original(input, init),
+    );
 }
 
 async function fillAndSubmit(wrapper: Awaited<ReturnType<typeof mountLogin>>['wrapper']) {
@@ -40,8 +54,25 @@ describe('LoginPage', () => {
         expect(wrapper.get('#login-email').attributes('type')).toBe('email');
         expect(wrapper.get('#login-password').attributes('type')).toBe('password');
         expect(wrapper.get('button[type="submit"]').text()).toBe('Entrar');
-        expect(wrapper.html().toLowerCase()).not.toMatch(/regist|cadastr|sign ?up/);
+        // The only mention of registration is the notice that there is none (UI-14).
+        const notice = wrapper.get('[data-testid="login-no-registration"]').text();
+        expect(notice).toBe('Sem auto-registro. O acesso é concedido pelo administrador do sistema.');
+        expect(wrapper.text().replace(notice, '').toLowerCase()).not.toMatch(/regist|cadastr|sign ?up/);
         expect(wrapper.findAll('a')).toHaveLength(0);
+    });
+
+    it('renders the Abissal login: sleeping core, logo, tagline and the restricted access card (UI-14)', async () => {
+        const { wrapper } = await mountLogin({});
+
+        expect(wrapper.get('[data-testid="login-page"]').classes()).toContain('abyss-bg');
+        expect(wrapper.get('[data-testid="jarvis-core"]').attributes('data-frame')).toBe('SLEEPING');
+        expect(wrapper.text()).toContain('J.A.R.V.I.S');
+        expect(wrapper.text()).toContain('Personal AI Operating System');
+        expect(wrapper.get('[data-testid="login-title"]').text()).toBe('Acesso restrito · Identifique-se');
+        expect(wrapper.get('[data-testid="login-form"]').classes()).toEqual(expect.arrayContaining(['glass', 'chamfer-md']));
+        expect(wrapper.get('#login-email').classes()).toContain('min-h-11');
+        expect(wrapper.get('#login-password').classes()).toContain('min-h-11');
+        expect(wrapper.find('[data-testid="boot-sequence"]').exists()).toBe(false);
     });
 
     it('logs in and redirects to the HUD', async () => {
@@ -83,6 +114,8 @@ describe('LoginPage', () => {
 
         expect(wrapper.text()).toContain('Credenciais inválidas.');
         expect(wrapper.get('#login-email').attributes('aria-invalid')).toBe('true');
+        expect(wrapper.get('[data-testid="login-error"]').text()).toBe('Credenciais não reconhecidas. Tente de novo.');
+        expect(wrapper.find('[data-testid="boot-sequence"]').exists()).toBe(false);
         expect(router.currentRoute.value.name).toBe('login');
     });
 
@@ -118,6 +151,118 @@ describe('LoginPage', () => {
         await fillAndSubmit(wrapper);
 
         expect(wrapper.get('[data-testid="login-error"]').text()).toBe('Sua conta está desativada.');
+    });
+
+    it('runs the boot after login and navigates only once the four items settled', async () => {
+        mockViewport(1280);
+        let releaseMemories: (() => void) | null = null;
+        const { wrapper, router } = await mountLogin({
+            'POST /api/v1/auth/login': { body: { data: makeUser() } },
+            'GET /api/v1/agents': { status: 500, body: { message: 'Server Error' } },
+            'GET /api/v1/connectors': { body: { data: [] } },
+            'GET /api/v1/preferences': { body: { data: { wake_word_enabled: true } } },
+        });
+        const fetchMock = vi.mocked(fetch);
+        const original = fetchMock.getMockImplementation()!;
+        fetchMock.mockImplementation((input, init) => {
+            if (input === '/api/v1/memories?page=1') {
+                return new Promise((resolve) => {
+                    releaseMemories = () =>
+                        resolve(new Response(JSON.stringify({ summary: { confirmed: 4, hypotheses: 1 } }), { status: 200 }));
+                });
+            }
+
+            return original(input, init);
+        });
+
+        await fillAndSubmit(wrapper);
+
+        const boot = wrapper.get('[data-testid="boot-sequence"]');
+        expect(boot.text()).toContain('INICIALIZANDO SISTEMAS…');
+        expect(boot.get('[data-testid="boot-item-agents"]').attributes('data-status')).toBe('error');
+        expect(boot.get('[data-testid="boot-item-agents"] [data-testid="boot-item-value"]').classes()).toContain('text-danger-400');
+        expect(boot.get('[data-testid="boot-item-voice"]').text()).toContain('Palavra de ativação ligada');
+        expect(boot.get('[data-testid="boot-item-memory"]').attributes('data-status')).toBe('pending');
+        expect(router.currentRoute.value.name).toBe('login');
+
+        releaseMemories!();
+        await flushPromises();
+
+        expect(wrapper.get('[data-testid="boot-item-memory"]').text()).toContain('4 confirmadas · 1 hipóteses');
+        await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('hud'));
+    });
+
+    it('navigates without waiting when a boot request hangs past 5 s', async () => {
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        const { wrapper, router } = await mountLogin({
+            'POST /api/v1/auth/login': { body: { data: makeUser() } },
+            'GET /api/v1/memories?page=1': { body: { summary: { confirmed: 0, hypotheses: 0 } } },
+            'GET /api/v1/agents': { body: { data: [] } },
+            'GET /api/v1/preferences': { body: { data: { wake_word_enabled: false } } },
+        });
+        const fetchMock = vi.mocked(fetch);
+        const original = fetchMock.getMockImplementation()!;
+        fetchMock.mockImplementation((input, init) =>
+            input === '/api/v1/connectors' ? new Promise<Response>(() => undefined) : original(input, init),
+        );
+
+        await fillAndSubmit(wrapper);
+        expect(wrapper.get('[data-testid="boot-item-connectors"]').attributes('data-status')).toBe('pending');
+        expect(router.currentRoute.value.name).toBe('login');
+
+        vi.advanceTimersByTime(5000);
+        await flushPromises();
+
+        expect(wrapper.get('[data-testid="boot-item-connectors"]').attributes('data-status')).toBe('error');
+        await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('hud'));
+        vi.useRealTimers();
+    });
+
+    it('animates the boot (rings, nucleus, sinking card) and drops it under reduced motion', async () => {
+        mockViewport(1280);
+        const animated = await mountLogin({ 'POST /api/v1/auth/login': { body: { data: makeUser() } } });
+        hangBootRequests();
+
+        await fillAndSubmit(animated.wrapper);
+
+        const rings = animated.wrapper.findAll('[data-testid="boot-ring"]');
+        expect(rings).toHaveLength(3);
+        expect(rings.map((ring) => ring.attributes('style'))).toEqual([
+            expect.stringContaining('boot-ignite 500ms'),
+            expect.stringContaining('boot-ignite 500ms'),
+            expect.stringContaining('boot-ignite 500ms'),
+        ]);
+        expect(rings[2]!.attributes('style')).toContain('1100ms');
+        expect(animated.wrapper.get('[data-testid="boot-nucleus"]').attributes('style')).toContain('boot-wake 800ms');
+        expect(animated.wrapper.get('[data-testid="login-form"]').attributes('style')).toContain('boot-sink');
+        animated.wrapper.unmount();
+
+        mockViewport(1280, { reducedMotion: true });
+        const reduced = await mountLogin({ 'POST /api/v1/auth/login': { body: { data: makeUser() } } });
+        hangBootRequests();
+
+        await fillAndSubmit(reduced.wrapper);
+
+        const boot = reduced.wrapper.get('[data-testid="boot-sequence"]');
+        expect(boot.attributes('data-motion')).toBe('reduced');
+        expect(boot.html()).not.toMatch(/boot-(ignite|wake|sink)|--animated/);
+        expect(reduced.wrapper.find('[data-testid="login-form"]').exists()).toBe(false);
+    });
+
+    it('never shows the boot when the session is restored through /auth/me', async () => {
+        const { calls } = mockFetch({ 'GET /api/v1/auth/me': { body: { data: makeUser() } } });
+        const router = createAppRouter(createMemoryHistory());
+        await router.push('/');
+        await router.isReady();
+
+        const wrapper = mount(App, { global: { plugins: [router] }, attachTo: document.body });
+        await flushPromises();
+
+        expect(router.currentRoute.value.name).toBe('hud');
+        expect(wrapper.find('[data-testid="boot-sequence"]').exists()).toBe(false);
+        expect(calls.some((call) => call.url === '/api/v1/agents')).toBe(false);
+
+        wrapper.unmount();
     });
 
     it('redirects an already authenticated user away from /login', async () => {

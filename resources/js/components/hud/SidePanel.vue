@@ -50,9 +50,9 @@ onMounted(() => {
 });
 
 const toolTone = {
-    active: 'bg-cyan',
-    error: 'bg-danger',
-    idle: 'bg-muted',
+    active: 'bg-cyan-300',
+    error: 'bg-danger-400',
+    idle: 'bg-text-400',
 } as const;
 
 function formatTimestamp(timestamp: string): string {
@@ -101,7 +101,7 @@ function formatDuration(durationMs: number): string {
             <div class="mt-2 flex items-center justify-center gap-2" data-testid="panel-core-activity">
                 <span
                     class="size-1.5 rounded-full"
-                    :class="assistant.state === 'IDLE' ? 'animate-hud-pulse bg-cyan' : 'bg-cyan-bright'"
+                    :class="assistant.state === 'IDLE' ? 'animate-hud-pulse bg-cyan-300' : 'bg-biolum-200'"
                     :aria-label="t('panel.activity')"
                 ></span>
                 <StatusBadge :status="assistant.state" />
@@ -110,16 +110,17 @@ function formatDuration(durationMs: number): string {
 
         <HudPanel v-if="showAgents" :title="t('panel.agents')">
             <EmptyState v-if="agents.agents.length === 0" :message="t('empty.agents')" />
-            <ul v-else class="flex min-w-0 flex-col gap-2">
+            <ul v-else class="stagger-children flex min-w-0 flex-col gap-2">
                 <li
-                    v-for="agent in agents.agents"
+                    v-for="(agent, index) in agents.agents"
                     :key="agent.execution_id"
-                    class="flex flex-col gap-1 border-b border-line/50 pb-2 last:border-none"
+                    class="flex flex-col gap-1 border-b border-ocean-600/40 pb-2 last:border-none"
+                    :style="{ '--i': index }"
                     data-testid="panel-agent"
                 >
                     <div class="flex items-center gap-2">
-                        <span class="hud-label min-w-0 flex-1 truncate text-[0.65rem] text-text">{{ agent.agent }}</span>
-                        <span v-if="agent.depth > 0" class="hud-label shrink-0 text-[0.55rem] text-muted" data-testid="panel-agent-depth">
+                        <span class="label-caps min-w-0 flex-1 truncate text-[0.65rem] text-text-100">{{ agent.agent }}</span>
+                        <span v-if="agent.depth > 0" class="label-caps shrink-0 text-[0.55rem] text-text-400" data-testid="panel-agent-depth">
                             {{ t('panel.depth', { depth: agent.depth }) }}
                         </span>
                         <StatusBadge :status="agent.status" />
@@ -127,7 +128,7 @@ function formatDuration(durationMs: number): string {
                     </div>
                     <span
                         v-if="agent.progress_note"
-                        class="hud-label min-w-0 truncate text-[0.55rem] text-cyan/90"
+                        class="label-caps min-w-0 truncate text-[0.55rem] text-cyan-300/90"
                         data-testid="panel-agent-note"
                     >
                         {{ agent.progress_note }}
@@ -138,11 +139,12 @@ function formatDuration(durationMs: number): string {
 
         <HudPanel v-if="showTasks" :title="t('panel.tasks')">
             <EmptyState v-if="tasks.tasks.length === 0" :message="t('empty.tasks')" />
-            <ul v-else class="flex min-w-0 flex-col gap-3">
+            <ul v-else class="stagger-children flex min-w-0 flex-col gap-3">
                 <li
-                    v-for="task in tasks.tasks"
+                    v-for="(task, index) in tasks.tasks"
                     :key="task.id"
-                    class="flex min-w-0 flex-col gap-1.5 border-b border-line/50 pb-3 last:border-none"
+                    class="flex min-w-0 flex-col gap-1.5 border-b border-ocean-600/40 pb-3 last:border-none"
+                    :style="{ '--i': index }"
                     data-testid="panel-task"
                 >
                     <button
@@ -152,14 +154,14 @@ function formatDuration(durationMs: number): string {
                         @click="tasks.openDetail(task.id)"
                     >
                         <div class="flex items-center justify-between gap-2">
-                            <span class="hud-label min-w-0 flex-1 truncate text-[0.65rem] text-text">{{ task.title }}</span>
+                            <span class="label-caps min-w-0 flex-1 truncate text-[0.65rem] text-text-100">{{ task.title }}</span>
                             <StatusBadge :status="task.status" />
                         </div>
                         <div class="flex items-center justify-between gap-2">
-                            <span v-if="task.agent" class="hud-label min-w-0 truncate text-[0.55rem] text-muted">
+                            <span v-if="task.agent" class="label-caps min-w-0 truncate text-[0.55rem] text-text-400">
                                 {{ task.agent.name }}
                             </span>
-                            <span class="hud-label ml-auto shrink-0 truncate text-[0.55rem] text-cyan/90">
+                            <span class="label-caps ml-auto shrink-0 truncate text-[0.55rem] text-cyan-300/90">
                                 {{ task.current_step?.name ?? '' }}
                             </span>
                         </div>
@@ -178,10 +180,10 @@ function formatDuration(durationMs: number): string {
                     class="flex items-center gap-2"
                     data-testid="panel-llm-provider"
                 >
-                    <span class="size-1.5 shrink-0 rounded-full bg-cyan"></span>
-                    <span class="hud-label min-w-0 flex-1 truncate text-[0.65rem] text-text">{{ provider.name }}</span>
-                    <span class="hud-label text-[0.55rem] text-muted">{{ t('panel.llmConnected') }}</span>
-                    <span class="font-mono text-[0.6rem] text-cyan-bright">{{ provider.count }}</span>
+                    <span class="size-1.5 shrink-0 rounded-full bg-cyan-300"></span>
+                    <span class="label-caps min-w-0 flex-1 truncate text-[0.65rem] text-text-100">{{ provider.name }}</span>
+                    <span class="label-caps text-[0.55rem] text-text-400">{{ t('panel.llmConnected') }}</span>
+                    <span class="font-mono text-[0.6rem] text-biolum-200">{{ provider.count }}</span>
                 </li>
             </ul>
         </HudPanel>
@@ -189,16 +191,16 @@ function formatDuration(durationMs: number): string {
         <HudPanel v-if="expandedSection === null" :title="t('panel.memoryInsights')" data-testid="panel-memory-insights">
             <div class="flex min-w-0 flex-col gap-1.5">
                 <div class="flex items-center justify-between gap-2" data-testid="panel-memory-confirmed">
-                    <span class="hud-label min-w-0 flex-1 truncate text-[0.65rem] text-text">{{ t('panel.memoriesConfirmed') }}</span>
-                    <span class="font-mono text-[0.6rem] text-cyan-bright">{{ memories.summary.confirmed }}</span>
+                    <span class="label-caps min-w-0 flex-1 truncate text-[0.65rem] text-text-100">{{ t('panel.memoriesConfirmed') }}</span>
+                    <span class="font-mono text-[0.6rem] text-biolum-200">{{ memories.summary.confirmed }}</span>
                 </div>
                 <div class="flex items-center justify-between gap-2" data-testid="panel-memory-hypotheses">
-                    <span class="hud-label min-w-0 flex-1 truncate text-[0.65rem] text-text">{{ t('panel.memoriesHypotheses') }}</span>
-                    <span class="font-mono text-[0.6rem] text-amber">{{ memories.summary.hypotheses }}</span>
+                    <span class="label-caps min-w-0 flex-1 truncate text-[0.65rem] text-text-100">{{ t('panel.memoriesHypotheses') }}</span>
+                    <span class="font-mono text-[0.6rem] text-amber-400">{{ memories.summary.hypotheses }}</span>
                 </div>
                 <RouterLink
                     :to="{ name: 'memories' }"
-                    class="hud-label mt-1 rounded-sm border border-line px-2 py-1 text-center text-[0.6rem] text-cyan-bright hover:border-cyan"
+                    class="label-caps chamfer-sm corner-light mt-1 flex min-h-11 items-center justify-center border border-ocean-600 px-2 py-1 text-center text-[0.6rem] text-biolum-200 hover:border-cyan-300"
                     data-testid="panel-memory-link"
                 >
                     {{ t('panel.openMemories') }}
@@ -220,14 +222,14 @@ function formatDuration(durationMs: number): string {
                     <li
                         v-for="entry in agents.history"
                         :key="entry.execution_id"
-                        class="flex items-center gap-2 border-b border-line/50 pb-1.5 last:border-none"
+                        class="flex items-center gap-2 border-b border-ocean-600/40 pb-1.5 last:border-none"
                         data-testid="panel-agent-history-entry"
                     >
-                        <span class="hud-label min-w-0 flex-1 truncate text-[0.65rem] text-text">{{ entry.agent }}</span>
-                        <span v-if="entry.depth > 0" class="hud-label shrink-0 text-[0.55rem] text-muted">
+                        <span class="label-caps min-w-0 flex-1 truncate text-[0.65rem] text-text-100">{{ entry.agent }}</span>
+                        <span v-if="entry.depth > 0" class="label-caps shrink-0 text-[0.55rem] text-text-400">
                             {{ t('panel.depth', { depth: entry.depth }) }}
                         </span>
-                        <span class="hud-label shrink-0 text-[0.55rem] text-muted">{{ formatDuration(entry.duration_ms) }}</span>
+                        <span class="label-caps shrink-0 text-[0.55rem] text-text-400">{{ formatDuration(entry.duration_ms) }}</span>
                         <StatusBadge :status="entry.status" />
                     </li>
                 </ul>
@@ -242,8 +244,8 @@ function formatDuration(durationMs: number): string {
                         class="flex min-w-0 gap-2"
                         data-testid="panel-activity-entry"
                     >
-                        <span class="shrink-0 text-muted">{{ formatTimestamp(entry.timestamp) }}</span>
-                        <span class="min-w-0 truncate text-cyan/90">{{ entry.text }}</span>
+                        <span class="shrink-0 text-text-400">{{ formatTimestamp(entry.timestamp) }}</span>
+                        <span class="min-w-0 truncate text-cyan-300/90">{{ entry.text }}</span>
                     </li>
                 </ol>
             </template>
@@ -259,8 +261,8 @@ function formatDuration(durationMs: number): string {
                     data-testid="panel-tool"
                 >
                     <span class="size-1.5 shrink-0 rounded-full" :class="toolTone[tool.status]"></span>
-                    <span class="hud-label min-w-0 flex-1 truncate text-[0.65rem] text-text">{{ tool.name }}</span>
-                    <span class="hud-label text-[0.55rem] text-muted">{{ t(`toolStatus.${tool.status}`) }}</span>
+                    <span class="label-caps min-w-0 flex-1 truncate text-[0.65rem] text-text-100">{{ tool.name }}</span>
+                    <span class="label-caps text-[0.55rem] text-text-400">{{ t(`toolStatus.${tool.status}`) }}</span>
                 </li>
             </ul>
         </HudPanel>

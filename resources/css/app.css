@@ -84,6 +84,7 @@
     --animate-hud-pulse: hud-pulse 2.4s ease-in-out infinite;
     --animate-hud-spin: hud-spin 18s linear infinite;
     --animate-abyss-caustics: abyss-caustics 32s ease-in-out infinite alternate;
+    --animate-stagger-in: stagger-in var(--dur-base) var(--ease-fly) backwards;
 
     @keyframes hud-pulse {
         0%,
@@ -101,6 +102,14 @@
         }
     }
 
+    /* List items emerging from below, one after another (UI-24). */
+    @keyframes stagger-in {
+        from {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+    }
+
     /* Slow drift of the light caustics: transform only (RNF-07). */
     @keyframes abyss-caustics {
         0% {
@@ -112,6 +121,37 @@
         100% {
             transform: translate3d(-2%, 2%, 0) scale(1.02);
         }
+    }
+}
+
+/* Boot (UI-14): rings ignite from white, the nucleus wakes up, the login card sinks. */
+@keyframes boot-ignite {
+    from {
+        opacity: 0;
+        stroke: #fff;
+    }
+}
+
+@keyframes boot-wake {
+    0% {
+        opacity: 0.3;
+        transform: scale(0.85);
+    }
+    60% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes boot-sink {
+    to {
+        opacity: 0;
+        transform: scale(0.98);
+        filter: blur(6px);
     }
 }
 
@@ -260,6 +300,23 @@
 
     @media (prefers-reduced-motion: reduce) {
         &::before {
+            animation: none;
+        }
+    }
+}
+
+/*
+| List cascade (UI-24): each child enters `--stagger` (40 ms) after the previous
+| one; children set their position through `--i`. Off under reduced motion.
+*/
+@utility stagger-children {
+    & > * {
+        animation: var(--animate-stagger-in);
+        animation-delay: calc(var(--i, 0) * var(--stagger));
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        & > * {
             animation: none;
         }
     }

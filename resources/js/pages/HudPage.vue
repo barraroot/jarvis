@@ -31,13 +31,16 @@ onMounted(() => {
 </script>
 
 <template>
-    <section
-        v-if="pendingApprovals.length > 0"
-        class="mx-auto mb-4 flex w-full max-w-2xl flex-col gap-3"
-        :aria-label="t('approval.title')"
-        data-testid="hud-approvals"
-    >
-        <ApprovalCard v-for="approval in pendingApprovals" :key="approval.id" :approval="approval" />
-    </section>
-    <ConversationView :show-core="false" />
+    <!-- Single root: the route transition (UI-24) animates one element. -->
+    <div class="min-w-0" data-testid="hud-page">
+        <section
+            v-if="pendingApprovals.length > 0"
+            class="mx-auto mb-4 flex w-full max-w-2xl flex-col gap-3"
+            :aria-label="t('approval.title')"
+            data-testid="hud-approvals"
+        >
+            <ApprovalCard v-for="approval in pendingApprovals" :key="approval.id" :approval="approval" />
+        </section>
+        <ConversationView :show-core="false" />
+    </div>
 </template>

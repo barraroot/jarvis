@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { translate } from '@/i18n';
 import { API_PREFIX, HttpError, http } from '@/lib/http';
 import { splitWords } from '@/lib/voice/captions';
+import { useLimitsStore } from '@/stores/limits';
 import { useTasksStore } from '@/stores/tasks';
 import { useToastStore } from '@/stores/toast';
 import type { RealtimeUsage, TaskStatus, TaskSummary, VoiceSessionGrant, VoiceTurn, VoiceUsageTotals } from '@/types/models';
@@ -161,6 +162,7 @@ export const useVoiceStore = defineStore('voice', () => {
 
         switch (error.status) {
             case 402:
+                useLimitsStore().reportCostLimit(error.serverMessage);
                 toasts.push(messageFor(error, 'voice.errors.costLimit'), { variant: 'warning' });
                 break;
             case 409:
@@ -313,6 +315,7 @@ export const useVoiceStore = defineStore('voice', () => {
             if (error instanceof HttpError && (error.status === 404 || error.status === 422)) {
                 toasts.push(messageFor(error, 'voice.errors.sessionInactive'), { variant: 'warning' });
             } else if (error instanceof HttpError && error.status === 402) {
+                useLimitsStore().reportCostLimit(error.serverMessage);
                 toasts.push(messageFor(error, 'voice.errors.costLimit'), { variant: 'warning' });
             } else if (!(error instanceof HttpError && error.status === 429)) {
                 toasts.push(translate('voice.errors.taskFailed'), { variant: 'danger' });
