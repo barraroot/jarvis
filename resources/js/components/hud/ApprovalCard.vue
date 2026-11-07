@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import HudButton from '@/components/ui/HudButton.vue';
 import HudTextarea from '@/components/ui/HudTextarea.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import { useReducedMotion } from '@/composables/useReducedMotion';
 import { useApprovalsStore } from '@/stores/approvals';
 import { useToastStore } from '@/stores/toast';
 import type { ApprovalSummary } from '@/types/models';
@@ -15,6 +16,7 @@ const props = defineProps<{
 const { t, locale } = useI18n();
 const approvals = useApprovalsStore();
 const toasts = useToastStore();
+const reducedMotion = useReducedMotion();
 
 const pendingAction = ref<'approve' | 'deny' | null>(null);
 const denyReason = ref('');
@@ -25,19 +27,20 @@ const resolved = computed(() => approvals.items.find((item) => item.id === props
 
 const decision = computed(() => (resolved.value.status === 'pending' ? null : resolved.value));
 
+/** Effect chips come only from the `effect` flags (UI-13, RF-04): no risk level is invented. */
 const effects = computed(() => {
     const badges: string[] = [];
 
     if (resolved.value.effect.is_write) {
-        badges.push(t('approval.effectWrite'));
+        badges.push(t('approvals.effects.write'));
     }
 
     if (resolved.value.effect.is_sensitive) {
-        badges.push(t('approval.effectSensitive'));
+        badges.push(t('approvals.effects.sensitive'));
     }
 
     if (resolved.value.effect.external) {
-        badges.push(t('approval.effectExternal'));
+        badges.push(t('approvals.effects.external'));
     }
 
     return badges;
@@ -137,45 +140,52 @@ function formatDate(timestamp: string): string {
 
 <template>
     <div
-        class="flex min-w-0 flex-col gap-2 rounded-sm border border-amber/50 bg-amber/5 p-2"
+        class="approval-card chamfer-md flex min-w-0 flex-col gap-2.5 border border-amber-400/70 bg-abyss-900/80 p-3 backdrop-blur-[18px]"
+        :class="{ 'approval-card--pulse': decision === null && !reducedMotion }"
         data-testid="approval-card"
     >
         <div class="flex items-center justify-between gap-2" data-testid="approval-header">
-            <p class="hud-label min-w-0 truncate text-[0.65rem] text-amber" data-testid="approval-title">
+            <p class="label-caps min-w-0 truncate text-label text-amber-400" data-testid="approval-title">
                 {{ t('approval.title') }} — {{ resolved.tool.name }}
             </p>
             <StatusBadge v-if="decision !== null" :status="decision.status" data-testid="approval-status" />
         </div>
 
-        <div class="flex min-w-0 flex-wrap items-center gap-1.5" data-testid="approval-effects">
+        <p class="label-caps text-[0.7rem] text-text-100" data-testid="approval-agent">
+            {{ agentLabel }}
+        </p>
+
+        <div class="flex min-w-0 flex-col gap-0.5">
+            <p class="text-[0.95rem] font-medium text-text-100" data-testid="approval-tool">{{ resolved.tool.name }}</p>
+            <p v-if="resolved.tool.description" class="text-body text-text-400" data-testid="approval-description">
+                {{ resolved.tool.description }}
+            </p>
+            <p class="font-mono text-[0.65rem] text-text-400" data-testid="approval-identifier">
+                {{ resolved.tool.identifier }}
+            </p>
+        </div>
+
+        <div v-if="effects.length > 0" class="flex min-w-0 flex-wrap items-center gap-1.5" data-testid="approval-effects">
             <span
                 v-for="effect in effects"
                 :key="effect"
-                class="hud-label rounded-sm border border-line px-1.5 py-0.5 font-mono text-[0.55rem] text-text"
+                class="label-caps chamfer-sm border border-amber-400/60 bg-amber-400/10 px-2 py-0.5 text-[0.65rem] text-amber-400"
                 data-testid="approval-effect"
             >
                 {{ effect }}
             </span>
         </div>
 
-        <p class="font-mono text-[0.6rem] text-muted" data-testid="approval-identifier">
-            {{ resolved.tool.identifier }}
-        </p>
-
-        <p class="hud-label text-[0.6rem] text-text" data-testid="approval-agent">
-            {{ agentLabel }}
-        </p>
-
         <pre
-            class="max-h-32 overflow-y-auto whitespace-pre-wrap break-words rounded-sm border border-line/60 bg-bg-navy p-2 font-mono text-[0.6rem] leading-relaxed text-cyan/90"
+            class="chamfer-sm max-h-32 overflow-y-auto whitespace-pre-wrap break-words border border-ocean-600/60 bg-abyss-950/70 p-2 font-mono text-[0.7rem] leading-relaxed text-cyan-300/90"
             data-testid="approval-params"
         >{{ paramsLabel }}</pre>
 
-        <p v-if="remainingLabel !== null" class="font-mono text-[0.6rem] text-amber" data-testid="approval-countdown">
+        <p v-if="remainingLabel !== null" class="font-mono text-[0.7rem] text-amber-400" data-testid="approval-countdown">
             {{ remainingLabel }}
         </p>
 
-        <p v-else-if="decision !== null && decision.decision_reason !== null" class="font-mono text-[0.6rem] text-muted" data-testid="approval-reason">
+        <p v-else-if="decision !== null && decision.decision_reason !== null" class="font-mono text-[0.7rem] text-text-400" data-testid="approval-reason">
             {{ decision.decision_reason }}
         </p>
 
@@ -204,16 +214,54 @@ function formatDate(timestamp: string): string {
             </div>
 
             <div v-else class="flex flex-wrap items-center gap-2">
-                <HudButton :disabled="pendingAction !== null || remainingMs === 0" data-testid="approval-approve" @click="approve">
-                    {{ t('approval.approve') }}
+                <HudButton
+                    variant="primary"
+                    :disabled="pendingAction !== null || remainingMs === 0"
+                    data-testid="approval-approve"
+                    @click="approve"
+                >
+                    {{ t('approvals.approve') }}
                 </HudButton>
-                <HudButton variant="danger" :disabled="pendingAction !== null || remainingMs === 0" data-testid="approval-deny" @click="askingReason = true">
-                    {{ t('approval.deny') }}
+                <HudButton
+                    variant="ghost"
+                    :disabled="pendingAction !== null || remainingMs === 0"
+                    data-testid="approval-deny"
+                    @click="askingReason = true"
+                >
+                    {{ t('approvals.deny') }}
                 </HudButton>
-                <span class="font-mono text-[0.55rem] text-muted" data-testid="approval-requested-at">
+                <span class="font-mono text-[0.65rem] text-text-400" data-testid="approval-requested-at">
                     {{ formatDate(resolved.requested_at) }}
                 </span>
             </div>
         </div>
     </div>
 </template>
+
+<style scoped>
+/* Entry pulse of the amber border (UI-13): a few beats, then steady; none under reduced motion. */
+.approval-card--pulse {
+    position: relative;
+}
+
+.approval-card--pulse::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border: 1px solid var(--color-amber-400);
+    opacity: 0;
+    animation: approval-pulse 1.2s ease-in-out 3;
+}
+
+@keyframes approval-pulse {
+    0%,
+    100% {
+        opacity: 0;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+</style>

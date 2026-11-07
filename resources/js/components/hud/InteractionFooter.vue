@@ -116,7 +116,7 @@ const commands = computed(() => [
 
 <template>
     <div ref="rootRef" class="relative flex min-w-0 flex-col gap-2" data-testid="interaction-footer" @keydown="onKeydown">
-        <p v-if="connection.isDisconnected" class="hud-label text-center text-[0.6rem] text-danger" role="alert">
+        <p v-if="connection.isDisconnected" class="label-caps text-center text-label text-danger-400" role="alert">
             {{ t('footer.offline') }}
         </p>
 
@@ -164,25 +164,25 @@ const commands = computed(() => [
 
         <div class="flex min-w-0 items-center justify-between gap-2">
             <div class="flex min-w-0 items-center gap-2">
-                <span v-if="showCounter" class="font-mono text-[0.6rem]" :class="overLimit ? 'text-danger' : 'text-muted'" data-testid="footer-counter">
+                <span v-if="showCounter" class="font-mono text-[0.6rem]" :class="overLimit ? 'text-danger-400' : 'text-text-400'" data-testid="footer-counter">
                     {{ counterLabel }}
                 </span>
-                <span v-else-if="overLimit" class="hud-label text-[0.6rem] text-danger" role="alert">
+                <span v-else-if="overLimit" class="label-caps text-label text-danger-400" role="alert">
                     {{ t('footer.limitReached') }}
                 </span>
             </div>
 
-            <div class="hidden items-center gap-3 font-mono text-[0.6rem] text-muted sm:flex" data-testid="footer-shortcuts">
-                <span class="hud-label">{{ t('footer.shortcuts') }}</span>
+            <div class="hidden items-center gap-3 font-mono text-[0.65rem] text-text-400 sm:flex" data-testid="footer-shortcuts">
+                <span class="label-caps">{{ t('footer.shortcuts') }}</span>
                 <span class="flex items-center gap-1">
-                    <kbd class="rounded-sm border border-line px-1">{{ t('footer.keyCommands') }}</kbd>
+                    <kbd class="chamfer-sm border border-ocean-600 px-1.5">{{ t('footer.keyCommands') }}</kbd>
                     {{ t('footer.shortcutCommands') }}
                 </span>
             </div>
 
             <button
                 type="button"
-                class="hud-label flex min-h-11 items-center gap-1 rounded-sm border border-line px-2 py-1 text-[0.6rem] text-text hover:border-cyan hover:text-cyan-bright"
+                class="label-caps chamfer-sm flex min-h-11 min-w-11 items-center gap-1 border border-ocean-600 px-3 py-1 text-[0.65rem] text-text-100 hover:border-cyan-300 hover:text-biolum-200"
                 :aria-label="t('footer.commandsOpen')"
                 :aria-expanded="commandsOpen"
                 data-testid="footer-commands-toggle"
@@ -195,14 +195,14 @@ const commands = computed(() => [
 
         <div
             v-if="commandsOpen"
-            class="hud-glass absolute bottom-full left-0 z-40 flex w-64 max-w-full flex-col gap-1 rounded-sm border border-line p-2"
+            class="glass chamfer-md absolute bottom-full left-0 z-40 flex w-64 max-w-full flex-col gap-1 p-2"
             data-testid="footer-commands-menu"
         >
             <button
                 v-for="command in commands"
                 :key="command.key"
                 type="button"
-                class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                class="label-caps chamfer-sm flex min-h-11 items-center gap-2 px-2 py-1.5 text-left text-[0.7rem] text-text-100 hover:bg-cyan-300/10 hover:text-biolum-200"
                 :data-testid="`footer-command-${command.key}`"
                 @click="command.action"
             >

@@ -25,8 +25,16 @@ export const VISUALIZATION_SCAN_MS = 700;
 export const VISUALIZATION_TYPING_MS_PER_CHAR = 12;
 export const VISUALIZATION_TYPING_MAX_MS = 1200;
 
-/** Core move between the stage center and the top-left corner (UI-09). */
-export const HUD_STAGE_TRANSITION_MS = 600;
+/** Signature transition (UI-06): the core flies between the stage center and the top-left corner in `--dur-fly`. */
+export const HUD_STAGE_TRANSITION_MS = 700;
+/** Easings of RF-01 for the flight: X axis `--ease-fly`, Y axis `--ease-curve-y` (curved path). */
+export const HUD_STAGE_EASE_X = 'cubic-bezier(.2,.8,.2,1)';
+export const HUD_STAGE_EASE_Y = 'cubic-bezier(.6,0,.3,1)';
+/** Scan sweep that opens the sequence; the core leaves once the beam is under way (UI-06). */
+export const HUD_STAGE_SCAN_MS = 350;
+export const HUD_STAGE_CORE_DELAY_OPEN_MS = 120;
+/** On close the panels leave first and the core flies back after them (reverse order). */
+export const HUD_STAGE_CORE_DELAY_CLOSE_MS = 250;
 
 /** One-shot error flash of the JarvisCore (UI-07): ring recomposes in 900 ms; reduced motion keeps a red border for 1 s. */
 export const CORE_ERROR_FLASH_MS = 900;

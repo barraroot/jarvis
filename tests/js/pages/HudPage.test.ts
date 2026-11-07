@@ -6,7 +6,7 @@ import HudPage from '@/pages/HudPage.vue';
 import { useConversationsStore } from '@/stores/conversations';
 import { useTasksStore } from '@/stores/tasks';
 import { useVisualizationsStore } from '@/stores/visualizations';
-import type { TaskSummary, Visualization } from '@/types/models';
+import type { ApprovalSummary, TaskSummary, Visualization } from '@/types/models';
 import { mockFetch } from '../helpers/fetch';
 import { mockViewport } from '../helpers/matchMedia';
 
@@ -40,6 +40,24 @@ function makeTask(): TaskSummary {
     };
 }
 
+function makeApproval(overrides: Partial<ApprovalSummary> = {}): ApprovalSummary {
+    return {
+        id: 'a1',
+        status: 'pending',
+        tool: { identifier: 'mail.send', name: 'Enviar e-mail', description: 'Envia um e-mail em seu nome.' },
+        effect: { is_write: true, is_sensitive: false, external: true },
+        params: { to: 'ana@example.com' },
+        agent: 'Secretária',
+        requested_at: '2026-11-04T10:00:00Z',
+        expires_at: new Date(Date.now() + 3600_000).toISOString(),
+        decided_at: null,
+        decision_reason: null,
+        ...overrides,
+    };
+}
+
+const NO_APPROVALS = { 'GET /api/v1/approvals?status=pending': { body: { data: [] } } };
+
 /** HudPage inside the real layout, as after a page reload on `/`. */
 async function mountHud() {
     const router = createRouter({
@@ -65,6 +83,7 @@ describe('HudPage', () => {
         const { calls } = mockFetch({
             'GET /api/v1/visualizations/current': { body: { data: makeVisualization() } },
             'GET /api/v1/tasks?active=1': { body: { data: [makeTask()] } },
+            ...NO_APPROVALS,
         });
 
         const wrapper = mount(HudPage);
@@ -78,7 +97,7 @@ describe('HudPage', () => {
     });
 
     it('closes any stale conversation and hides the duplicated greeting core', async () => {
-        mockFetch({ 'GET /api/v1/visualizations/current': { body: { data: null } } });
+        mockFetch({ 'GET /api/v1/visualizations/current': { body: { data: null } }, ...NO_APPROVALS });
         const conversations = useConversationsStore();
         conversations.activeId = 'c9';
 
@@ -98,6 +117,7 @@ describe('HudPage', () => {
         mockFetch({
             'GET /api/v1/visualizations/current': { body: { data: makeVisualization({ id: 77, title: 'Restaurada' }) } },
             'GET /api/v1/tasks?active=1': { body: { data: [] } },
+            ...NO_APPROVALS,
         });
 
         const wrapper = await mountHud();
@@ -114,12 +134,45 @@ describe('HudPage', () => {
         mockFetch({
             'GET /api/v1/visualizations/current': { body: { data: null } },
             'GET /api/v1/tasks?active=1': { body: { data: [] } },
+            ...NO_APPROVALS,
         });
 
         const wrapper = await mountHud();
 
         expect(wrapper.get('[data-testid="hud-stage"]').attributes('data-stage')).toBe('center');
         expect(wrapper.find('[data-testid="hud-stage-visualization"]').exists()).toBe(false);
+
+        wrapper.unmount();
+    });
+
+    it('shows the pending approvals on the HUD in focus mode (UI-13)', async () => {
+        mockViewport(1280);
+        const { calls } = mockFetch({
+            'GET /api/v1/visualizations/current': { body: { data: null } },
+            'GET /api/v1/tasks?active=1': { body: { data: [] } },
+            'GET /api/v1/approvals?status=pending': {
+                body: { data: [makeApproval(), makeApproval({ id: 'a2', tool: { identifier: 'cal.add', name: 'Criar evento', description: 'Cria um evento.' } })] },
+            },
+        });
+
+        const wrapper = await mountHud();
+        const section = wrapper.get('[data-testid="hud-stage-content"] [data-testid="hud-approvals"]');
+
+        expect(calls.filter((call) => call.url === '/api/v1/approvals?status=pending')).toHaveLength(1);
+        expect(section.findAll('[data-testid="approval-card"]')).toHaveLength(2);
+        expect(section.text()).toContain('Enviar e-mail');
+        expect(section.text()).toContain('Criar evento');
+
+        wrapper.unmount();
+    });
+
+    it('renders no approval section when nothing is pending', async () => {
+        mockFetch({ 'GET /api/v1/visualizations/current': { body: { data: null } }, ...NO_APPROVALS });
+
+        const wrapper = mount(HudPage);
+        await flushPromises();
+
+        expect(wrapper.find('[data-testid="hud-approvals"]').exists()).toBe(false);
 
         wrapper.unmount();
     });

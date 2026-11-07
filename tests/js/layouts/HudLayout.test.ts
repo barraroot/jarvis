@@ -184,7 +184,7 @@ describe('HudLayout — HUD stage (UI-09)', () => {
         expect(wrapper.find('[data-testid="sidebar-toggle"]').exists()).toBe(false);
         expect(wrapper.get('[data-testid="layout-footer"]').classes()).not.toContain('md:pl-80');
         expect(stage.find('[data-testid="hud-stage-core"] [data-testid="jarvis-core"]').exists()).toBe(true);
-        expect(stage.get('[data-testid="hud-stage-core"]').classes()).toContain('w-60');
+        expect(stage.find('[data-testid="hud-stage-core"] .core--full').exists()).toBe(true);
         expect(stage.find('[data-testid="hud-stage-visualization"]').exists()).toBe(false);
         expect(stage.find('[data-testid="hud-stage-agents"]').exists()).toBe(false);
         expect(stage.find('[data-testid="hud-stage-content"] #page').exists()).toBe(true);
@@ -228,11 +228,11 @@ describe('HudLayout — HUD stage (UI-09)', () => {
         expect(stage.attributes('data-stage')).toBe('center');
         expect(stage.find('[data-testid="hud-stage-visualization"]').exists()).toBe(false);
         expect(stage.find('[data-testid="hud-stage-agents"]').exists()).toBe(false);
-        expect(stage.get('[data-testid="hud-stage-core"]').classes()).toContain('w-60');
+        expect(stage.find('[data-testid="hud-stage-core"] .core--full').exists()).toBe(true);
         expect(calls.some((call) => call.method === 'POST' && call.url === '/api/v1/visualizations/3/close')).toBe(true);
     });
 
-    it('animates the panels in with the ~600 ms transition', async () => {
+    it('animates the panels in with the 700 ms signature transition (UI-06)', async () => {
         mockViewport(1280);
         const wrapper = await mountLayout({}, '/', { animate: true });
 
@@ -242,7 +242,7 @@ describe('HudLayout — HUD stage (UI-09)', () => {
         expect(wrapper.get('[data-testid="hud-stage"]').attributes('data-motion')).toBe('full');
         expect(wrapper.get('[data-testid="hud-stage-core"]').classes()).toContain('will-change-transform');
         expect(wrapper.get('[data-testid="hud-stage-visualization"]').classes()).toEqual(
-            expect.arrayContaining(['transition-all', 'duration-[600ms]']),
+            expect.arrayContaining(['transition-all', 'duration-[700ms]']),
         );
     });
 

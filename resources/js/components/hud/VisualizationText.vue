@@ -139,18 +139,31 @@ const typing = computed(() => typed.value < props.section.text.length);
 </script>
 
 <template>
-    <p class="whitespace-pre-wrap break-words text-sm text-text" :data-typing="typing" data-testid="viz-text">
+    <p class="whitespace-pre-wrap break-words text-body text-text-100" :data-typing="typing" data-testid="viz-text">
         <template v-for="(part, index) in visibleSegments" :key="index">
             <a
                 v-if="part.kind === 'link' && part.href !== null"
                 :href="part.href"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-cyan-bright underline decoration-cyan/50 underline-offset-2 hover:text-cyan"
+                class="text-biolum-200 underline decoration-cyan-300/50 underline-offset-2 hover:text-cyan-300"
                 data-testid="viz-text-link"
             >{{ part.text }}</a>
             <span v-else>{{ part.text }}</span>
         </template>
-        <span v-if="typing" class="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-cyan-bright align-middle" aria-hidden="true"></span>
+        <span v-if="typing" class="viz-caret ml-0.5 inline-block h-3 w-1.5 bg-biolum-200 align-middle" aria-hidden="true"></span>
     </p>
 </template>
+
+<style scoped>
+/* Typing caret blinks only while the text is being typed (never under reduced motion, which skips typing). */
+.viz-caret {
+    animation: viz-caret 0.9s steps(2, start) infinite;
+}
+
+@keyframes viz-caret {
+    to {
+        opacity: 0;
+    }
+}
+</style>

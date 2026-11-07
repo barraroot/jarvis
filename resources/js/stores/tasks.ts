@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { API_PREFIX, http } from '@/lib/http';
+import { API_PREFIX, HttpError, http } from '@/lib/http';
 import { useToastStore } from '@/stores/toast';
 import { translate } from '@/i18n';
 import type { TaskDetail, TaskSummary } from '@/types/models';
@@ -117,8 +117,12 @@ export const useTasksStore = defineStore('tasks', () => {
 
             upsert(response.data);
             useToastStore().push(translate('tasks.retryQueued'), { variant: 'success' });
-        } catch {
-            useToastStore().push(translate('errors.network'), { variant: 'danger' });
+        } catch (error) {
+            const serverMessage = error instanceof HttpError ? error.serverMessage : null;
+
+            useToastStore().push(serverMessage !== null && serverMessage !== '' ? serverMessage : translate('errors.network'), {
+                variant: 'danger',
+            });
         } finally {
             acting.value = false;
         }

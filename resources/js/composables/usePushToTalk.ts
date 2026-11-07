@@ -22,7 +22,7 @@ export interface PushToTalk {
 const EDITABLE_SELECTOR = 'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
 
 /** `Space` typed into a form field or editable region is text, never push-to-talk. */
-function isEditableTarget(target: EventTarget | null): boolean {
+export function isEditableTarget(target: EventTarget | null): boolean {
     if (!(target instanceof Element)) {
         return false;
     }

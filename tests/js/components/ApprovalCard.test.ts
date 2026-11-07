@@ -1,5 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import ApprovalCard from '@/components/hud/ApprovalCard.vue';
 import { useApprovalsStore } from '@/stores/approvals';
 import type { ApprovalSummary } from '@/types/models';
@@ -35,7 +35,7 @@ describe('ApprovalCard', () => {
         expect(wrapper.text()).toContain('Automation');
 
         const effects = wrapper.findAll('[data-testid="approval-effect"]').map((node) => node.text());
-        expect(effects).toEqual(['escrita', 'externa']);
+        expect(effects).toEqual(['Escrita', 'Externa']);
         expect(wrapper.get('[data-testid="approval-countdown"]').text()).toContain('Expira em');
 
         wrapper.unmount();
@@ -105,4 +105,84 @@ describe('ApprovalCard', () => {
         expect(spy).toHaveBeenCalled();
         spy.mockRestore();
     });
+
+    it('derives exactly the Escrita and Externa chips from the effect flags', () => {
+        const wrapper = mount(ApprovalCard, {
+            props: { approval: makeApproval({ effect: { is_write: true, is_sensitive: false, external: true } }) },
+        });
+
+        expect(wrapper.findAll('[data-testid="approval-effect"]').map((node) => node.text())).toEqual(['Escrita', 'Externa']);
+
+        wrapper.unmount();
+    });
+
+    it('shows Sensível alone and no chip row without effects', () => {
+        const sensitive = mount(ApprovalCard, {
+            props: { approval: makeApproval({ effect: { is_write: false, is_sensitive: true, external: false } }) },
+        });
+        expect(sensitive.findAll('[data-testid="approval-effect"]').map((node) => node.text())).toEqual(['Sensível']);
+        sensitive.unmount();
+
+        const none = mount(ApprovalCard, {
+            props: { approval: makeApproval({ effect: { is_write: false, is_sensitive: false, external: false } }) },
+        });
+        expect(none.find('[data-testid="approval-effects"]').exists()).toBe(false);
+        none.unmount();
+    });
+
+    it('shows agent, tool name, human description and mono params without risk or voice approval text', () => {
+        const wrapper = mount(ApprovalCard, { props: { approval: makeApproval() } });
+
+        expect(wrapper.get('[data-testid="approval-agent"]').text()).toContain('Automation');
+        expect(wrapper.get('[data-testid="approval-tool"]').text()).toBe('Enviar lembrete');
+        expect(wrapper.get('[data-testid="approval-description"]').text()).toBe('Envia lembrete de pagamento.');
+        expect(wrapper.get('[data-testid="approval-params"]').classes()).toContain('font-mono');
+        expect(wrapper.text()).not.toContain('Risco');
+        expect(wrapper.text()).not.toContain('pode mandar');
+
+        wrapper.unmount();
+    });
+
+    it('renders Aprovar as solid primary and Negar as outline', () => {
+        const wrapper = mount(ApprovalCard, { props: { approval: makeApproval() } });
+
+        const approve = wrapper.get('[data-testid="approval-approve"]');
+        const deny = wrapper.get('[data-testid="approval-deny"]');
+
+        expect(approve.text()).toBe('Aprovar');
+        expect(approve.classes()).toEqual(expect.arrayContaining(['bg-cyan-300']));
+        expect(deny.text()).toBe('Negar');
+        expect(deny.classes()).toContain('bg-transparent');
+        expect(deny.classes()).not.toContain('bg-cyan-300');
+
+        wrapper.unmount();
+    });
+
+    it('pulses the amber border on entry, but not under reduced motion nor once decided', () => {
+        const pending = mount(ApprovalCard, { props: { approval: makeApproval() } });
+        expect(pending.get('[data-testid="approval-card"]').classes()).toEqual(expect.arrayContaining(['border-amber-400/70', 'approval-card--pulse']));
+        pending.unmount();
+
+        const decided = mount(ApprovalCard, { props: { approval: makeApproval({ status: 'approved', decided_at: '2026-11-02T12:05:00+00:00' }) } });
+        expect(decided.get('[data-testid="approval-card"]').classes()).not.toContain('approval-card--pulse');
+        decided.unmount();
+
+        vi.spyOn(window, 'matchMedia').mockImplementation(
+            (query) =>
+                ({
+                    matches: query.includes('prefers-reduced-motion'),
+                    media: query,
+                    addEventListener: vi.fn(),
+                    removeEventListener: vi.fn(),
+                }) as unknown as MediaQueryList,
+        );
+
+        const still = mount(ApprovalCard, { props: { approval: makeApproval() } });
+        expect(still.get('[data-testid="approval-card"]').classes()).not.toContain('approval-card--pulse');
+        still.unmount();
+    });
+});
+
+afterEach(() => {
+    vi.restoreAllMocks();
 });

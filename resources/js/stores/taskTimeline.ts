@@ -21,6 +21,8 @@ export interface TimelineEntry {
     toolExecutionId: number | null;
     /** Arrival order, which is the chronological order of the channel. */
     sequence: number;
+    /** Tool identifier of `tool.*` entries (`delegate.<slug>` marks a delegation, UI-11). */
+    tool?: string | null;
 }
 
 /** Item highlighted on the task card (UI-10). */
@@ -192,6 +194,7 @@ export const useTaskTimelineStore = defineStore('taskTimeline', () => {
                 text: name,
                 detail: typeof event?.input_summary === 'string' && event.input_summary !== '' ? event.input_summary : null,
                 toolExecutionId: executionId,
+                tool: typeof event?.tool === 'string' && event.tool !== '' ? event.tool : null,
             });
 
             return;

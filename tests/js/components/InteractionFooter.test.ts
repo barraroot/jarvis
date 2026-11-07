@@ -135,4 +135,26 @@ describe('InteractionFooter', () => {
 
         wrapper.unmount();
     });
+
+    it('uses chamfered controls with 44 px targets and no rounded corners', async () => {
+        const wrapper = mountFooter();
+
+        await wrapper.get('[data-testid="footer-commands-toggle"]').trigger('click');
+
+        const controls = [
+            wrapper.get('[data-testid="footer-send"]'),
+            wrapper.get('[data-testid="footer-mute"]'),
+            wrapper.get('[data-testid="footer-commands-toggle"]'),
+            ...wrapper.findAll('[data-testid^="footer-command-"]'),
+        ];
+
+        for (const control of controls) {
+            expect(control.classes(), control.attributes('data-testid')).toEqual(expect.arrayContaining(['chamfer-sm', 'min-h-11']));
+        }
+
+        expect(wrapper.find('textarea').classes()).toContain('chamfer-sm');
+        expect(wrapper.html()).not.toMatch(/\brounded(-[a-z]+)?\b/);
+
+        wrapper.unmount();
+    });
 });

@@ -2,6 +2,8 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import VisualizationPanel from '@/components/hud/VisualizationPanel.vue';
 import { VISUALIZATION_SCAN_MS } from '@/components/hud/constants';
+import { useTaskTimelineStore } from '@/stores/taskTimeline';
+import { useTasksStore } from '@/stores/tasks';
 import { useVisualizationsStore } from '@/stores/visualizations';
 import type { Visualization, VisualizationSection } from '@/types/models';
 import { mockFetch } from '../helpers/fetch';
@@ -219,6 +221,103 @@ describe('VisualizationPanel', () => {
         expect(calls.some((call) => call.method === 'POST' && call.url === '/api/v1/visualizations/1/close')).toBe(true);
         expect(calls.some((call) => call.url.includes('/tasks/'))).toBe(false);
         expect(wrapper.find('[data-testid="visualization-panel"]').exists()).toBe(false);
+
+        wrapper.unmount();
+    });
+
+    it('moves the best item to the top with the MELHOR RESULTADO seal', () => {
+        useVisualizationsStore().apply(
+            makeVisualization({
+                status: 'updated',
+                sections: [
+                    QUESTION,
+                    results(
+                        [
+                            { title: 'Verbos irregulares', subtitle: 'a', badges: [] },
+                            { title: 'Phrasal verbs no trabalho', subtitle: 'b', badges: ['best'] },
+                        ],
+                        'updated',
+                    ),
+                ],
+            }),
+        );
+
+        const wrapper = mount(VisualizationPanel);
+        const items = wrapper.findAll('[data-testid="viz-result-item"]');
+
+        expect(items.map((item) => item.get('[data-testid="viz-result-title"]').text())).toEqual(['Phrasal verbs no trabalho', 'Verbos irregulares']);
+        expect(items[0]?.text()).toContain('01');
+        expect(items[0]?.get('[data-testid="viz-result-best"]').text()).toBe('MELHOR RESULTADO');
+        expect(items[1]?.find('[data-testid="viz-result-best"]').exists()).toBe(false);
+
+        wrapper.unmount();
+    });
+
+    it('shows the sonar while syncing and the ocean shimmer on the skeleton, none of it under reduced motion', () => {
+        reducedMotion(false);
+        useVisualizationsStore().apply(makeVisualization());
+
+        const animated = mount(VisualizationPanel);
+        expect(animated.get('[data-testid="viz-sonar"]').classes()).toContain('viz-sonar--animated');
+        expect(animated.findAll('[data-testid="viz-results-skeleton-row"]').every((row) => row.classes().includes('viz-shimmer'))).toBe(true);
+        animated.unmount();
+
+        vi.restoreAllMocks();
+        reducedMotion(true);
+
+        const still = mount(VisualizationPanel);
+        expect(still.get('[data-testid="viz-sonar"]').classes()).not.toContain('viz-sonar--animated');
+        expect(still.html()).not.toContain('viz-shimmer');
+        still.unmount();
+    });
+
+    it('keeps the close button at least 44 px', () => {
+        useVisualizationsStore().apply(makeVisualization());
+
+        const wrapper = mount(VisualizationPanel);
+
+        expect(wrapper.get('[data-testid="viz-close"]').classes()).toContain('size-11');
+
+        wrapper.unmount();
+    });
+
+    it('applies the --danger-400 border and the pt-BR message when failed, without retry if the task did not fail', () => {
+        useVisualizationsStore().apply(makeVisualization({ status: 'failed' }));
+
+        const wrapper = mount(VisualizationPanel);
+        const panel = wrapper.get('[data-testid="visualization-panel"]');
+
+        expect(panel.classes()).toEqual(expect.arrayContaining(['viz--failed', 'border-danger-400']));
+        expect(wrapper.get('[data-testid="viz-failed-message"]').text()).toBe('Não foi possível concluir esta visualização.');
+        expect(wrapper.get('[data-testid="viz-status"]').text()).toBe('FALHOU');
+        expect(wrapper.find('[data-testid="viz-retry"]').exists()).toBe(false);
+
+        wrapper.unmount();
+    });
+
+    it('offers Tentar de novo when the linked task failed and calls tasks.retry once', async () => {
+        useTaskTimelineStore().applyTask({ id: '5', title: 'Busca', status: 'failed', progress: 50, error: 'Falhou' });
+        useVisualizationsStore().apply(makeVisualization({ status: 'failed' }));
+        const retry = vi.spyOn(useTasksStore(), 'retry').mockResolvedValue(undefined);
+
+        const wrapper = mount(VisualizationPanel);
+
+        await wrapper.get('[data-testid="viz-retry"]').trigger('click');
+
+        expect(wrapper.get('[data-testid="viz-retry"]').text()).toBe('Tentar de novo');
+        expect(retry).toHaveBeenCalledTimes(1);
+        expect(retry).toHaveBeenCalledWith('5');
+
+        wrapper.unmount();
+    });
+
+    it('does not mark a non-failed visualization with the danger border', () => {
+        useVisualizationsStore().apply(makeVisualization({ status: 'updated' }));
+
+        const wrapper = mount(VisualizationPanel);
+
+        expect(wrapper.get('[data-testid="visualization-panel"]').classes()).not.toContain('border-danger-400');
+        expect(wrapper.find('[data-testid="viz-failed"]').exists()).toBe(false);
 
         wrapper.unmount();
     });

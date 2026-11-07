@@ -7,11 +7,15 @@ import VisualizationResults from '@/components/hud/VisualizationResults.vue';
 import VisualizationText from '@/components/hud/VisualizationText.vue';
 import { VISUALIZATION_SCAN_MS } from '@/components/hud/constants';
 import { useReducedMotion } from '@/composables/useReducedMotion';
+import { useTaskTimelineStore } from '@/stores/taskTimeline';
+import { useTasksStore } from '@/stores/tasks';
 import { useVisualizationsStore } from '@/stores/visualizations';
 import type { VisualizationSection } from '@/types/models';
 
 const { t } = useI18n();
 const visualizations = useVisualizationsStore();
+const tasks = useTasksStore();
+const timeline = useTaskTimelineStore();
 const reducedMotion = useReducedMotion();
 
 const visualization = computed(() => visualizations.current);
@@ -145,13 +149,34 @@ const statusText = computed(() => {
 const statusClasses = computed(() => {
     switch (visualization.value?.status) {
         case 'syncing':
-            return 'text-amber';
+            return 'text-amber-400';
         case 'failed':
-            return 'text-danger';
+            return 'text-danger-400';
         default:
-            return 'text-success';
+            return 'text-success-400';
     }
 });
+
+const isFailed = computed(() => visualization.value?.status === 'failed');
+
+/** Linked task (`task_id`) id when its last snapshot is `failed`: only then `Tentar de novo` shows (RF-07). */
+const failedTaskId = computed<string | null>(() => {
+    const taskId = visualization.value?.task_id;
+
+    if (taskId === null || taskId === undefined) {
+        return null;
+    }
+
+    return timeline.snapshots[String(taskId)]?.status === 'failed' ? String(taskId) : null;
+});
+
+function retry(): void {
+    if (failedTaskId.value === null || tasks.acting) {
+        return;
+    }
+
+    void tasks.retry(failedTaskId.value);
+}
 
 /** `×` closes the panel (CT-09) without touching the task (RF-19a). */
 function close(): void {
@@ -162,29 +187,40 @@ function close(): void {
 <template>
     <section
         v-if="visualization !== null"
-        class="hud-glass flex min-h-0 flex-col gap-4 rounded-sm border border-line p-4"
+        class="glass chamfer-md flex min-h-0 flex-col gap-4 p-4"
+        :class="{ 'viz--failed border-danger-400': isFailed }"
         :aria-label="visualization.title"
         :data-status="visualization.status"
         data-testid="visualization-panel"
     >
         <header class="flex items-start gap-3">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mt-0.5 size-5 shrink-0 text-cyan" aria-hidden="true">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mt-0.5 size-5 shrink-0 text-cyan-300" aria-hidden="true">
+                <path d="M3 7l4-4h10l4 4v10l-4 4H7l-4-4z" />
                 <path d="M3 9h18" /><path d="M9 21V9" />
             </svg>
-            <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span class="hud-label font-mono text-[0.6rem] text-cyan" data-testid="viz-label">
+            <div class="flex min-w-0 flex-1 flex-col gap-1">
+                <span class="label-caps font-mono text-label text-cyan-300" data-testid="viz-label">
                     {{ t('visualizations.label', { time: clockOf(visualization.created_at) }) }}
                 </span>
-                <h2 class="truncate font-display text-sm text-text" data-testid="viz-title">{{ visualization.title }}</h2>
-                <span v-if="visualization.source" class="truncate font-mono text-[0.65rem] text-muted" data-testid="viz-source">
+                <h2 class="truncate text-[1.05rem] font-medium text-text-100" data-testid="viz-title">{{ visualization.title }}</h2>
+                <span v-if="visualization.source" class="truncate font-mono text-[0.7rem] text-text-400" data-testid="viz-source">
                     {{ visualization.source }}
                 </span>
-                <span class="hud-label font-mono text-[0.6rem]" :class="statusClasses" data-testid="viz-status">{{ statusText }}</span>
+                <span class="label-caps inline-flex items-center gap-2 font-mono text-label" :class="statusClasses" data-testid="viz-status">
+                    <span
+                        v-if="visualization.status === 'syncing'"
+                        class="viz-sonar relative inline-flex size-2 shrink-0"
+                        :class="{ 'viz-sonar--animated': !reducedMotion }"
+                        data-dot
+                        aria-hidden="true"
+                        data-testid="viz-sonar"
+                    ></span>
+                    {{ statusText }}
+                </span>
             </div>
             <button
                 type="button"
-                class="inline-flex size-11 shrink-0 items-center justify-center rounded-sm border border-line text-muted hover:border-cyan hover:text-cyan-bright xl:size-8"
+                class="chamfer-sm inline-flex size-11 shrink-0 items-center justify-center border border-ocean-600 text-text-400 hover:border-cyan-300 hover:text-biolum-200"
                 :aria-label="t('visualizations.close')"
                 data-testid="viz-close"
                 @click="close"
@@ -195,6 +231,25 @@ function close(): void {
             </button>
         </header>
 
+        <div
+            v-if="isFailed"
+            class="chamfer-sm flex flex-wrap items-center gap-3 border border-danger-400/60 bg-danger-400/10 px-3 py-2"
+            role="alert"
+            data-testid="viz-failed"
+        >
+            <p class="min-w-0 flex-1 text-[0.85rem] text-danger-400" data-testid="viz-failed-message">{{ t('visualizations.failedMessage') }}</p>
+            <button
+                v-if="failedTaskId !== null"
+                type="button"
+                class="label-caps chamfer-sm inline-flex min-h-11 items-center border border-danger-400/70 px-3 text-[0.7rem] text-danger-400 hover:bg-danger-400/15 disabled:opacity-50"
+                :disabled="tasks.acting"
+                data-testid="viz-retry"
+                @click="retry"
+            >
+                {{ t('edge.taskFailed.retry') }}
+            </button>
+        </div>
+
         <div class="flex min-h-0 flex-col gap-5 overflow-y-auto">
             <template v-for="section in sections" :key="section.key">
                 <ScanBar v-if="scanningKey === section.key" />
@@ -204,8 +259,8 @@ function close(): void {
                     :data-type="section.type"
                     :data-testid="`viz-section-${section.key}`"
                 >
-                    <h3 class="hud-label flex items-baseline gap-2 font-mono text-[0.65rem] text-muted" data-testid="viz-section-heading">
-                        <span class="text-cyan">{{ pad(section.position) }}</span>{{ ' ' }}<span>{{ section.label }}</span>
+                    <h3 class="label-caps flex items-baseline gap-2 font-mono text-label text-text-400" data-testid="viz-section-heading">
+                        <span class="text-cyan-300">{{ pad(section.position) }}</span>{{ ' ' }}<span>{{ section.label }}</span>
                     </h3>
                     <VisualizationQuestion v-if="section.type === 'question'" :section="section" />
                     <VisualizationResults v-else-if="section.type === 'results'" :section="section" />
@@ -215,3 +270,37 @@ function close(): void {
         </div>
     </section>
 </template>
+
+<style scoped>
+/* Unlayered, so it wins over the glass border of the utilities layer (UI-12). */
+.viz--failed {
+    border-color: var(--color-danger-400);
+}
+
+.viz-sonar {
+    border-radius: 50%;
+    background-color: currentColor;
+}
+
+/* Sonar ping while syncing: one ring scaling out, transform/opacity only. */
+.viz-sonar--animated::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    animation: viz-sonar 1.6s var(--ease-sonar) infinite;
+}
+
+@keyframes viz-sonar {
+    from {
+        transform: scale(1);
+        opacity: 0.9;
+    }
+
+    to {
+        transform: scale(3);
+        opacity: 0;
+    }
+}
+</style>

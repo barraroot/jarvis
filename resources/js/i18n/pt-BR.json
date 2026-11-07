@@ -534,7 +534,8 @@
     "best": "MELHOR RESULTADO",
     "loading": "Carregando resultados",
     "noResults": "Nenhum resultado",
-    "scanning": "Analisando"
+    "scanning": "Analisando",
+    "failedMessage": "Não foi possível concluir esta visualização."
   },
   "captions": {
     "label": "Legendas",
