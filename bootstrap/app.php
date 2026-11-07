@@ -18,9 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
-        // Extended health check (DB, Redis, Reverb) outside the `web` group.
+        // Extended health check (DB, Redis, Reverb) outside the `web` group;
+        // public webhooks outside the `api` group (CT-09).
         then: function (): void {
             Route::get('/up', HealthController::class)->name('health');
+            Route::group([], __DIR__.'/../routes/webhooks.php');
         },
     )
     ->withBroadcasting(

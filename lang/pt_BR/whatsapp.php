@@ -50,6 +50,12 @@ return [
     'schedules' => [
         'not_cancellable' => 'Só agendamentos ativos ou pausados podem ser cancelados.',
         'not_resumable' => 'Só agendamentos pausados podem ser retomados.',
+        'exactly_one' => 'Informe a data/hora de um envio único ou a recorrência (cron), não os dois.',
+        'run_at_invalid' => 'A data/hora do agendamento é inválida.',
+        'run_at_past' => 'A data/hora do agendamento precisa estar no futuro.',
+        'run_at_too_far' => 'Um envio único pode ser agendado para no máximo :days dias à frente.',
+        'cron_invalid' => 'A recorrência precisa ser uma expressão cron válida de 5 campos.',
+        'cron_too_frequent' => 'A recorrência precisa ter intervalo de pelo menos 1 hora entre ocorrências.',
     ],
 
     'approvals' => [
