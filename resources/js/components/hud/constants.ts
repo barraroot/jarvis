@@ -10,11 +10,14 @@ export const MESSAGE_MAX_LINES = 6;
 /** How long the header connectors tooltip stays visible after `Alt+2` (UI-04). */
 export const SHORTCUT_TOOLTIP_MS = 2500;
 
-/** Radial bars of the JarvisCore voice variants (UI-05). */
+/** Radial bars of the JarvisCore speech frames (UI-07). */
 export const CORE_RADIAL_BAR_COUNT = 48;
-/** Bar length in SVG units at level 0 and level 1 (UI-05). */
-export const CORE_BAR_MIN_LENGTH = 2;
-export const CORE_BAR_MAX_LENGTH = 18;
+/** Bar length in px at level 0; it grows by `level × amplitude` (UI-07, UI-09). */
+export const CORE_BAR_MIN_LENGTH = 3;
+export const CORE_BAR_MAX_AMPLITUDE_FULL = 64;
+export const CORE_BAR_MAX_AMPLITUDE_COMPACT = 16;
+/** Segments of the `MIC` and `VOZ` meters (UI-09). */
+export const CORE_METER_SEGMENTS = 12;
 
 /** Scan bar shown before a new visualization section appears (UI-12). */
 export const VISUALIZATION_SCAN_MS = 700;
@@ -24,3 +27,7 @@ export const VISUALIZATION_TYPING_MAX_MS = 1200;
 
 /** Core move between the stage center and the top-left corner (UI-09). */
 export const HUD_STAGE_TRANSITION_MS = 600;
+
+/** One-shot error flash of the JarvisCore (UI-07): ring recomposes in 900 ms; reduced motion keeps a red border for 1 s. */
+export const CORE_ERROR_FLASH_MS = 900;
+export const CORE_ERROR_FLASH_REDUCED_MS = 1000;

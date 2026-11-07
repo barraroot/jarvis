@@ -2,16 +2,15 @@
 import { computed, onBeforeUnmount, onMounted, ref, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
+import ConnectionIndicator from '@/components/hud/ConnectionIndicator.vue';
 import HeaderMenu from '@/components/hud/HeaderMenu.vue';
 import { SHORTCUT_TOOLTIP_MS } from '@/components/hud/constants';
 import NotificationCenter from '@/components/hud/NotificationCenter.vue';
-import { formatStatusLine } from '@/lib/voice/statusLine';
+import { countActiveTasks, formatStatusLine } from '@/lib/voice/statusLine';
+import { useAssistantStore } from '@/stores/assistant';
 import { useConnectorsStore } from '@/stores/connectors';
 import { useTasksStore } from '@/stores/tasks';
 import { useVoiceStore } from '@/stores/voice';
-import type { TaskStatus } from '@/types/models';
-
-const TERMINAL_STATUSES: ReadonlySet<TaskStatus> = new Set(['completed', 'failed', 'cancelled']);
 
 /**
  * `sleep`/`wake` drive the voice window (RF-05), `microphone` toggles the
@@ -28,19 +27,24 @@ const emit = defineEmits<{
 const { t, locale } = useI18n();
 const router = useRouter();
 const voice = useVoiceStore();
+const assistant = useAssistantStore();
 const tasks = useTasksStore();
 const connectors = useConnectorsStore();
 const tooltipId = `header-connectors-tooltip-${useId()}`;
 
-const activeTaskCount = computed(() => tasks.tasks.filter((task) => !TERMINAL_STATUSES.has(task.status)).length);
+/** Tasks in `running` or `waiting_approval`: agents badge and status line share the rule (UI-02, UI-03). */
+const activeTaskCount = computed(() => countActiveTasks(tasks.tasks));
+const waitingApprovalCount = computed(() => tasks.tasks.filter((task) => task.status === 'waiting_approval').length);
 
-/** `<estado>[ · <N>s][ · <K> tarefa(s)]` (UI-02). */
+/** `<estado>[ · <N>s][ · <K> tarefa(s)]` (UI-03). */
 const statusLine = computed(() =>
     formatStatusLine({
         phase: voice.phase,
         available: voice.available,
         countdownSeconds: voice.countdownSeconds,
         activeTaskCount: activeTaskCount.value,
+        assistantState: assistant.state,
+        waitingApprovalCount: waitingApprovalCount.value,
     }),
 );
 
@@ -51,7 +55,7 @@ const unavailableReason = computed(() =>
 
 const isSleeping = computed(() => voice.phase === 'sleeping');
 
-/** Badges are hidden at 0 (UI-03). */
+/** Badges are hidden at 0 (UI-02). */
 const agentsBadge = computed(() => activeTaskCount.value);
 const connectorsBadge = computed(() => connectors.errorCount);
 
@@ -82,7 +86,7 @@ function toggleSleep(): void {
     }
 }
 
-/** HH:MM and `DOMINGO · 1 DE NOVEMBRO`, refreshed on every minute boundary (UI-01). */
+/** HH:MM and `SÁBADO · 7 DE NOVEMBRO`, refreshed on every minute boundary (UI-02). */
 const now = ref(new Date());
 let clockTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -107,7 +111,7 @@ function scheduleClock(): void {
     }, untilNextMinute);
 }
 
-/** `Alt+1` agents, `Alt+2` connectors, `Alt+3` conversations (UI-04). */
+/** `Alt+1` agents, `Alt+2` connectors, `Alt+3` conversations (UI-02). */
 function shortcutDigit(event: KeyboardEvent): string | null {
     const match = /^Digit([1-3])$/.exec(event.code);
 
@@ -165,55 +169,62 @@ onBeforeUnmount(() => {
     }
 });
 
+/** Chamfered actions with corner light (UI-02, UI-24); no rounded corners. */
+const textButton =
+    'chamfer-sm corner-light label-caps inline-flex h-11 items-center gap-1.5 border border-ocean-600/40 px-3 text-xs text-text-100 hover:text-biolum-200 disabled:cursor-not-allowed disabled:opacity-40 xl:h-10';
 const iconButton =
-    'relative inline-flex size-11 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright xl:size-9';
-const badgeClasses =
-    'absolute -right-1 -top-1 min-w-4 rounded-full px-1 text-center font-mono text-[0.55rem] leading-4 text-bg';
+    'chamfer-sm corner-light relative inline-flex size-11 items-center justify-center border border-ocean-600/40 text-text-400 hover:text-biolum-200 xl:size-10';
+const badgeClasses = 'absolute right-0.5 top-0.5 min-w-4 px-1 text-center font-mono text-[10px] font-semibold leading-4';
+const menuItem =
+    'label-caps flex min-h-11 items-center gap-2 px-2 py-1.5 text-left text-[11px] text-text-100 hover:bg-cyan-300/10 hover:text-biolum-200 disabled:opacity-40';
 </script>
 
 <template>
     <div class="relative flex min-w-0 flex-1 items-center gap-2 sm:gap-3" data-testid="app-header">
         <div class="flex min-w-0 flex-col justify-center gap-1 leading-none" data-testid="header-brand">
-            <span class="hud-label truncate font-display text-xs text-cyan hud-glow sm:text-sm md:text-base">
+            <span class="glow truncate font-logo text-sm font-bold tracking-[0.32em] text-biolum-200 md:text-base">
                 {{ t('app.name') }}
             </span>
-            <span
-                class="truncate font-mono text-[0.6rem] tracking-wider"
-                :class="voice.available ? 'text-cyan-bright' : 'text-amber'"
-                :title="unavailableReason"
-                :aria-description="unavailableReason"
-                role="status"
-                aria-live="polite"
-                data-testid="header-status-line"
-            >
-                {{ statusLine }}
+            <span class="flex min-w-0 items-center gap-3">
+                <span
+                    class="label-caps truncate text-[11px] md:text-xs"
+                    :class="voice.available ? 'text-text-400' : 'text-amber-400'"
+                    :title="unavailableReason"
+                    :aria-description="unavailableReason"
+                    role="status"
+                    aria-live="polite"
+                    data-testid="header-status-line"
+                >
+                    {{ statusLine }}
+                </span>
+                <ConnectionIndicator />
             </span>
         </div>
 
-        <!-- Centered clock and long pt-BR date (UI-01). -->
+        <!-- Centered clock and long pt-BR date in caps (UI-02). -->
         <div
-            class="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 flex-col items-center font-mono lg:flex"
+            class="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 flex-col items-center gap-0.5 lg:flex"
             role="timer"
             :aria-label="t('header.clock')"
             data-testid="header-clock"
         >
-            <time class="text-xl tracking-widest text-cyan-bright hud-glow tabular-nums" data-testid="header-clock-time">
+            <time class="font-mono text-[32px] font-medium leading-none tracking-[0.04em] text-text-100 tabular-nums xl:text-clock" data-testid="header-clock-time">
                 {{ clockTime }}
             </time>
-            <span class="hud-label text-[0.55rem] text-muted" data-testid="header-clock-date">{{ clockDate }}</span>
+            <span class="label-caps text-[11px] text-text-400" data-testid="header-clock-date">{{ clockDate }}</span>
         </div>
 
         <!-- Desktop: sleep/wake, mute, agents, connectors, conversations, notifications, menu. -->
-        <div class="ml-auto hidden items-center gap-1.5 md:flex" data-testid="header-actions">
+        <div class="ml-auto hidden items-center gap-2 md:flex" data-testid="header-actions">
             <button
                 type="button"
-                class="hud-label inline-flex h-11 items-center gap-1.5 rounded-sm border border-line px-2 text-[0.6rem] text-text hover:border-cyan hover:text-cyan-bright disabled:cursor-not-allowed disabled:opacity-40 xl:h-9"
+                :class="textButton"
                 :disabled="!voice.available"
                 :title="unavailableReason"
                 data-testid="header-sleep"
                 @click="toggleSleep"
             >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="size-4" aria-hidden="true">
                     <template v-if="isSleeping">
                         <circle cx="12" cy="12" r="4" />
                         <path d="M12 2v2" /><path d="M12 20v2" /><path d="M4.9 4.9l1.4 1.4" />
@@ -227,15 +238,14 @@ const badgeClasses =
 
             <button
                 type="button"
-                class="hud-label inline-flex h-11 items-center gap-1.5 rounded-sm border px-2 text-[0.6rem] hover:border-cyan hover:text-cyan-bright disabled:cursor-not-allowed disabled:opacity-40 xl:h-9"
-                :class="voice.muted ? 'border-danger text-danger' : 'border-line text-text'"
+                :class="[textButton, voice.muted ? 'border-danger-400/70 text-danger-400' : '']"
                 :aria-pressed="voice.muted"
                 :disabled="!voice.available"
                 :title="unavailableReason"
                 data-testid="header-mic"
                 @click="emit('microphone')"
             >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="size-4" aria-hidden="true">
                     <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
                     <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                     <line x1="12" x2="12" y1="19" y2="22" />
@@ -243,6 +253,8 @@ const badgeClasses =
                 </svg>
                 {{ voice.muted ? t('header.unmute') : t('header.mute') }}
             </button>
+
+            <span class="mx-1 h-7 w-px bg-ocean-600/50" aria-hidden="true"></span>
 
             <button
                 type="button"
@@ -252,12 +264,11 @@ const badgeClasses =
                 data-testid="header-agents"
                 @click="emit('agents')"
             >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4" aria-hidden="true">
-                    <rect x="4" y="8" width="16" height="12" rx="2" />
-                    <path d="M12 4v4" /><circle cx="12" cy="3" r="1" />
-                    <circle cx="9" cy="14" r="1" /><circle cx="15" cy="14" r="1" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="size-[18px]" aria-hidden="true">
+                    <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" />
+                    <circle cx="12" cy="12" r="3" />
                 </svg>
-                <span v-if="agentsBadge > 0" :class="[badgeClasses, 'bg-cyan']" data-testid="header-agents-badge">
+                <span v-if="agentsBadge > 0" :class="[badgeClasses, 'bg-amber-400 text-abyss-950']" data-testid="header-agents-badge">
                     {{ agentsBadge }}
                 </span>
             </button>
@@ -275,11 +286,10 @@ const badgeClasses =
                     @focus="showConnectorsTooltip"
                     @blur="hideConnectorsTooltip"
                 >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4" aria-hidden="true">
-                        <path d="M9 7V3" /><path d="M15 7V3" />
-                        <path d="M6 7h12v4a6 6 0 0 1-12 0Z" /><path d="M12 17v4" />
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="size-[18px]" aria-hidden="true">
+                        <path d="M9 7V3M15 7V3M7 7h10v4a5 5 0 0 1-10 0zM12 16v5" />
                     </svg>
-                    <span v-if="connectorsBadge > 0" :class="[badgeClasses, 'bg-danger']" data-testid="header-connectors-badge">
+                    <span v-if="connectorsBadge > 0" :class="[badgeClasses, 'bg-danger-400 text-white']" data-testid="header-connectors-badge">
                         {{ connectorsBadge }}
                     </span>
                 </button>
@@ -287,18 +297,18 @@ const badgeClasses =
                     v-show="connectorsTooltipVisible"
                     :id="tooltipId"
                     role="tooltip"
-                    class="hud-glass absolute right-0 top-11 z-50 flex w-60 flex-col gap-1 rounded-sm border border-line p-2"
+                    class="glass chamfer-sm absolute right-0 top-12 z-50 flex w-64 flex-col gap-1 p-3"
                     data-testid="header-connectors-tooltip"
                 >
                     <span class="flex items-center justify-between gap-2">
-                        <span class="hud-label text-[0.65rem] text-cyan-bright">{{ t('header.connectors') }}</span>
-                        <kbd class="rounded-sm border border-line px-1 font-mono text-[0.55rem] text-muted" data-testid="header-connectors-shortcut">
+                        <span class="label-caps text-[11px] text-biolum-200">{{ t('header.connectors') }}</span>
+                        <kbd class="border border-ocean-600/60 px-1 font-mono text-[10px] text-text-400" data-testid="header-connectors-shortcut">
                             {{ t('header.shortcut', { key: 2 }) }}
                         </kbd>
                     </span>
                     <span
                         v-if="connectorsAttention !== ''"
-                        class="font-mono text-[0.6rem] text-danger"
+                        class="font-mono text-[11px] text-danger-400"
                         data-testid="header-connectors-attention"
                     >
                         {{ connectorsAttention }}
@@ -314,8 +324,8 @@ const badgeClasses =
                 data-testid="header-conversations"
                 @click="emit('conversations')"
             >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4" aria-hidden="true">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="size-[18px]" aria-hidden="true">
+                    <path d="M4 5h16v11H8l-4 4z" />
                 </svg>
             </button>
 
@@ -328,8 +338,8 @@ const badgeClasses =
         <div class="ml-auto flex items-center gap-1.5 md:hidden" data-testid="header-actions-mobile">
             <button
                 type="button"
-                class="inline-flex size-11 items-center justify-center rounded-sm border text-text hover:border-cyan hover:text-cyan-bright disabled:cursor-not-allowed disabled:opacity-40"
-                :class="voice.muted ? 'border-danger text-danger' : 'border-line'"
+                :class="[iconButton, voice.muted ? 'border-danger-400/70 text-danger-400' : '']"
+                class="disabled:cursor-not-allowed disabled:opacity-40"
                 :aria-label="voice.muted ? t('header.unmute') : t('header.mute')"
                 :aria-pressed="voice.muted"
                 :title="unavailableReason"
@@ -337,7 +347,7 @@ const badgeClasses =
                 data-testid="header-mic-mobile"
                 @click="emit('microphone')"
             >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="size-[18px]" aria-hidden="true">
                     <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
                     <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                     <line x1="12" x2="12" y1="19" y2="22" />
@@ -349,7 +359,7 @@ const badgeClasses =
                 <template #extra="{ close }">
                     <button
                         type="button"
-                        class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright disabled:opacity-40"
+                        :class="menuItem"
                         role="menuitem"
                         :disabled="!voice.available"
                         data-testid="header-more-sleep"
@@ -359,31 +369,31 @@ const badgeClasses =
                     </button>
                     <button
                         type="button"
-                        class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                        :class="menuItem"
                         role="menuitem"
                         data-testid="header-more-agents"
                         @click="emit('agents'); close()"
                     >
                         {{ t('header.agents') }}
-                        <span v-if="agentsBadge > 0" class="ml-auto min-w-4 rounded-full bg-cyan px-1 text-center font-mono text-[0.55rem] text-bg">
+                        <span v-if="agentsBadge > 0" class="ml-auto min-w-4 bg-amber-400 px-1 text-center font-mono text-[10px] text-abyss-950">
                             {{ agentsBadge }}
                         </span>
                     </button>
                     <button
                         type="button"
-                        class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                        :class="menuItem"
                         role="menuitem"
                         data-testid="header-more-connectors"
                         @click="openConnectors(); close()"
                     >
                         {{ t('header.connectors') }}
-                        <span v-if="connectorsBadge > 0" class="ml-auto min-w-4 rounded-full bg-danger px-1 text-center font-mono text-[0.55rem] text-bg">
+                        <span v-if="connectorsBadge > 0" class="ml-auto min-w-4 bg-danger-400 px-1 text-center font-mono text-[10px] text-white">
                             {{ connectorsBadge }}
                         </span>
                     </button>
                     <button
                         type="button"
-                        class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                        :class="menuItem"
                         role="menuitem"
                         data-testid="header-more-conversations"
                         @click="emit('conversations'); close()"

@@ -2,6 +2,8 @@ import { mount } from '@vue/test-utils';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import AppHeader from '@/components/hud/AppHeader.vue';
+import { useAssistantStore } from '@/stores/assistant';
+import { useConnectionStore } from '@/stores/connection';
 import { useConnectorsStore } from '@/stores/connectors';
 import { useNotificationsStore } from '@/stores/notifications';
 import { useTasksStore } from '@/stores/tasks';
@@ -42,6 +44,7 @@ function pressAlt(digit: string): void {
 }
 
 afterEach(() => {
+    vi.useRealTimers();
     document.body.innerHTML = '';
 });
 
@@ -166,6 +169,90 @@ describe('AppHeader', () => {
 
         expect(wrapper.find('[data-testid="header-agents-badge"]').exists()).toBe(false);
         expect(wrapper.find('[data-testid="header-connectors-badge"]').exists()).toBe(false);
+
+        wrapper.unmount();
+    });
+
+    it('counts only running and waiting_approval tasks in the agents badge and the status line', async () => {
+        const { wrapper } = await mountHeader();
+        const tasks = useTasksStore();
+        const voice = useVoiceStore();
+
+        voice.setPhase('listening');
+        tasks.upsert(task('1', 'queued'));
+        tasks.upsert(task('2', 'pending'));
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.find('[data-testid="header-agents-badge"]').exists()).toBe(false);
+        expect(wrapper.get('[data-testid="header-status-line"]').text()).toBe('Ouvindo');
+
+        tasks.upsert(task('3', 'running'));
+        tasks.upsert(task('4', 'waiting_approval'));
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.get('[data-testid="header-agents-badge"]').text()).toBe('2');
+        expect(wrapper.get('[data-testid="header-status-line"]').text()).toBe('Aguardando aprovação · 2 tarefas');
+
+        wrapper.unmount();
+    });
+
+    it('shows Pensando and Executando from the assistant state', async () => {
+        const { wrapper } = await mountHeader();
+        const voice = useVoiceStore();
+        const assistant = useAssistantStore();
+        const tasks = useTasksStore();
+
+        voice.setPhase('listening');
+        assistant.setState('THINKING');
+        await wrapper.vm.$nextTick();
+        expect(wrapper.get('[data-testid="header-status-line"]').text()).toBe('Pensando');
+
+        assistant.setState('EXECUTING');
+        tasks.upsert(task('1', 'running'));
+        await wrapper.vm.$nextTick();
+        expect(wrapper.get('[data-testid="header-status-line"]').text()).toBe('Executando · 1 tarefa');
+
+        wrapper.unmount();
+    });
+
+    it('renders the date in caps with the · separator', async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(2026, 10, 7, 21, 5, 0));
+
+        const { wrapper } = await mountHeader();
+
+        expect(wrapper.get('[data-testid="header-clock-time"]').text()).toBe('21:05');
+        expect(wrapper.get('[data-testid="header-clock-date"]').text()).toBe('SÁBADO · 7 DE NOVEMBRO');
+
+        wrapper.unmount();
+    });
+
+    it('always shows the connection indicator next to the status line', async () => {
+        const { wrapper } = await mountHeader();
+        const connection = useConnectionStore();
+
+        connection.markConnected();
+        await wrapper.vm.$nextTick();
+
+        const indicator = wrapper.get('[data-testid="header-brand"] [data-testid="connection-indicator"]');
+        expect(indicator.attributes('role')).toBe('status');
+        expect(indicator.text()).toBe('Conectado');
+
+        connection.markServerUnreachable();
+        await wrapper.vm.$nextTick();
+        expect(indicator.text()).toBe('Offline');
+
+        wrapper.unmount();
+    });
+
+    it('uses chamfered actions without rounded corners', async () => {
+        const { wrapper } = await mountHeader();
+
+        for (const id of ['header-sleep', 'header-mic', 'header-agents', 'header-connectors', 'header-conversations', 'header-notifications', 'header-menu']) {
+            expect(wrapper.get(`[data-testid="${id}"]`).classes(), id).toContain('chamfer-sm');
+        }
+
+        expect(wrapper.html()).not.toMatch(/\brounded(-[a-z0-9]+)?\b/);
 
         wrapper.unmount();
     });

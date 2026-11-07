@@ -66,19 +66,19 @@ function openNotification(notification: NotificationSummary): void {
     <div ref="root" class="relative">
         <button
             type="button"
-            class="relative inline-flex size-11 items-center xl:size-9 justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright"
+            class="chamfer-sm corner-light relative inline-flex size-11 items-center justify-center border border-ocean-600/40 text-text-400 hover:text-biolum-200 xl:size-10"
             :aria-label="t('header.notifications')"
             :aria-expanded="open"
             data-testid="header-notifications"
             @click="toggle"
         >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="size-[18px]" aria-hidden="true">
                 <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
                 <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
             </svg>
             <span
                 v-if="notifications.unreadCount > 0"
-                class="absolute -right-1 -top-1 min-w-4 rounded-full bg-danger px-1 text-center font-mono text-[0.55rem] leading-4 text-bg"
+                class="absolute right-0.5 top-0.5 min-w-4 bg-danger-400 px-1 text-center font-mono text-[10px] font-semibold leading-4 text-white"
                 data-testid="header-notifications-count"
             >
                 {{ notifications.unreadCount }}
@@ -87,14 +87,14 @@ function openNotification(notification: NotificationSummary): void {
 
         <div
             v-if="open"
-            class="hud-border hud-glass absolute right-0 top-11 z-50 flex max-h-[70vh] w-80 flex-col overflow-hidden rounded-sm bg-bg-navy/95"
+            class="glass chamfer-md absolute right-0 top-12 z-50 flex max-h-[70vh] w-80 flex-col overflow-hidden"
             data-testid="notification-center"
         >
-            <header class="flex items-center justify-between gap-2 border-b border-line/70 px-3 py-2">
-                <h2 class="hud-label text-xs text-cyan hud-glow">{{ t('notifications.title') }}</h2>
+            <header class="flex items-center justify-between gap-2 border-b border-ocean-600/50 px-3 py-2">
+                <h2 class="label-caps text-xs text-biolum-200">{{ t('notifications.title') }}</h2>
                 <button
                     type="button"
-                    class="hud-label text-[0.6rem] text-cyan-bright hover:text-text disabled:cursor-not-allowed disabled:opacity-40"
+                    class="label-caps min-h-11 text-[11px] text-cyan-300 hover:text-biolum-200 disabled:cursor-not-allowed disabled:opacity-40"
                     :disabled="notifications.unreadCount === 0"
                     data-testid="notification-mark-all"
                     @click="notifications.markAllRead()"
@@ -103,17 +103,17 @@ function openNotification(notification: NotificationSummary): void {
                 </button>
             </header>
 
-            <div v-if="notifications.loading" class="hud-label px-3 py-8 text-center text-muted">
+            <div v-if="notifications.loading" class="label-caps px-3 py-8 text-center text-[11px] text-text-400">
                 {{ t('common.loading') }}
             </div>
             <EmptyState v-else-if="notifications.items.length === 0" :message="t('notifications.empty')" />
 
             <ul v-else class="flex min-w-0 flex-col overflow-y-auto" data-testid="notification-list">
-                <li v-for="notification in notifications.items" :key="notification.id" class="border-b border-line/40 last:border-none">
+                <li v-for="notification in notifications.items" :key="notification.id" class="border-b border-ocean-600/30 last:border-none">
                     <button
                         type="button"
-                        class="flex w-full min-w-0 flex-col gap-0.5 px-3 py-2 text-left hover:bg-cyan/5"
-                        :class="notification.read_at === null ? 'bg-cyan/[0.04]' : 'opacity-70'"
+                        class="flex w-full min-w-0 flex-col gap-0.5 px-3 py-2 text-left hover:bg-cyan-300/5"
+                        :class="notification.read_at === null ? 'bg-cyan-300/[0.04]' : 'opacity-70'"
                         :data-unread="notification.read_at === null"
                         :data-testid="`notification-item-${notification.id}`"
                         @click="openNotification(notification)"
@@ -121,13 +121,14 @@ function openNotification(notification: NotificationSummary): void {
                         <span class="flex items-center gap-2">
                             <span
                                 v-if="notification.read_at === null"
-                                class="size-1.5 shrink-0 rounded-full bg-cyan-bright"
+                                class="notification-center__dot size-1.5 shrink-0 bg-cyan-300"
+                                data-dot
                                 data-testid="notification-unread-dot"
                             ></span>
-                            <span class="hud-label min-w-0 flex-1 truncate text-[0.65rem] text-text">{{ notification.title }}</span>
-                            <span class="shrink-0 font-mono text-[0.55rem] text-muted">{{ formatTime(notification.created_at) }}</span>
+                            <span class="label-caps min-w-0 flex-1 truncate text-[11px] text-text-100">{{ notification.title }}</span>
+                            <span class="shrink-0 font-mono text-[10px] text-text-400">{{ formatTime(notification.created_at) }}</span>
                         </span>
-                        <span v-if="notification.body" class="hud-label min-w-0 truncate pl-3.5 text-[0.6rem] text-muted">
+                        <span v-if="notification.body" class="min-w-0 truncate pl-3.5 text-xs text-text-400">
                             {{ notification.body }}
                         </span>
                     </button>
@@ -136,3 +137,9 @@ function openNotification(notification: NotificationSummary): void {
         </div>
     </div>
 </template>
+
+<style scoped>
+.notification-center__dot {
+    border-radius: 50%;
+}
+</style>

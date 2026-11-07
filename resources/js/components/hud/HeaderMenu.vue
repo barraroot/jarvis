@@ -64,26 +64,26 @@ defineExpose({ close });
     <div ref="rootRef" class="relative">
         <button
             type="button"
-            class="inline-flex size-11 items-center justify-center rounded-sm border border-line text-text hover:border-cyan hover:text-cyan-bright xl:size-9"
+            class="chamfer-sm corner-light inline-flex size-11 items-center justify-center border border-ocean-600/40 text-text-400 hover:text-biolum-200 xl:size-10"
             :aria-label="props.label ?? t('header.menu')"
             :aria-expanded="open"
             aria-haspopup="menu"
             :data-testid="props.idPrefix"
             @click="toggle"
         >
-            <svg viewBox="0 0 24 24" fill="currentColor" class="size-4" aria-hidden="true">
-                <circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="size-[18px]" aria-hidden="true">
+                <path d="M4 7h16M4 12h16M4 17h16" />
             </svg>
         </button>
 
         <div
             v-if="open"
-            class="hud-glass absolute right-0 top-11 z-50 flex w-60 flex-col gap-1 rounded-sm border border-line p-2"
+            class="glass chamfer-md absolute right-0 top-12 z-50 flex w-64 flex-col gap-1 p-2"
             role="menu"
             :data-testid="`${props.idPrefix}-menu`"
         >
-            <div class="hud-label truncate px-2 py-1 text-[0.6rem] text-cyan">{{ auth.user?.name ?? '' }}</div>
-            <div class="truncate border-b border-line/70 px-2 pb-2 font-mono text-[0.6rem] text-muted">
+            <div class="label-caps truncate px-2 py-1 text-[11px] text-biolum-200">{{ auth.user?.name ?? '' }}</div>
+            <div class="truncate border-b border-ocean-600/50 px-2 pb-2 font-mono text-[11px] text-text-400">
                 {{ auth.user?.email ?? '' }}
             </div>
 
@@ -91,7 +91,7 @@ defineExpose({ close });
 
             <RouterLink
                 :to="{ name: 'approvals' }"
-                class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                class="label-caps flex min-h-11 items-center gap-2 px-2 py-1.5 text-left text-[11px] text-text-100 hover:bg-cyan-300/10 hover:text-biolum-200"
                 role="menuitem"
                 :data-testid="`${props.idPrefix}-approvals`"
                 @click="close"
@@ -99,14 +99,14 @@ defineExpose({ close });
                 {{ t('header.approvals') }}
                 <span
                     v-if="notifications.unreadCount > 0"
-                    class="ml-auto min-w-4 rounded-full bg-danger px-1 text-center font-mono text-[0.55rem] text-bg"
+                    class="ml-auto min-w-4 bg-danger-400 px-1 text-center font-mono text-[10px] text-white"
                 >
                     {{ notifications.unreadCount }}
                 </span>
             </RouterLink>
             <RouterLink
                 :to="{ name: 'memories' }"
-                class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                class="label-caps flex min-h-11 items-center gap-2 px-2 py-1.5 text-left text-[11px] text-text-100 hover:bg-cyan-300/10 hover:text-biolum-200"
                 role="menuitem"
                 :data-testid="`${props.idPrefix}-memories`"
                 @click="close"
@@ -115,7 +115,7 @@ defineExpose({ close });
             </RouterLink>
             <RouterLink
                 :to="{ name: 'activity' }"
-                class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                class="label-caps flex min-h-11 items-center gap-2 px-2 py-1.5 text-left text-[11px] text-text-100 hover:bg-cyan-300/10 hover:text-biolum-200"
                 role="menuitem"
                 :data-testid="`${props.idPrefix}-activity`"
                 @click="close"
@@ -124,7 +124,7 @@ defineExpose({ close });
             </RouterLink>
             <RouterLink
                 :to="{ name: 'settings' }"
-                class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                class="label-caps flex min-h-11 items-center gap-2 px-2 py-1.5 text-left text-[11px] text-text-100 hover:bg-cyan-300/10 hover:text-biolum-200"
                 role="menuitem"
                 :data-testid="`${props.idPrefix}-settings`"
                 @click="close"
@@ -133,7 +133,7 @@ defineExpose({ close });
             </RouterLink>
             <button
                 type="button"
-                class="hud-label flex min-h-11 items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.65rem] text-text hover:bg-cyan/10 hover:text-cyan-bright"
+                class="label-caps flex min-h-11 items-center gap-2 px-2 py-1.5 text-left text-[11px] text-text-100 hover:bg-cyan-300/10 hover:text-biolum-200"
                 role="menuitem"
                 :data-testid="`${props.idPrefix}-logout`"
                 @click="logout"
