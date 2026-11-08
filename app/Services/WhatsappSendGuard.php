@@ -134,7 +134,7 @@ class WhatsappSendGuard
      *
      * @throws WhatsappOperationException
      */
-    private function assertWritable(WhatsappSession $session, string $recipient): void
+    public function assertWritable(WhatsappSession $session, string $recipient): void
     {
         if ($this->settings->whatsappKillSwitchActive()) {
             $this->block($session, WhatsappOperationException::KILL_SWITCH_ACTIVE, $recipient);
