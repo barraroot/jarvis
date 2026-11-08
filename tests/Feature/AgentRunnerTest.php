@@ -24,6 +24,7 @@ use App\Tools\ToolContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Laravel\Ai\Ai;
+use Laravel\Ai\Messages\Message as AiMessage;
 use Laravel\Ai\Responses\Data\Meta;
 use Laravel\Ai\Responses\Data\TextUsage;
 use Laravel\Ai\Responses\Data\ToolCall;
@@ -165,6 +166,23 @@ class AgentRunnerTest extends TestCase
         app(AgentRunner::class)->run($agent, $user, 'Responda.', new RunOptions);
 
         $this->assertDatabaseCount('agent_executions', 0);
+    }
+
+    public function test_runtime_agent_history_is_given_as_sdk_messages(): void
+    {
+        $runtimeAgent = app(AgentRuntimeFactory::class)->make(
+            Agent::factory()->create(),
+            new ToolContext(User::factory()->create()),
+            [
+                ['role' => 'user', 'content' => 'Oi'],
+                ['role' => 'assistant', 'content' => 'Olá, operador.'],
+            ],
+        );
+
+        $messages = iterator_to_array($runtimeAgent->messages());
+
+        $this->assertContainsOnlyInstancesOf(AiMessage::class, $messages);
+        $this->assertSame(['Oi', 'Olá, operador.'], array_map(static fn (AiMessage $message): string => $message->content, $messages));
     }
 
     public function test_only_authorized_tools_are_exposed_to_the_model(): void

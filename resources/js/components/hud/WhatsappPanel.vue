@@ -263,7 +263,7 @@ onMounted(() => {
                             <img
                                 :src="whatsapp.qr"
                                 :alt="t('whatsapp.pairing.qrAlt')"
-                                class="size-56 self-center bg-white p-2"
+                                class="size-72 self-center bg-white p-6 [image-rendering:pixelated]"
                                 data-testid="whatsapp-qr-image"
                             />
                             <HudButton variant="ghost" :loading="busy === 'qr'" data-testid="whatsapp-qr-refresh" @click="requestQr">

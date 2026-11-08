@@ -142,7 +142,7 @@ trait FakesWuzapi
             'POST /session/connect' => ['details' => 'Connected!'],
             'POST /session/disconnect' => ['Details' => 'Disconnected'],
             'POST /session/logout' => ['Details' => 'Logged out'],
-            'GET /session/status' => ['Connected' => true, 'LoggedIn' => true],
+            'GET /session/status' => ['connected' => true, 'loggedIn' => true],
             'GET /session/qr' => ['QRCode' => 'data:image/png;base64,iVBORw0KGgo='],
             'POST /session/pairphone' => ['LinkingCode' => 'ABCD-EFGH'],
             'POST /session/hmac/config' => ['Details' => 'HMAC configuration saved successfully'],

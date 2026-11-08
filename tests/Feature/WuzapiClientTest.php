@@ -124,7 +124,7 @@ class WuzapiClientTest extends TestCase
             'GET /session/status' => function (Request $request, array $options) use (&$observedTimeout) {
                 $observedTimeout = $options['timeout'] ?? null;
 
-                return Http::response(['code' => 200, 'data' => ['Connected' => false, 'LoggedIn' => false]]);
+                return Http::response(['code' => 200, 'data' => ['connected' => false, 'loggedIn' => false]]);
             },
         ]);
 
@@ -186,6 +186,28 @@ class WuzapiClientTest extends TestCase
 
         $this->expectException(WuzapiRequestException::class);
         $client->sendText('5511988887777@s.whatsapp.net', 'Olá');
+    }
+
+    public function test_connect_treats_already_connected_as_success_but_surfaces_other_errors(): void
+    {
+        $statuses = [409, 500];
+        $this->fakeWuzapi([
+            'POST /session/connect' => function () use (&$statuses) {
+                $status = array_shift($statuses);
+
+                return Http::response(['code' => $status, 'error' => 'already connected', 'success' => false], $status);
+            },
+        ]);
+        $client = $this->sessionClient();
+
+        $this->assertSame([], $client->connect());
+
+        try {
+            $client->connect();
+            $this->fail('Expected WuzapiRequestException.');
+        } catch (WuzapiRequestException $exception) {
+            $this->assertSame(500, $exception->status);
+        }
     }
 
     public function test_unfaked_request_fails(): void

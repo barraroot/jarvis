@@ -105,7 +105,8 @@ class WuzapiClient
     }
 
     /**
-     * `POST /session/connect`.
+     * `POST /session/connect`. Idempotent: wuzapi answers 409 when the client is
+     * already connected (e.g. a QR refresh while pairing), which is the state we want.
      *
      * @param  list<string>  $events
      * @return array<string, mixed>
@@ -114,7 +115,15 @@ class WuzapiClient
      */
     public function connect(array $events = self::WEBHOOK_EVENTS, bool $immediate = true): array
     {
-        return $this->session('POST', '/session/connect', ['Subscribe' => $events, 'Immediate' => $immediate]);
+        try {
+            return $this->session('POST', '/session/connect', ['Subscribe' => $events, 'Immediate' => $immediate]);
+        } catch (WuzapiRequestException $exception) {
+            if ($exception->status === 409) {
+                return [];
+            }
+
+            throw $exception;
+        }
     }
 
     /**
@@ -147,8 +156,8 @@ class WuzapiClient
         $data = $this->session('GET', '/session/status');
 
         return [
-            'connected' => (bool) ($data['Connected'] ?? false),
-            'logged_in' => (bool) ($data['LoggedIn'] ?? false),
+            'connected' => (bool) ($data['connected'] ?? false),
+            'logged_in' => (bool) ($data['loggedIn'] ?? false),
         ];
     }
 

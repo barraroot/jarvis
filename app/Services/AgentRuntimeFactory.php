@@ -11,6 +11,7 @@ use App\Tools\AgentTool;
 use App\Tools\ToolAdapter;
 use App\Tools\ToolContext;
 use App\Tools\ToolExecutor;
+use Laravel\Ai\Messages\Message as AiMessage;
 
 /**
  * Builds the `laravel/ai` runtime agent for a catalogue agent (US-7.3): its
@@ -34,7 +35,10 @@ class AgentRuntimeFactory
     {
         return new RuntimeAgent(
             $this->instructions($agent),
-            $messages,
+            array_map(
+                fn (array $message): AiMessage => new AiMessage($message['role'], $message['content']),
+                $messages,
+            ),
             $this->tools($agent, $context),
             $this->toolCallLimit($agent),
         );

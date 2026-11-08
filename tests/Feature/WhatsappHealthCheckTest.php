@@ -111,7 +111,7 @@ class WhatsappHealthCheckTest extends TestCase
     public function test_status_mapping_keeps_pending_and_detects_disconnection(): void
     {
         Event::fake([SessionStatusChanged::class]);
-        $this->fakeWuzapi(['GET /session/status' => ['Connected' => false, 'LoggedIn' => false]]);
+        $this->fakeWuzapi(['GET /session/status' => ['connected' => false, 'loggedIn' => false]]);
         $neverPaired = WhatsappSession::factory()->withConsent()->create();
         $wasConnected = WhatsappSession::factory()->connected()->withConsent()->create(['last_checked_at' => now()->subMinutes(10)]);
 
@@ -143,7 +143,7 @@ class WhatsappHealthCheckTest extends TestCase
 
     public function test_resumed_session_is_reconciled_on_next_run(): void
     {
-        $this->fakeWuzapi(['GET /session/status' => ['Connected' => false, 'LoggedIn' => true]]);
+        $this->fakeWuzapi(['GET /session/status' => ['connected' => false, 'loggedIn' => true]]);
         $session = WhatsappSession::factory()->connected()->withConsent()->create(['last_checked_at' => null]);
 
         $this->artisan('jarvis:whatsapp:health-check')->assertSuccessful();
