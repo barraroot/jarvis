@@ -176,7 +176,7 @@ class JsonSchemaValidator
     {
         return match ($type) {
             'object' => is_array($value) && $this->isAssociative($value),
-            'array' => is_array($value) && ! $this->isAssociative($value),
+            'array' => is_array($value) && array_is_list($value),
             'string' => is_string($value),
             'integer' => is_int($value) || (is_float($value) && floor($value) === $value),
             'number' => is_int($value) || is_float($value),

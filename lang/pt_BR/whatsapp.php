@@ -28,6 +28,13 @@ return [
 
     'retry_after' => 'Tente novamente em :seconds s.',
 
+    'upstream_detail' => 'Detalhe do serviço: :detail',
+
+    'tools' => [
+        'message_not_found' => 'Mensagem não encontrada no WhatsApp deste usuário.',
+        'message_without_media' => 'A mensagem informada não tem mídia para baixar.',
+    ],
+
     'scopes' => [
         'leitura' => 'Leitura',
         'envio' => 'Envio',

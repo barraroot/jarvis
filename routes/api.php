@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\V1\Voice\VoiceTurnController;
 use App\Http\Controllers\Api\V1\Voice\VoiceUsageController;
 use App\Http\Controllers\Api\V1\Whatsapp\WhatsappConsentController;
 use App\Http\Controllers\Api\V1\Whatsapp\WhatsappPairingController;
+use App\Http\Controllers\Api\V1\Whatsapp\WhatsappScheduleController;
 use App\Http\Controllers\Api\V1\Whatsapp\WhatsappSessionController;
 use Illuminate\Support\Facades\Route;
 
@@ -120,6 +121,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::delete('session', [WhatsappSessionController::class, 'destroy'])->name('session.destroy');
             Route::post('session/qr', [WhatsappPairingController::class, 'qr'])->name('session.qr');
             Route::post('session/pair-phone', [WhatsappPairingController::class, 'pairPhone'])->name('session.pair-phone');
+            Route::get('schedules', [WhatsappScheduleController::class, 'index'])->name('schedules.index');
+            Route::post('schedules/{schedule}/cancel', [WhatsappScheduleController::class, 'cancel'])->name('schedules.cancel');
+            Route::post('schedules/{schedule}/resume', [WhatsappScheduleController::class, 'resume'])->name('schedules.resume');
         });
 
         Route::get('visualizations/current', [VisualizationController::class, 'current'])->name('visualizations.current');

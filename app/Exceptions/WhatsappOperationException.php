@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use App\Support\UntrustedContent;
 use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
@@ -53,18 +54,20 @@ class WhatsappOperationException extends RuntimeException
     /**
      * @param  list<string>  $missingScopes  scopes the operation lacks (`whatsapp_consent_required`)
      * @param  int|null  $retryAfter  seconds until a new attempt may pass (`whatsapp_rate_limited`)
+     * @param  string|null  $upstreamDetail  already redacted wuzapi reason (`whatsapp_upstream_error`), neutralized as untrusted data (RF-18)
      */
     public function __construct(
         public readonly string $reason,
         public readonly array $missingScopes = [],
         public readonly ?int $retryAfter = null,
         ?Throwable $previous = null,
+        public readonly ?string $upstreamDetail = null,
     ) {
         if (! in_array($reason, self::CODES, true)) {
             throw new InvalidArgumentException("Unknown WhatsApp operation code [{$reason}].");
         }
 
-        parent::__construct(self::messageFor($reason, $missingScopes, $retryAfter), 0, $previous);
+        parent::__construct(self::messageFor($reason, $missingScopes, $retryAfter, $upstreamDetail), 0, $previous);
     }
 
     /**
@@ -81,6 +84,14 @@ class WhatsappOperationException extends RuntimeException
     }
 
     /**
+     * wuzapi failed: the detail is already redacted by `WuzapiClient`.
+     */
+    public static function upstreamError(?string $upstreamDetail = null): self
+    {
+        return new self(self::UPSTREAM_ERROR, upstreamDetail: blank($upstreamDetail) ? null : UntrustedContent::neutralize($upstreamDetail));
+    }
+
+    /**
      * The pt-BR text of a code, without the code prefix (notifications).
      */
     public static function translate(string $reason): string
@@ -91,7 +102,7 @@ class WhatsappOperationException extends RuntimeException
     /**
      * @param  list<string>  $missingScopes
      */
-    private static function messageFor(string $reason, array $missingScopes, ?int $retryAfter): string
+    private static function messageFor(string $reason, array $missingScopes, ?int $retryAfter, ?string $upstreamDetail): string
     {
         $message = $reason.': '.self::translate($reason);
 
@@ -101,6 +112,10 @@ class WhatsappOperationException extends RuntimeException
 
         if ($retryAfter !== null) {
             $message .= ' '.__('whatsapp.retry_after', ['seconds' => $retryAfter])." (retry_after={$retryAfter})";
+        }
+
+        if ($upstreamDetail !== null) {
+            $message .= ' '.__('whatsapp.upstream_detail', ['detail' => UntrustedContent::neutralize($upstreamDetail)]);
         }
 
         return $message;

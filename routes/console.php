@@ -21,3 +21,7 @@ Schedule::command('jarvis:connectors:health-check')->everyMinute()->withoutOverl
 // WhatsApp sessions are checked every `connector.health_check_minutes`; the
 // command itself skips sessions checked within the interval (RF-07).
 Schedule::command('jarvis:whatsapp:health-check')->everyMinute()->withoutOverlapping();
+
+// Due WhatsApp schedule occurrences are enqueued every minute; at most one
+// recovery occurrence per schedule (RF-31, RF-32).
+Schedule::command('jarvis:whatsapp:dispatch-schedules')->everyMinute()->withoutOverlapping();
