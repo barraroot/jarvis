@@ -15,6 +15,7 @@ import { useRealtimeConnection } from '@/composables/useRealtimeConnection';
 import { useRealtimeVoice } from '@/composables/useRealtimeVoice';
 import { bindToolEvents } from '@/composables/useToolEvents';
 import { bindVisualizationEvents } from '@/composables/useVisualizationEvents';
+import { bindWhatsappEvents } from '@/composables/useWhatsappEvents';
 import HudLayout from '@/layouts/HudLayout.vue';
 import { HttpError } from '@/lib/http';
 import { useAuthStore } from '@/stores/auth';
@@ -64,6 +65,7 @@ useRealtimeConnection([
     bindNotificationEvents,
     bindTaskEvents,
     bindConnectorEvents,
+    bindWhatsappEvents,
 ]);
 
 useOfflineShell();

@@ -3,6 +3,8 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n';
 import ConnectorsPanel from '@/components/hud/ConnectorsPanel.vue';
 import InstallAppPanel from '@/components/hud/InstallAppPanel.vue';
+import WhatsappPanel from '@/components/hud/WhatsappPanel.vue';
+import WhatsappSchedulesList from '@/components/hud/WhatsappSchedulesList.vue';
 import HudButton from '@/components/ui/HudButton.vue';
 import HudModal from '@/components/ui/HudModal.vue';
 import HudPanel from '@/components/ui/HudPanel.vue';
@@ -344,6 +346,11 @@ onBeforeUnmount(() => {
 
             <section class="flex min-w-0 flex-col gap-2" data-testid="settings-section-connectors">
                 <ConnectorsPanel />
+            </section>
+
+            <section class="flex min-w-0 flex-col gap-4" data-testid="settings-section-whatsapp">
+                <WhatsappPanel />
+                <WhatsappSchedulesList />
             </section>
 
             <section id="install" class="flex min-w-0 flex-col gap-2" data-testid="settings-section-install">

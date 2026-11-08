@@ -11,6 +11,36 @@ import { useVoiceStore } from '@/stores/voice';
 import { makeUser, mockFetch } from './helpers/fetch';
 import { mockViewport } from './helpers/matchMedia';
 
+/** Echo stays off unless a test turns it on; then the user channel is an in-memory fake. */
+const echo = vi.hoisted(() => {
+    const listeners = new Map<string, (payload: unknown) => void>();
+
+    return {
+        enabled: false,
+        listeners,
+        channel: {
+            listen(event: string, callback: (payload: unknown) => void) {
+                listeners.set(event, callback);
+
+                return this;
+            },
+        },
+        emit(event: string, payload: unknown) {
+            listeners.get(`.${event}`)?.(payload);
+        },
+    };
+});
+
+vi.mock('@/lib/echo', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/lib/echo')>()),
+    isEchoConfigured: () => echo.enabled,
+    getEcho: () => ({}),
+    disposeEcho: () => undefined,
+    leaveUserChannel: () => undefined,
+    subscribeToUserChannel: () => echo.channel,
+    createEchoTransport: () => ({ onStateChange: () => undefined, onActivity: () => undefined, connect: () => undefined, disconnect: () => undefined }),
+}));
+
 async function mountApp(path: string, options: { animate?: boolean } = {}) {
     const router = createAppRouter(createMemoryHistory());
     await router.push(path);
@@ -112,6 +142,58 @@ describe('App smoke test', () => {
         expect(view.element.children).toHaveLength(1);
 
         wrapper.unmount();
+    });
+
+    it('CT-10 on the user channel updates the WhatsApp panel on the settings page (UI-03)', async () => {
+        echo.enabled = true;
+        echo.listeners.clear();
+        mockViewport(1280);
+        const { fetchMock } = mockFetch({
+            'GET /api/v1/auth/me': { body: { data: makeUser() } },
+            'GET /api/v1/connectors': { body: { data: [] } },
+            'GET /api/v1/whatsapp/session': {
+                body: {
+                    data: {
+                        id: 7,
+                        status: 'pending',
+                        suspended: false,
+                        phone_masked: null,
+                        last_error: null,
+                        last_checked_at: null,
+                        connected_at: null,
+                        consent: { version: 1, scopes: ['leitura', 'envio'], valid: true },
+                        current_consent_version: 1,
+                        usage_today: { sends: 0, cap: 100 },
+                    },
+                },
+            },
+            'GET /api/v1/whatsapp/schedules': { body: { data: [] } },
+        });
+
+        try {
+            const { wrapper } = await mountApp('/settings');
+            await vi.waitFor(() => expect(wrapper.get('[data-testid="whatsapp-status"]').text()).toBe('Pendente'));
+            expect(echo.listeners.has('.whatsapp.session.status.changed')).toBe(true);
+            const requests = fetchMock.mock.calls.length;
+
+            echo.emit('whatsapp.session.status.changed', {
+                session_id: 7,
+                status: 'connected',
+                previous_status: 'pending',
+                suspended: false,
+                error: null,
+                at: '2026-11-07T12:00:00+00:00',
+            });
+            await nextTick();
+
+            expect(wrapper.get('[data-testid="whatsapp-status"]').text()).toBe('Conectado');
+            expect(wrapper.find('[data-testid="whatsapp-pairing"]').exists()).toBe(false);
+            expect(fetchMock.mock.calls.length).toBe(requests);
+
+            wrapper.unmount();
+        } finally {
+            echo.enabled = false;
+        }
     });
 
     it('no source imports the removed browser STT/TTS composables', () => {

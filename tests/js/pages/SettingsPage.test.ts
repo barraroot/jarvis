@@ -114,6 +114,42 @@ describe('SettingsPage', () => {
         expect(wrapper.find('#connectors').exists()).toBe(true);
     });
 
+    it('mounts the WhatsApp panel and its schedules right after the connectors', async () => {
+        seedPreferences();
+        const { wrapper, calls } = await mountSettings({
+            'GET /api/v1/connectors': { body: { data: [] } },
+            'GET /api/v1/whatsapp/session': {
+                body: {
+                    data: {
+                        id: 7,
+                        status: 'connected',
+                        suspended: false,
+                        phone_masked: '+55 11 *****-4321',
+                        last_error: null,
+                        last_checked_at: null,
+                        connected_at: '2026-11-07T12:00:00+00:00',
+                        consent: { version: 1, scopes: ['leitura', 'envio'], valid: true },
+                        current_consent_version: 1,
+                        usage_today: { sends: 0, cap: 100 },
+                    },
+                },
+            },
+            'GET /api/v1/whatsapp/schedules': { body: { data: [] } },
+        });
+
+        const section = wrapper.get('[data-testid="settings-section-whatsapp"]');
+        expect(section.get('[data-testid="whatsapp-panel"]').text()).toContain('WhatsApp');
+        expect(section.get('[data-testid="whatsapp-status"]').text()).toBe('Conectado');
+        expect(section.get('[data-testid="whatsapp-schedules"]').text()).toContain('Agendamentos do WhatsApp');
+        expect(section.find('[data-testid="whatsapp-schedules-empty"]').exists()).toBe(true);
+
+        const order = wrapper.findAll('[data-testid^="settings-section-"]').map((node) => node.attributes('data-testid'));
+        expect(order.indexOf('settings-section-whatsapp')).toBe(order.indexOf('settings-section-connectors') + 1);
+
+        expect(calls.some((call) => call.method === 'GET' && call.url === '/api/v1/whatsapp/session')).toBe(true);
+        expect(calls.some((call) => call.method === 'GET' && call.url === '/api/v1/whatsapp/schedules')).toBe(true);
+    });
+
     it('omits board-only fields without a real source', async () => {
         seedPreferences();
         const { wrapper } = await mountSettings();

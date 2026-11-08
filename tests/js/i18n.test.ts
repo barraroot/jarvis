@@ -62,4 +62,29 @@ describe('i18n', () => {
 
         expect(offenders).toEqual([]);
     });
+
+    it('every literal key used by the WhatsApp panel and schedules list exists in pt-BR (UI-07, RNF-11)', () => {
+        const root = join(process.cwd(), 'resources/js/components/hud');
+        const missing: string[] = [];
+        let checked = 0;
+
+        for (const file of ['WhatsappPanel.vue', 'WhatsappSchedulesList.vue']) {
+            const source = readFileSync(join(root, file), 'utf8');
+
+            for (const [, key] of source.matchAll(/\bt\('([\w.]+)'/g)) {
+                checked++;
+
+                if (typeof lookup(ptBR, key as string) !== 'string') {
+                    missing.push(`${file} ${key}`);
+                }
+            }
+        }
+
+        expect(checked).toBeGreaterThan(0);
+        expect(missing).toEqual([]);
+    });
 });
+
+function lookup(messages: unknown, key: string): unknown {
+    return key.split('.').reduce<unknown>((node, segment) => (node !== null && typeof node === 'object' ? (node as Record<string, unknown>)[segment] : undefined), messages);
+}
