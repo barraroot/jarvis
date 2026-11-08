@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\AgentExecution;
 use App\Models\AiModel;
 use App\Models\Approval;
+use App\Models\AuditLog;
+use App\Models\ConnectorStatus;
 use App\Models\Conversation;
 use App\Models\McpServer;
 use App\Models\McpToolDefinition;
@@ -20,17 +22,27 @@ use App\Models\ToolExecution;
 use App\Models\User;
 use App\Models\Visualization;
 use App\Models\VoiceSession;
+use App\Models\WhatsappMessage;
+use App\Models\WhatsappSchedule;
+use App\Models\WhatsappScheduleStatus;
+use App\Models\WhatsappSession;
 use App\Services\MemoryRetriever;
 use App\Services\NotificationService;
+use App\Tools\ToolContext;
+use App\Tools\ToolExecutor;
+use App\Tools\ToolResult;
 use Database\Factories\MemoryEmbeddingFactory;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Ai\Embeddings;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\FakesWuzapi;
 use Tests\Concerns\SeedsLookups;
 use Tests\TestCase;
 
@@ -41,6 +53,7 @@ use Tests\TestCase;
  */
 class CrossUserIsolationMatrixTest extends TestCase
 {
+    use FakesWuzapi;
     use RefreshDatabase;
     use SeedsLookups;
 
@@ -292,6 +305,180 @@ class CrossUserIsolationMatrixTest extends TestCase
         $this->assertNotEmpty($channels, 'The owner flows should broadcast realtime events.');
         $this->assertSame(['private-user.'.$this->owner->id], array_values(array_unique($channels)));
         $this->assertNoBroadcastReached($this->intruder);
+    }
+
+    /**
+     * CT-08 (RNF-03): the owner's schedule is 403 to anyone else, for both
+     * the active (cancel) and the paused (resume) transition.
+     *
+     * @return array<string, array{0: string, 1: string}>
+     */
+    public static function whatsappScheduleEndpoints(): array
+    {
+        return [
+            'whatsapp schedule cancel POST' => ['cancel', WhatsappScheduleStatus::ACTIVE],
+            'whatsapp schedule resume POST' => ['resume', WhatsappScheduleStatus::PAUSED],
+        ];
+    }
+
+    #[DataProvider('whatsappScheduleEndpoints')]
+    public function test_intruder_gets_403_on_owner_whatsapp_schedules(string $action, string $status): void
+    {
+        [$ownerSession] = $this->whatsappSessions();
+        $schedule = $this->whatsappSchedule($ownerSession, $status);
+
+        $this->actingAs($this->intruder);
+
+        $this->postJson("/api/v1/whatsapp/schedules/{$schedule->id}/{$action}")->assertForbidden();
+
+        $this->assertSame($status, $schedule->fresh()->load('status')->statusSlug());
+        $this->assertSame(0, AuditLog::query()->where('subject_type', $schedule->getMorphClass())->count());
+
+        $this->actingAs($this->owner);
+
+        $this->getJson('/api/v1/whatsapp/schedules')->assertOk()->assertJsonPath('data.0.id', $schedule->id);
+    }
+
+    public function test_whatsapp_schedule_listing_never_includes_other_users_schedules(): void
+    {
+        [$ownerSession, $intruderSession] = $this->whatsappSessions();
+        $ownerSchedule = $this->whatsappSchedule($ownerSession, WhatsappScheduleStatus::ACTIVE);
+        $intruderSchedule = $this->whatsappSchedule($intruderSession, WhatsappScheduleStatus::ACTIVE);
+
+        $this->actingAs($this->intruder);
+
+        $ids = Arr::pluck($this->getJson('/api/v1/whatsapp/schedules')->assertOk()->json('data'), 'id');
+
+        $this->assertSame([$intruderSchedule->id], $ids);
+        $this->assertNotContains($ownerSchedule->id, $ids);
+    }
+
+    /**
+     * CT-03..CT-07 have no id in the path: they always resolve the caller's
+     * own session. The intruder only sees and changes their own session; the
+     * owner's session, its token and its upstream user are never touched.
+     */
+    public function test_whatsapp_session_endpoints_only_reach_the_callers_own_session(): void
+    {
+        [$ownerSession, $intruderSession] = $this->whatsappSessions(intruderWuzapiUser: 'wuzapi-user-1');
+        $ownerSnapshot = $ownerSession->only(['connector_status_id', 'wuzapi_user_id', 'suspended_at', 'last_error']);
+
+        $this->actingAs($this->intruder);
+
+        $this->getJson('/api/v1/whatsapp/session')->assertOk()->assertJsonPath('data.id', $intruderSession->id);
+        $this->postJson('/api/v1/whatsapp/session')->assertOk()->assertJsonPath('data.id', $intruderSession->id);
+        $this->postJson('/api/v1/whatsapp/session/qr')->assertOk();
+        $this->postJson('/api/v1/whatsapp/session/pair-phone', ['phone' => '5511988887777'])->assertOk();
+        $this->deleteJson('/api/v1/whatsapp/session')->assertOk();
+
+        $this->assertNull($intruderSession->fresh());
+        $this->assertNotNull($ownerSession->fresh());
+        $this->assertSame($ownerSnapshot, $ownerSession->fresh()->only(array_keys($ownerSnapshot)));
+
+        Http::assertNotSent(fn (Request $request): bool => $request->header('Token') === [$ownerSession->token]);
+        $this->assertWuzapiCalled('DELETE', '/admin/users/wuzapi-user-1/full');
+        $this->assertWuzapiCalled('DELETE', '/admin/users/'.$ownerSession->wuzapi_user_id.'/full', 0);
+
+        $this->assertNoBroadcastReached($this->owner);
+
+        // With no session of their own, the intruder gets nothing back — never the owner's.
+        $this->getJson('/api/v1/whatsapp/session')->assertOk()->assertExactJson(['data' => null]);
+        $this->postJson('/api/v1/whatsapp/session/qr')->assertNotFound();
+        $this->deleteJson('/api/v1/whatsapp/session')->assertNotFound();
+
+        $this->actingAs($this->owner);
+
+        $this->getJson('/api/v1/whatsapp/session')->assertOk()->assertJsonPath('data.id', $ownerSession->id);
+    }
+
+    public function test_whatsapp_revoking_consent_only_affects_the_callers_data(): void
+    {
+        [$ownerSession, $intruderSession] = $this->whatsappSessions();
+        $ownerMessage = WhatsappMessage::factory()->forSession($ownerSession)->create();
+        $ownerSchedule = $this->whatsappSchedule($ownerSession, WhatsappScheduleStatus::ACTIVE);
+
+        $this->actingAs($this->intruder);
+
+        $this->deleteJson('/api/v1/whatsapp/consent')->assertOk();
+
+        $this->assertNotNull($ownerMessage->fresh());
+        $this->assertSame(WhatsappScheduleStatus::ACTIVE, $ownerSchedule->fresh()->load('status')->statusSlug());
+        $this->assertTrue($this->owner->whatsappConsent()->first()->isValid());
+        $this->assertFalse($this->intruder->whatsappConsent()->first()->isValid());
+        $this->assertSame(ConnectorStatus::CONNECTED, $ownerSession->fresh()->load('status')->statusSlug());
+    }
+
+    /**
+     * Tools (RNF-03): the intruder's read and cancel tools never reach the
+     * owner's messages or schedules.
+     */
+    public function test_whatsapp_tools_never_reach_another_users_messages_or_schedules(): void
+    {
+        [$ownerSession] = $this->whatsappSessions();
+        WhatsappMessage::factory()->forSession($ownerSession)->create(['chat_jid' => '5511988887777@s.whatsapp.net', 'text' => 'segredo do dono']);
+        $ownerSchedule = $this->whatsappSchedule($ownerSession, WhatsappScheduleStatus::ACTIVE);
+
+        $this->artisan('jarvis:tools:sync-internal')->assertSuccessful();
+
+        $read = $this->runWhatsappTool($this->intruder, 'whatsapp.messages.read', ['chat_jid' => '5511988887777@s.whatsapp.net']);
+        $this->assertTrue($read->isCompleted(), (string) $read->error);
+        $this->assertSame([], $read->output['messages']);
+        $this->assertStringNotContainsString('segredo do dono', $read->forModel());
+
+        $chats = $this->runWhatsappTool($this->intruder, 'whatsapp.chats.list', []);
+        $this->assertSame([], $chats->output['chats']);
+
+        $listed = $this->runWhatsappTool($this->intruder, 'whatsapp.schedule.list', []);
+        $this->assertNotContains($ownerSchedule->id, Arr::pluck($listed->output['schedules'], 'id'));
+
+        $cancel = $this->runWhatsappTool($this->intruder, 'whatsapp.schedule.cancel', ['schedule_id' => $ownerSchedule->id]);
+        $this->assertFalse($cancel->isCompleted());
+        $this->assertSame(WhatsappScheduleStatus::ACTIVE, $ownerSchedule->fresh()->load('status')->statusSlug());
+
+        $this->assertNoWuzapiSend();
+    }
+
+    /**
+     * Owner and intruder, both consented with a session; the wuzapi fake
+     * answers every call (RNF-08).
+     *
+     * @return array{0: WhatsappSession, 1: WhatsappSession}
+     */
+    private function whatsappSessions(string $intruderWuzapiUser = 'wuzapi-user-intruder'): array
+    {
+        $this->fakeWuzapi();
+
+        // Model events (the session's webhook key hash, the consent hooks) still run; broadcasts stay faked.
+        Event::except(fn (string $event): bool => str_starts_with($event, 'eloquent.'));
+
+        return [
+            WhatsappSession::factory()->connected()->withConsent()->create(['user_id' => $this->owner->id, 'wuzapi_user_id' => 'wuzapi-user-owner']),
+            WhatsappSession::factory()->withConsent()->create(['user_id' => $this->intruder->id, 'wuzapi_user_id' => $intruderWuzapiUser]),
+        ];
+    }
+
+    private function whatsappSchedule(WhatsappSession $session, string $status): WhatsappSchedule
+    {
+        $factory = WhatsappSchedule::factory()->forSession($session);
+
+        if ($status === WhatsappScheduleStatus::PAUSED) {
+            $factory = $factory->paused();
+        }
+
+        return $factory->create(['to_jid' => '5511988887777@s.whatsapp.net']);
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private function runWhatsappTool(User $user, string $identifier, array $input): ToolResult
+    {
+        $tool = Tool::query()->where('identifier', $identifier)->firstOrFail();
+        $approval = $tool->requiresApproval()
+            ? Approval::factory()->approved()->create(['user_id' => $user->id, 'tool_id' => $tool->id, 'input' => $input])
+            : null;
+
+        return app(ToolExecutor::class)->execute($tool, $input, new ToolContext($user, approval: $approval));
     }
 
     /**

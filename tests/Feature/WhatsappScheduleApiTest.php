@@ -11,12 +11,14 @@ use App\Models\WhatsappSession;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CountsQueries;
+use Tests\Concerns\FakesWuzapi;
 use Tests\Concerns\SeedsLookups;
 use Tests\TestCase;
 
 class WhatsappScheduleApiTest extends TestCase
 {
     use CountsQueries;
+    use FakesWuzapi;
     use RefreshDatabase;
     use SeedsLookups;
 
@@ -41,6 +43,8 @@ class WhatsappScheduleApiTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->fakeWuzapi();
 
         $this->setUpSeedsLookups();
 

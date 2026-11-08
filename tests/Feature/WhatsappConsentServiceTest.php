@@ -11,17 +11,21 @@ use App\Services\WhatsappConsentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\FakesWuzapi;
 use Tests\Concerns\SeedsLookups;
 use Tests\TestCase;
 
 class WhatsappConsentServiceTest extends TestCase
 {
+    use FakesWuzapi;
     use RefreshDatabase;
     use SeedsLookups;
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->fakeWuzapi();
 
         $this->setUpSeedsLookups();
     }

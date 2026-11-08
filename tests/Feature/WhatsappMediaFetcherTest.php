@@ -10,15 +10,20 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\FakesWuzapi;
 use Tests\TestCase;
 
 class WhatsappMediaFetcherTest extends TestCase
 {
+    use FakesWuzapi;
+
     private const string PNG = "\x89PNG\r\n\x1a\n0000IHDR-fake-image";
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->fakeWuzapi();
 
         config([
             'services.wuzapi.media_max_bytes.image' => 1024,

@@ -14,11 +14,13 @@ use App\Services\WhatsappScheduleService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use InvalidArgumentException;
+use Tests\Concerns\FakesWuzapi;
 use Tests\Concerns\SeedsLookups;
 use Tests\TestCase;
 
 class WhatsappScheduleServiceTest extends TestCase
 {
+    use FakesWuzapi;
     use RefreshDatabase;
     use SeedsLookups;
 
@@ -29,6 +31,8 @@ class WhatsappScheduleServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->fakeWuzapi();
 
         $this->setUpSeedsLookups();
 

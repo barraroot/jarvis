@@ -14,13 +14,22 @@ use App\Models\WhatsappScheduleStatus;
 use App\Models\WhatsappSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Concerns\FakesWuzapi;
 use Tests\Concerns\SeedsLookups;
 use Tests\TestCase;
 
 class WhatsappModelsTest extends TestCase
 {
+    use FakesWuzapi;
     use RefreshDatabase;
     use SeedsLookups;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->fakeWuzapi();
+    }
 
     public function test_session_secrets_are_encrypted_at_rest_and_hidden_from_serialization(): void
     {

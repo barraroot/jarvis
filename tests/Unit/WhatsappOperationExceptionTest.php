@@ -5,10 +5,20 @@ namespace Tests\Unit;
 use App\Exceptions\WhatsappOperationException;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\FakesWuzapi;
 use Tests\TestCase;
 
 class WhatsappOperationExceptionTest extends TestCase
 {
+    use FakesWuzapi;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->fakeWuzapi();
+    }
+
     /**
      * @return array<string, array{string}>
      */

@@ -10,17 +10,21 @@ use App\Models\WhatsappSession;
 use App\Services\WhatsappStatusRecorder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Tests\Concerns\FakesWuzapi;
 use Tests\Concerns\SeedsLookups;
 use Tests\TestCase;
 
 class WhatsappStatusRecorderTest extends TestCase
 {
+    use FakesWuzapi;
     use RefreshDatabase;
     use SeedsLookups;
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->fakeWuzapi();
 
         $this->setUpSeedsLookups();
     }

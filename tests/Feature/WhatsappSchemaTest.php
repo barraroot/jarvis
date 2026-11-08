@@ -12,13 +12,22 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Tests\Concerns\FakesWuzapi;
 use Tests\Concerns\SeedsLookups;
 use Tests\TestCase;
 
 class WhatsappSchemaTest extends TestCase
 {
+    use FakesWuzapi;
     use RefreshDatabase;
     use SeedsLookups;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->fakeWuzapi();
+    }
 
     public function test_whatsapp_tables_have_expected_columns(): void
     {

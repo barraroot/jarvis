@@ -7,11 +7,13 @@ use App\Models\Tool;
 use App\Models\ToolType;
 use Database\Seeders\WhatsappToolSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\FakesWuzapi;
 use Tests\Concerns\SeedsLookups;
 use Tests\TestCase;
 
 class WhatsappToolCatalogTest extends TestCase
 {
+    use FakesWuzapi;
     use RefreshDatabase;
     use SeedsLookups;
 
@@ -48,6 +50,8 @@ class WhatsappToolCatalogTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->fakeWuzapi();
 
         $this->setUpSeedsLookups();
     }

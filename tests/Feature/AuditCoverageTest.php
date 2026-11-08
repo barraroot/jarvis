@@ -16,6 +16,8 @@ use App\Filament\Resources\Tools\Pages\EditTool;
 use App\Filament\Resources\UserPreferences\Pages\EditUserPreference;
 use App\Filament\Resources\Users\Pages\CreateUser;
 use App\Filament\Resources\Users\Pages\EditUser;
+use App\Filament\Resources\WhatsappSessions\Pages\ListWhatsappSessions;
+use App\Jobs\DeliverWhatsappOutbound;
 use App\Models\Agent;
 use App\Models\AiModel;
 use App\Models\AiModelCapability;
@@ -31,19 +33,30 @@ use App\Models\Tool;
 use App\Models\ToolType;
 use App\Models\User;
 use App\Models\UserPreference;
+use App\Models\WhatsappConsent;
+use App\Models\WhatsappOutboundMessage;
+use App\Models\WhatsappOutboundStatus;
+use App\Models\WhatsappSchedule;
+use App\Models\WhatsappSession;
 use App\Services\ApprovalService;
-use App\Support\AuditLogger;
+use App\Services\WhatsappOutboundService;
 use App\Support\Settings;
 use App\Tools\Contracts\JarvisTool;
 use App\Tools\ToolContext;
 use App\Tools\ToolExecutor;
+use App\Tools\ToolResult;
 use Closure;
 use Filament\Actions\DeleteAction;
 use Filament\Facades\Filament;
+use Illuminate\Bus\UniqueLock;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Sleep;
 use Livewire\Livewire;
+use Tests\Concerns\FakesWuzapi;
 use Tests\Concerns\SeedsLookups;
 use Tests\TestCase;
 
@@ -53,14 +66,24 @@ use Tests\TestCase;
  */
 class AuditCoverageTest extends TestCase
 {
+    use FakesWuzapi;
     use RefreshDatabase;
     use SeedsLookups;
 
     private const string FRONTEND_REFERER = 'http://localhost:5173/login';
 
+    private const string WHATSAPP_CONTACT = '5511988887777@s.whatsapp.net';
+
     private User $admin;
 
     private User $operator;
+
+    private bool $whatsappReady = false;
+
+    /**
+     * @var Collection<int, DeliverWhatsappOutbound>
+     */
+    private Collection $deliveredJobs;
 
     protected function setUp(): void
     {
@@ -79,6 +102,15 @@ class AuditCoverageTest extends TestCase
         $this->operator = User::factory()->create(['email' => 'operador@example.com', 'password' => 'senha-correta-123']);
 
         RecordingWriteTool::$runs = 0;
+
+        $this->deliveredJobs = new Collection;
+    }
+
+    protected function tearDown(): void
+    {
+        Queue::releaseUniqueJobLocks();
+
+        parent::tearDown();
     }
 
     public function test_write_tool_execution_records_approver(): void
@@ -366,32 +398,176 @@ class AuditCoverageTest extends TestCase
     }
 
     /**
-     * CT-41 WhatsApp slugs. Their emitting flows (session, consent, send and
-     * schedule services) land in later phases; until T26 swaps these for the
-     * real flows, each slug is emitted through the AuditLogger entry point.
+     * CT-41 WhatsApp slugs (RNF-09), each emitted by its real flow: the
+     * consent/session API, the admin resource actions, the send tool and its
+     * delivery, the guard, the schedule tool, the scheduler and CT-08.
      *
      * @return array<string, Closure(): void>
      */
     private function whatsappFixtures(): array
     {
-        $slugs = [
-            AuditAction::WHATSAPP_CONSENT_GRANTED,
-            AuditAction::WHATSAPP_CONSENT_REVOKED,
-            AuditAction::WHATSAPP_SESSION_PROVISIONED,
-            AuditAction::WHATSAPP_SESSION_REMOVED,
-            AuditAction::WHATSAPP_SESSION_SUSPENDED,
-            AuditAction::WHATSAPP_SESSION_RESUMED,
-            AuditAction::WHATSAPP_MESSAGE_SENT,
-            AuditAction::WHATSAPP_SEND_BLOCKED,
-            AuditAction::WHATSAPP_SCHEDULE_CREATED,
-            AuditAction::WHATSAPP_SCHEDULE_EXECUTED,
-            AuditAction::WHATSAPP_SCHEDULE_CANCELLED,
-        ];
+        return [
+            AuditAction::WHATSAPP_CONSENT_GRANTED => function (): void {
+                $this->actingAs($this->whatsappUser(consent: false));
+                $this->postJson('/api/v1/whatsapp/consent', [
+                    'version' => WhatsappConsent::CURRENT_VERSION,
+                    'scopes' => WhatsappConsent::SCOPES,
+                ])->assertOk();
+            },
+            AuditAction::WHATSAPP_CONSENT_REVOKED => function (): void {
+                $this->actingAs($this->whatsappSession()->user);
+                $this->deleteJson('/api/v1/whatsapp/consent')->assertOk();
+            },
+            AuditAction::WHATSAPP_SESSION_PROVISIONED => function (): void {
+                $this->actingAs($this->whatsappUser());
+                $this->postJson('/api/v1/whatsapp/session')->assertCreated();
+            },
+            AuditAction::WHATSAPP_SESSION_REMOVED => function (): void {
+                $this->actingAs($this->whatsappSession()->user);
+                $this->deleteJson('/api/v1/whatsapp/session')->assertOk();
+            },
+            AuditAction::WHATSAPP_SESSION_SUSPENDED => fn () => $this->asAdmin(fn () => Livewire::test(ListWhatsappSessions::class)
+                ->callTableAction('suspend', $this->whatsappSession())
+                ->assertHasNoTableActionErrors()),
+            AuditAction::WHATSAPP_SESSION_RESUMED => fn () => $this->asAdmin(fn () => Livewire::test(ListWhatsappSessions::class)
+                ->callTableAction('resume', $this->whatsappSession(suspended: true))
+                ->assertHasNoTableActionErrors()),
+            AuditAction::WHATSAPP_MESSAGE_SENT => function (): void {
+                $session = $this->whatsappSession();
 
-        return array_combine(
-            $slugs,
-            array_map(fn (string $slug): Closure => fn () => app(AuditLogger::class)->log($slug, $this->operator), $slugs),
-        );
+                $result = $this->executeApprovedWhatsappTool($session->user, 'whatsapp.send.text', ['to' => self::WHATSAPP_CONTACT, 'text' => 'Olá!']);
+                $this->assertTrue($result->isCompleted(), (string) $result->error);
+
+                $this->runWhatsappDeliveries();
+            },
+            AuditAction::WHATSAPP_SEND_BLOCKED => function (): void {
+                $session = $this->whatsappSession();
+
+                $result = $this->executeApprovedWhatsappTool($session->user, 'whatsapp.send.text', ['to' => self::WHATSAPP_CONTACT, 'text' => 'Olá!']);
+                $this->assertTrue($result->isCompleted(), (string) $result->error);
+
+                // The kill switch is re-checked at delivery (RF-28): the queued send is blocked.
+                app(Settings::class)->set('whatsapp.kill_switch', 1);
+
+                try {
+                    $this->runWhatsappDeliveries();
+                } finally {
+                    app(Settings::class)->set('whatsapp.kill_switch', 0);
+                }
+
+                $outbound = WhatsappOutboundMessage::query()->with('status')->findOrFail($result->output['outbound_id']);
+                $this->assertSame(WhatsappOutboundStatus::BLOCKED, $outbound->status->slug);
+            },
+            AuditAction::WHATSAPP_SCHEDULE_CREATED => function (): void {
+                $session = $this->whatsappSession();
+
+                $result = $this->executeApprovedWhatsappTool($session->user, 'whatsapp.schedule.create', [
+                    'to' => self::WHATSAPP_CONTACT,
+                    'kind' => 'text',
+                    'text' => 'Lembrete',
+                    'run_at' => now()->addDay()->toIso8601String(),
+                ]);
+                $this->assertTrue($result->isCompleted(), (string) $result->error);
+            },
+            AuditAction::WHATSAPP_SCHEDULE_EXECUTED => function (): void {
+                $session = $this->whatsappSession();
+                WhatsappSchedule::factory()->forSession($session)->create([
+                    'to_jid' => self::WHATSAPP_CONTACT,
+                    'payload' => ['text' => 'Bom dia'],
+                    'run_at' => now()->subMinute(),
+                    'next_run_at' => now()->subMinute(),
+                ]);
+
+                $this->artisan('jarvis:whatsapp:dispatch-schedules')->assertSuccessful();
+                $this->runWhatsappDeliveries();
+            },
+            AuditAction::WHATSAPP_SCHEDULE_CANCELLED => function (): void {
+                $session = $this->whatsappSession();
+                $schedule = WhatsappSchedule::factory()->forSession($session)->create(['to_jid' => self::WHATSAPP_CONTACT]);
+
+                $this->actingAs($session->user);
+                $this->postJson("/api/v1/whatsapp/schedules/{$schedule->id}/cancel")->assertOk();
+            },
+        ];
+    }
+
+    private function whatsappUser(bool $consent = true): User
+    {
+        $this->fakeWhatsappOnce();
+
+        $user = User::factory()->create();
+
+        if ($consent) {
+            WhatsappConsent::factory()->for($user)->create();
+        }
+
+        return $user;
+    }
+
+    /**
+     * A connected, consented session with its Redis delivery locks released
+     * (session ids repeat across runs after `migrate:fresh`).
+     */
+    private function whatsappSession(bool $suspended = false): WhatsappSession
+    {
+        $this->fakeWhatsappOnce();
+
+        $factory = WhatsappSession::factory()->connected()->withConsent();
+
+        $session = ($suspended ? $factory->suspended() : $factory)->create(['wuzapi_user_id' => 'wuzapi-user-1']);
+
+        (new UniqueLock(Cache::store()))->release(new DeliverWhatsappOutbound($session->id));
+        Cache::lock(WhatsappOutboundService::deliveryLockKey($session->id))->forceRelease();
+        Cache::lock(WhatsappOutboundService::guardLockKey($session->id))->forceRelease();
+
+        return $session;
+    }
+
+    /**
+     * The wuzapi fake and the internal tool catalogue are only set up for the
+     * WhatsApp flows, so the other fixtures keep their own HTTP behaviour.
+     */
+    private function fakeWhatsappOnce(): void
+    {
+        if ($this->whatsappReady) {
+            return;
+        }
+
+        $this->whatsappReady = true;
+
+        $this->fakeWuzapi();
+        Sleep::fake();
+
+        $this->artisan('jarvis:tools:sync-internal')->assertSuccessful();
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private function executeApprovedWhatsappTool(User $user, string $identifier, array $input): ToolResult
+    {
+        $tool = Tool::query()->where('identifier', $identifier)->firstOrFail();
+        $approval = Approval::factory()->approved()->create(['user_id' => $user->id, 'tool_id' => $tool->id, 'input' => $input]);
+
+        return app(ToolExecutor::class)->execute($tool, $input, ToolContext::forApproval($approval));
+    }
+
+    /**
+     * Run the pushed delivery jobs as a worker would.
+     */
+    private function runWhatsappDeliveries(): void
+    {
+        foreach (Queue::pushed(DeliverWhatsappOutbound::class) as $job) {
+            if ($this->deliveredJobs->contains($job)) {
+                continue;
+            }
+
+            $this->deliveredJobs->push($job);
+
+            (new UniqueLock(Cache::store()))->release($job);
+
+            $job->handle(app(WhatsappOutboundService::class));
+        }
     }
 
     private function asAdmin(Closure $flow): void

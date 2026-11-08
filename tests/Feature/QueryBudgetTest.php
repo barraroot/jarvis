@@ -11,11 +11,20 @@ use App\Models\Memory;
 use App\Models\MemoryEmbedding;
 use App\Models\Task;
 use App\Models\TaskStep;
+use App\Models\Tool;
 use App\Models\ToolExecution;
 use App\Models\User;
 use App\Models\Visualization;
 use App\Models\VoiceSession;
+use App\Models\WhatsappMessage;
+use App\Models\WhatsappOutboundMessage;
+use App\Models\WhatsappOutboundRecipient;
+use App\Models\WhatsappSchedule;
+use App\Models\WhatsappSession;
+use App\Tools\ToolContext;
+use App\Tools\ToolExecutor;
 use Database\Factories\MemoryEmbeddingFactory;
+use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -40,6 +49,8 @@ class QueryBudgetTest extends TestCase
      * Maximum statements per listing request (auth, page, count, eager loads).
      */
     private const int BUDGET = 15;
+
+    private const string WHATSAPP_CHAT = '5511988887777@s.whatsapp.net';
 
     private User $user;
 
@@ -127,6 +138,78 @@ class QueryBudgetTest extends TestCase
         $this->assertSame($two, $twenty, 'CT-10 grows with the batch size.');
     }
 
+    /**
+     * RNF-12: CT-03 does not grow with the day's sends nor with stored
+     * messages; CT-08 does not grow with the number of schedules.
+     */
+    public function test_whatsapp_session_and_schedule_listing_query_counts_are_constant(): void
+    {
+        $session = WhatsappSession::factory()->connected()->withConsent()->create(['user_id' => $this->user->id]);
+        $this->whatsappActivity($session, 2);
+
+        // Warm the lookup and settings caches so both measurements start equal.
+        $this->getJson('/api/v1/whatsapp/session')->assertOk();
+        $this->getJson('/api/v1/whatsapp/schedules')->assertOk();
+
+        $sessionFew = $this->assertQueryCountLessThan(self::BUDGET, fn () => $this->getJson('/api/v1/whatsapp/session')->assertOk(), 'CT-03 exceeded the query budget.');
+        $schedulesFew = $this->assertQueryCountLessThan(
+            self::BUDGET,
+            fn () => $this->getJson('/api/v1/whatsapp/schedules')->assertOk()->assertJsonCount(2, 'data'),
+            'CT-08 exceeded the query budget.',
+        );
+
+        $this->whatsappActivity($session, 10);
+
+        $this->assertSame($sessionFew, $this->countQueries(fn () => $this->getJson('/api/v1/whatsapp/session')->assertOk()), 'CT-03 grows with the rows.');
+        $this->assertSame(
+            $schedulesFew,
+            $this->countQueries(fn () => $this->getJson('/api/v1/whatsapp/schedules')->assertOk()->assertJsonCount(12, 'data')),
+            'CT-08 grows with the number of schedules (N+1).',
+        );
+    }
+
+    public function test_whatsapp_admin_resource_query_count_is_constant(): void
+    {
+        Filament::setCurrentPanel('admin');
+
+        $admin = User::factory()->admin()->create();
+        $this->actingAs($admin);
+
+        $this->whatsappActivity(WhatsappSession::factory()->connected()->create(), 2);
+
+        $this->get('/admin/whatsapp-sessions')->assertOk();
+
+        $few = $this->assertQueryCountLessThan(30, fn () => $this->get('/admin/whatsapp-sessions')->assertOk(), 'The WhatsApp admin listing exceeded its budget.');
+
+        foreach (range(1, 5) as $index) {
+            $this->whatsappActivity(WhatsappSession::factory()->connected()->suspended()->create(), $index);
+        }
+
+        $this->assertSame($few, $this->countQueries(fn () => $this->get('/admin/whatsapp-sessions')->assertOk()), 'The WhatsApp admin listing grows with the sessions (N+1).');
+    }
+
+    public function test_whatsapp_messages_read_query_count_is_constant(): void
+    {
+        $session = WhatsappSession::factory()->connected()->withConsent()->create(['user_id' => $this->user->id]);
+        $this->artisan('jarvis:tools:sync-internal')->assertSuccessful();
+
+        $tool = Tool::query()->where('identifier', 'whatsapp.messages.read')->firstOrFail();
+        $read = fn (int $expected) => $this->assertCount(
+            $expected,
+            app(ToolExecutor::class)->execute($tool, ['chat_jid' => self::WHATSAPP_CHAT, 'limit' => 50], new ToolContext($this->user))->output['messages'],
+        );
+
+        WhatsappMessage::factory()->forSession($session)->count(2)->create(['chat_jid' => self::WHATSAPP_CHAT]);
+        $read(2);
+
+        $two = $this->assertQueryCountLessThan(self::BUDGET, fn () => $read(2), 'whatsapp.messages.read exceeded the query budget.');
+
+        WhatsappMessage::factory()->forSession($session)->count(10)->create(['chat_jid' => self::WHATSAPP_CHAT]);
+        WhatsappMessage::factory()->forSession($session)->image()->count(10)->create(['chat_jid' => self::WHATSAPP_CHAT]);
+
+        $this->assertSame($two, $this->countQueries(fn () => $read(22)), 'whatsapp.messages.read grows with the messages (N+1).');
+    }
+
     public function test_memory_vector_search_uses_the_hnsw_index(): void
     {
         $model = AiModel::factory()->defaultEmbedding()->create();
@@ -171,6 +254,25 @@ class QueryBudgetTest extends TestCase
             'messages_conversation_id_id_index',
             $this->explain('SELECT * FROM messages WHERE conversation_id = ? ORDER BY id DESC LIMIT 50', [1]),
         );
+    }
+
+    /**
+     * Schedules, today's sends (with recipients) and stored messages of a session.
+     */
+    private function whatsappActivity(WhatsappSession $session, int $count): void
+    {
+        WhatsappSchedule::factory()->forSession($session)->count($count)->create(['to_jid' => self::WHATSAPP_CHAT]);
+        WhatsappMessage::factory()->forSession($session)->count($count)->create(['chat_jid' => self::WHATSAPP_CHAT]);
+
+        foreach (WhatsappOutboundMessage::factory()->forSession($session)->sent()->count($count)->create() as $outbound) {
+            WhatsappOutboundRecipient::query()->create([
+                'whatsapp_outbound_message_id' => $outbound->id,
+                'whatsapp_session_id' => $session->id,
+                'jid' => self::WHATSAPP_CHAT,
+                'is_non_contact' => false,
+                'created_at' => now(),
+            ]);
+        }
     }
 
     private function seedRows(int $count): void
