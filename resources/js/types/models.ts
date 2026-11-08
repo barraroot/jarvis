@@ -272,6 +272,73 @@ export interface ConnectorStatusChange {
     last_synced_at: string | null;
 }
 
+/** WhatsApp consent scope (RF-09). */
+export type WhatsappScope = 'leitura' | 'envio' | 'grupos' | 'midia';
+
+/** WhatsApp session status; suspension is a separate flag (RF-41). */
+export type WhatsappSessionStatus = 'pending' | 'connected' | 'disconnected' | 'error';
+
+/** WhatsApp schedule status (RF-30, RF-33, RF-43). */
+export type WhatsappScheduleStatus = 'active' | 'paused' | 'cancelled' | 'completed';
+
+/** WhatsApp message kind accepted by schedules. */
+export type WhatsappScheduleKind = 'text' | 'image' | 'video' | 'audio' | 'document' | 'location';
+
+/** `POST /api/v1/whatsapp/consent` response (CT-01). */
+export interface WhatsappConsent {
+    version: number;
+    scopes: WhatsappScope[];
+    consented_at: string;
+    valid: boolean;
+}
+
+/** Consent as embedded in the session (CT-03): `version` is null when never accepted. */
+export interface WhatsappSessionConsent {
+    version: number | null;
+    scopes: WhatsappScope[];
+    valid: boolean;
+}
+
+/** `GET /api/v1/whatsapp/session` (CT-03/CT-04): never carries tokens, QR or pairing code. */
+export interface WhatsappSession {
+    id: number;
+    status: WhatsappSessionStatus;
+    suspended: boolean;
+    phone_masked: string | null;
+    last_error: string | null;
+    last_checked_at: string | null;
+    connected_at: string | null;
+    consent: WhatsappSessionConsent;
+    current_consent_version: number;
+    usage_today: {
+        sends: number;
+        cap: number;
+    };
+}
+
+/** `GET /api/v1/whatsapp/schedules` item (CT-08); the payload is never exposed. */
+export interface WhatsappSchedule {
+    id: number;
+    to: string;
+    kind: WhatsappScheduleKind;
+    recurrence: string | null;
+    timezone: 'America/Sao_Paulo';
+    next_run_at: string | null;
+    approval_expires_at: string;
+    status: WhatsappScheduleStatus;
+    created_at: string;
+}
+
+/** `whatsapp.session.status.changed` payload (CT-10). */
+export interface WhatsappSessionStatusChange {
+    session_id: number;
+    status: WhatsappSessionStatus;
+    previous_status: WhatsappSessionStatus | null;
+    suspended: boolean;
+    error: string | null;
+    at: string;
+}
+
 /** Kind of entry in the operator's activity history (US-12.4). */
 export type ActivityType = 'agent' | 'tool' | 'approval';
 

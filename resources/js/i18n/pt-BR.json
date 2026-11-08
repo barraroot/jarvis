@@ -617,5 +617,130 @@
     },
     "loadMore": "Carregar mais",
     "intro": "Ferramentas de escrita, sensíveis ou externas só rodam depois da sua decisão. Revise cada pedido e aprove ou negue."
+  },
+  "whatsapp": {
+    "title": "WhatsApp",
+    "intro": "Conecte seu WhatsApp para que o JARVIS leia mensagens recebidas e envie mensagens em seu nome, sempre com a sua aprovação.",
+    "loading": "Carregando WhatsApp…",
+    "consent": {
+      "title": "Termo de consentimento do WhatsApp",
+      "version": "Versão {version} do termo",
+      "intro": "Antes de conectar, leia com atenção o que o JARVIS fará com o seu WhatsApp:",
+      "reading": "Leitura e armazenamento: as mensagens recebidas nas suas conversas são lidas e armazenadas pelo JARVIS para que o assistente possa consultá-las.",
+      "sending": "Envio sob aprovação: o JARVIS só envia mensagens, mídias ou ações em grupos depois que você aprovar cada pedido (ou o agendamento correspondente).",
+      "aiProvider": "Provedor de IA: o conteúdo lido das mensagens é enviado ao provedor de IA configurado para que o assistente possa responder e agir.",
+      "brakes": "Freios: há limites de envios por minuto, por destinatário e por dia, além de proteção contra envio em massa para quem não está nos seus contatos. O administrador pode suspender a sessão ou desativar todos os envios.",
+      "retention": "Retenção: as mensagens armazenadas são apagadas automaticamente após o prazo de retenção definido pelo administrador.",
+      "revocation": "Revogação: você pode revogar este consentimento a qualquer momento. A revogação desconecta o aparelho, apaga as mensagens armazenadas, nega as aprovações pendentes e pausa os agendamentos.",
+      "scopesLabel": "Escolha o que o JARVIS pode fazer (marque ao menos um escopo):",
+      "accept": "Aceitar e continuar",
+      "accepted": "Consentimento registrado.",
+      "current": "Consentimento vigente (versão {version})",
+      "outdated": "O termo de consentimento mudou. Revise e aceite a nova versão para continuar usando o WhatsApp.",
+      "scopesGranted": "Escopos concedidos: {scopes}"
+    },
+    "scopes": {
+      "leitura": "Leitura",
+      "envio": "Envio",
+      "grupos": "Grupos",
+      "midia": "Mídia"
+    },
+    "scopeHints": {
+      "leitura": "Ler e armazenar as mensagens recebidas e listar conversas.",
+      "envio": "Enviar mensagens de texto e localização, com aprovação.",
+      "grupos": "Criar grupos e gerenciar participantes, com aprovação.",
+      "midia": "Enviar e baixar imagens, vídeos, áudios e documentos."
+    },
+    "status": {
+      "label": "Status",
+      "pending": "Pendente",
+      "connected": "Conectado",
+      "disconnected": "Desconectado",
+      "error": "Erro",
+      "suspended": "Suspensa pelo administrador"
+    },
+    "session": {
+      "phone": "Número: {phone}",
+      "connectedAt": "Conectado desde {date}",
+      "lastChecked": "Última verificação: {date}",
+      "usageToday": "Envios hoje: {sends} de {cap}",
+      "suspendedBody": "Um administrador suspendeu esta sessão. Leituras e envios ficam bloqueados até a reativação.",
+      "errorTitle": "Falha na conexão com o WhatsApp",
+      "errorFallback": "Não foi possível falar com o serviço do WhatsApp. Tente novamente.",
+      "noSession": "Nenhum WhatsApp conectado ainda."
+    },
+    "actions": {
+      "connect": "Conectar WhatsApp",
+      "connectQr": "Conectar por QR code",
+      "newQr": "Gerar novo QR",
+      "connectPhone": "Conectar por número",
+      "requestCode": "Gerar código",
+      "retry": "Tentar novamente",
+      "revoke": "Revogar consentimento",
+      "remove": "Remover WhatsApp",
+      "cancel": "Cancelar",
+      "confirm": "Confirmar"
+    },
+    "pairing": {
+      "qrTitle": "Escaneie o QR code",
+      "qrHint": "No celular, abra o WhatsApp, toque em Aparelhos conectados e escaneie este código. O QR expira em poucos segundos; gere outro se necessário.",
+      "qrAlt": "QR code para conectar o WhatsApp",
+      "phoneLabel": "Telefone com DDI e DDD (só números)",
+      "phonePlaceholder": "5511999998888",
+      "phoneInvalid": "Informe o telefone com DDI e DDD, só números (10 a 15 dígitos).",
+      "codeTitle": "Código de pareamento",
+      "codeHint": "No celular, abra o WhatsApp, toque em Aparelhos conectados, escolha conectar com número de telefone e digite este código."
+    },
+    "modals": {
+      "revokeTitle": "Revogar consentimento do WhatsApp",
+      "revokeBody": "Ao revogar, o aparelho é desconectado, todas as mensagens armazenadas são apagadas, as aprovações pendentes de WhatsApp são negadas e os agendamentos ativos ficam pausados até você cancelá-los ou retomá-los. Para usar de novo, será preciso aceitar o termo e parear outra vez.",
+      "removeTitle": "Remover WhatsApp",
+      "removeBody": "Ao remover, a sessão é excluída no serviço do WhatsApp e são apagados a sessão, as mensagens, o histórico de envios e todos os agendamentos. As aprovações pendentes de WhatsApp são negadas. Esta ação não pode ser desfeita."
+    },
+    "schedules": {
+      "title": "Agendamentos do WhatsApp",
+      "empty": "Nenhum agendamento do WhatsApp.",
+      "recipient": "Destinatário",
+      "kind": "Tipo",
+      "nextRun": "Próxima execução",
+      "recurrence": "Recorrência",
+      "status": "Status",
+      "once": "Envio único",
+      "noNextRun": "sem próxima execução",
+      "expiresAt": "Aprovação válida até {date}",
+      "cancel": "Cancelar",
+      "resume": "Retomar",
+      "cancelled": "Agendamento cancelado.",
+      "resumed": "Agendamento retomado.",
+      "kinds": {
+        "text": "Texto",
+        "image": "Imagem",
+        "video": "Vídeo",
+        "audio": "Áudio",
+        "document": "Documento",
+        "location": "Localização"
+      },
+      "statuses": {
+        "active": "Ativo",
+        "paused": "Pausado",
+        "cancelled": "Cancelado",
+        "completed": "Concluído"
+      }
+    },
+    "messages": {
+      "revoked": "Consentimento do WhatsApp revogado.",
+      "removed": "WhatsApp removido.",
+      "provisioned": "WhatsApp criado. Escolha como parear o aparelho.",
+      "connected": "WhatsApp conectado."
+    },
+    "errors": {
+      "consentRequired": "Aceite o termo de consentimento do WhatsApp na versão vigente antes de continuar.",
+      "upstream": "Não foi possível falar com o serviço do WhatsApp agora. Tente novamente em instantes.",
+      "notPairable": "A sessão do WhatsApp não pode ser pareada agora: ela já está conectada ou foi suspensa.",
+      "notFound": "Nenhuma sessão do WhatsApp foi criada.",
+      "scheduleConflict": "O estado do agendamento mudou. Atualize a lista e tente novamente.",
+      "actionFailed": "Não foi possível concluir a ação no WhatsApp.",
+      "loadFailed": "Não foi possível carregar o WhatsApp."
+    }
   }
 }
