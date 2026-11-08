@@ -165,4 +165,74 @@ class SettingsPageTest extends TestCase
         $this->assertSame('marin', $log->properties['old']);
         $this->assertSame('cedar', $log->properties['new']);
     }
+
+    public function test_whatsapp_section_validates_ranges_and_audits_changes(): void
+    {
+        $this->get('/admin/settings')
+            ->assertOk()
+            ->assertSee('WhatsApp — freios e kill switch')
+            ->assertSee('Envios por minuto (por sessão)')
+            ->assertSee('Retenção de mensagens WhatsApp (dias)');
+
+        Livewire::test(SettingsPage::class)
+            ->fillForm(['whatsapp.max_sends_per_minute' => 31])
+            ->call('save')
+            ->assertHasFormErrors(['whatsapp.max_sends_per_minute' => 'max']);
+
+        $this->assertSame(6, app(Settings::class)->whatsappMaxSendsPerMinute());
+
+        Livewire::test(SettingsPage::class)
+            ->fillForm(['whatsapp.max_sends_per_minute' => 8])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(8, app(Settings::class)->whatsappMaxSendsPerMinute());
+
+        $logs = AuditLog::query()
+            ->where('audit_action_id', AuditAction::idFor(AuditAction::SETTING_UPDATED))
+            ->get();
+
+        $this->assertCount(1, $logs);
+        $this->assertSame('whatsapp.max_sends_per_minute', $logs[0]->properties['key']);
+        $this->assertSame(6, $logs[0]->properties['old']);
+        $this->assertSame(8, $logs[0]->properties['new']);
+    }
+
+    public function test_whatsapp_cross_field_rule_rejects_jitter_min_above_max(): void
+    {
+        Livewire::test(SettingsPage::class)
+            ->fillForm([
+                'whatsapp.jitter_min_seconds' => 8,
+                'whatsapp.jitter_max_seconds' => 7,
+                'whatsapp.max_sends_per_minute' => 10,
+            ])
+            ->call('save')
+            ->assertHasErrors(['data.whatsapp.jitter_max_seconds']);
+
+        // Nothing is persisted when the cross-field rule fails.
+        $settings = app(Settings::class);
+        $this->assertSame(2, $settings->whatsappJitterMinSeconds());
+        $this->assertSame(7, $settings->whatsappJitterMaxSeconds());
+        $this->assertSame(6, $settings->whatsappMaxSendsPerMinute());
+        $this->assertSame(0, AuditLog::query()->where('audit_action_id', AuditAction::idFor(AuditAction::SETTING_UPDATED))->count());
+    }
+
+    public function test_kill_switch_is_a_toggle_persisted_as_one(): void
+    {
+        Livewire::test(SettingsPage::class)
+            ->assertSchemaStateSet(['whatsapp.kill_switch' => false])
+            ->fillForm(['whatsapp.kill_switch' => true])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(1, Setting::query()->where('key', 'whatsapp.kill_switch')->firstOrFail()->value);
+        $this->assertTrue(app(Settings::class)->whatsappKillSwitchActive());
+
+        $log = AuditLog::query()->where('properties->key', 'whatsapp.kill_switch')->sole();
+        $this->assertSame(0, $log->properties['old']);
+        $this->assertSame(1, $log->properties['new']);
+
+        Livewire::test(SettingsPage::class)
+            ->assertSchemaStateSet(['whatsapp.kill_switch' => true]);
+    }
 }

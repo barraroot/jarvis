@@ -150,6 +150,22 @@ class IntentRouterTest extends TestCase
         $this->assertDatabaseCount('messages', 0);
     }
 
+    public function test_whatsapp_keyword_routes_to_communication_in_heuristic_fallback(): void
+    {
+        $communicationAgent = Agent::factory()->create(['slug' => 'communication', 'name' => 'Communication']);
+
+        IntentClassifier::fake(fn (): array => ['intent' => 'invalido', 'agent_slug' => null, 'confidence' => 0.1]);
+
+        $message = $this->userMessage('Mande no WhatsApp que chego às 18h.');
+
+        $routed = app(IntentRouter::class)->route($message);
+
+        $this->assertTrue($routed->agent->is($communicationAgent));
+        $this->assertSame('delegate_agent', $message->fresh()->meta['routing']['intent']);
+        $this->assertSame('communication', $message->fresh()->meta['routing']['agent']);
+        $this->assertTrue(app(IntentRouter::class)->selectAgent('mande no whatsapp')->is($communicationAgent));
+    }
+
     private function userMessage(string $content): Message
     {
         $conversation = Conversation::factory()->for($this->user)->create();

@@ -6,6 +6,7 @@ use App\Models\Notification;
 use App\Models\TaskLog;
 use App\Models\ToolExecution;
 use App\Models\UsageRecord;
+use App\Models\WhatsappMessage;
 use App\Support\Settings;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -13,8 +14,10 @@ use Illuminate\Support\Facades\Log;
 /**
  * Retention pruning (Notes & Conventions, US-12.2): daily removal of expired
  * execution data — `tool_executions` and `task_logs` after their day-based
- * thresholds, `usage_records` after its month threshold and read
- * notifications after theirs. Conversations, audit logs and memories are
+ * thresholds, `usage_records` after its month threshold, read
+ * notifications after theirs and stored WhatsApp messages after
+ * `retention.whatsapp_messages_days` (RF-38; inbound media is never stored,
+ * only its metadata on the same row). Conversations, audit logs and memories are
  * never touched. Counts are logged for observability; `--dry-run` only
  * prints them. No audit entries are generated (housekeeping, not an action).
  */
@@ -31,6 +34,7 @@ class PruneRetention extends Command
             'task_logs' => $this->countExpiredTaskLogs($settings),
             'usage_records' => $this->countExpiredUsageRecords($settings),
             'notifications' => $this->countExpiredReadNotifications($settings),
+            'whatsapp_messages' => $this->countExpiredWhatsappMessages($settings),
         ];
 
         foreach ($counts as $table => $count) {
@@ -47,6 +51,7 @@ class PruneRetention extends Command
         $this->deleteExpiredTaskLogs($settings);
         $this->deleteExpiredUsageRecords($settings);
         $this->deleteExpiredReadNotifications($settings);
+        $this->deleteExpiredWhatsappMessages($settings);
 
         Log::info('jarvis:retention:prune removed records.', $counts);
 
@@ -82,6 +87,13 @@ class PruneRetention extends Command
             ->count();
     }
 
+    private function countExpiredWhatsappMessages(Settings $settings): int
+    {
+        return WhatsappMessage::query()
+            ->where('created_at', '<', now()->subDays($settings->whatsappMessagesRetentionDays()))
+            ->count();
+    }
+
     private function deleteExpiredToolExecutions(Settings $settings): void
     {
         ToolExecution::query()
@@ -108,6 +120,13 @@ class PruneRetention extends Command
         Notification::query()
             ->whereNotNull('read_at')
             ->where('read_at', '<', now()->subDays($settings->readNotificationsRetentionDays()))
+            ->delete();
+    }
+
+    private function deleteExpiredWhatsappMessages(Settings $settings): void
+    {
+        WhatsappMessage::query()
+            ->where('created_at', '<', now()->subDays($settings->whatsappMessagesRetentionDays()))
             ->delete();
     }
 }

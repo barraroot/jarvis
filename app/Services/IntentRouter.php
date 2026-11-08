@@ -65,6 +65,7 @@ class IntentRouter implements MessageRouter
         ['keyword' => 'automatize', 'intent' => self::DELEGATE_AGENT, 'agent' => 'automation'],
         ['keyword' => 'redija', 'intent' => self::DELEGATE_AGENT, 'agent' => 'communication'],
         ['keyword' => 'pesquise', 'intent' => self::DELEGATE_AGENT, 'agent' => 'research'],
+        ['keyword' => 'whatsapp', 'intent' => self::DELEGATE_AGENT, 'agent' => 'communication'],
     ];
 
     public function __construct(

@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             RememberMemoryToolSeeder::class,
             AgentSeeder::class,
             VisualizationToolSeeder::class,
+            WhatsappToolSeeder::class,
         ]);
     }
 }

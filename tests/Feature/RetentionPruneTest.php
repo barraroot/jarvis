@@ -13,6 +13,7 @@ use App\Models\TaskLog;
 use App\Models\ToolExecution;
 use App\Models\UsageRecord;
 use App\Models\User;
+use App\Models\WhatsappMessage;
 use App\Support\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\SeedsLookups;
@@ -158,5 +159,40 @@ class RetentionPruneTest extends TestCase
         $this->assertSame(1, TaskLog::query()->count());
         $this->assertSame(1, UsageRecord::query()->count());
         $this->assertSame(1, Notification::query()->count());
+    }
+
+    public function test_prunes_whatsapp_messages_older_than_configured_retention(): void
+    {
+        $this->settings->set('retention.whatsapp_messages_days', 10);
+
+        $expired = WhatsappMessage::factory()->for($this->user)->count(2)->create(['created_at' => now()->subDays(11)]);
+        $expiredMedia = WhatsappMessage::factory()->for($this->user)->image()->create(['created_at' => now()->subDays(40)]);
+        $kept = WhatsappMessage::factory()->for($this->user)->create(['created_at' => now()->subDays(9)]);
+
+        $this->artisan('jarvis:retention:prune')
+            ->assertSuccessful()
+            ->expectsOutputToContain('whatsapp_messages: 3');
+
+        foreach ([...$expired, $expiredMedia] as $message) {
+            $this->assertModelMissing($message);
+        }
+
+        $this->assertModelExists($kept);
+        $this->assertSame(0, WhatsappMessage::query()->where('created_at', '<', now()->subDays(10))->count());
+    }
+
+    public function test_dry_run_reports_whatsapp_messages_without_deleting(): void
+    {
+        $this->settings->set('retention.whatsapp_messages_days', 30);
+
+        WhatsappMessage::factory()->for($this->user)->count(2)->create(['created_at' => now()->subDays(31)]);
+        WhatsappMessage::factory()->for($this->user)->create(['created_at' => now()->subDays(5)]);
+
+        $this->artisan('jarvis:retention:prune', ['--dry-run' => true])
+            ->assertSuccessful()
+            ->expectsOutputToContain('whatsapp_messages: 2')
+            ->expectsOutputToContain('Dry run: nothing deleted.');
+
+        $this->assertSame(3, WhatsappMessage::query()->count());
     }
 }
